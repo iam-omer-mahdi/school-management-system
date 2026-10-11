@@ -4,13 +4,14 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Model;
 
 /**
  * @property int $id
  * @property string $email
  * @property string $token_hash
- * @property \Carbon\CarbonImmutable $expires_at
+ * @property CarbonImmutable $expires_at
  */
 class PasswordResetOtp extends Model
 {

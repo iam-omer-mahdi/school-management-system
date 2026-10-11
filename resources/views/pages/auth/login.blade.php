@@ -42,8 +42,9 @@ new #[Layout('layouts::app')] class extends Component
         session()->regenerate();
 
         $user = Auth::user();
-        if ($user !== null && is_string($user->display_locale)) {
-            session()->put('locale', $user->display_locale);
+        $userLocale = $user !== null ? ($user->getAttributes()['display_locale'] ?? null) : null;
+        if (is_string($userLocale)) {
+            session()->put('locale', $userLocale);
         }
 
         $this->redirectRoute('dashboard', navigate: true);

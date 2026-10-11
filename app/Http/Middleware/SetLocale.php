@@ -19,8 +19,9 @@ class SetLocale
 
         if (! is_string($locale) || ! in_array($locale, self::SUPPORTED, true)) {
             $user = $request->user();
-            $locale = is_string($user?->display_locale) && in_array($user->display_locale, self::SUPPORTED, true)
-                ? $user->display_locale
+            $userLocale = $user !== null ? ($user->getAttributes()['display_locale'] ?? null) : null;
+            $locale = is_string($userLocale) && in_array($userLocale, self::SUPPORTED, true)
+                ? $userLocale
                 : (string) config('app.locale', 'en');
         }
 

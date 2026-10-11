@@ -11,7 +11,7 @@ use Illuminate\Validation\ValidationException;
 final class SecurityQuestionRecovery
 {
     /**
-     * @param array{answer_1: string, answer_2: string, answer_3: string} $answers
+     * @param  array{answer_1: string, answer_2: string, answer_3: string}  $answers
      *
      * @throws ValidationException
      */
@@ -40,7 +40,7 @@ final class SecurityQuestionRecovery
     }
 
     /**
-     * @param array{question_1: string, answer_1: string, question_2: string, answer_2: string, question_3: string, answer_3: string} $data
+     * @param  array{question_1: string, answer_1: string, question_2: string, answer_2: string, question_3: string, answer_3: string}  $data
      */
     public function updateQuestions(User $user, array $data): User
     {

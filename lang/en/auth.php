@@ -27,4 +27,5 @@ return [
     'recovery_invalid' => 'The answers do not match our records.',
     'answer' => 'Answer',
     'reset_done' => 'Password has been reset. Please log in.',
+    'throttle' => 'Too many attempts. Try again in :seconds seconds.',
 ];

@@ -16,7 +16,7 @@ final class CreateStudent
     ) {}
 
     /**
-     * @param array<string, mixed> $studentData
+     * @param  array<string, mixed>  $studentData
      */
     public function handle(array $studentData, ?int $academicYearId = null, ?int $gradeId = null): Student
     {
