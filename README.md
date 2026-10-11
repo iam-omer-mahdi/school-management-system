@@ -67,7 +67,7 @@ Available now (Phase 1: Foundation):
 | Framework | Laravel 13 |
 | UI | Livewire 4 (single-file page components) |
 | Styling | Tailwind CSS v4, Flowbite |
-| Database | SQLite (default) |
+| Database | MySQL 8.4 |
 | Tests | PHPUnit 12 |
 | Code style | Laravel Pint |
 
@@ -91,7 +91,6 @@ bun install
 cp .env.example .env
 php artisan key:generate
 
-touch database/database.sqlite
 php artisan migrate --seed
 
 bun run build
@@ -104,6 +103,19 @@ composer run dev
 ```
 
 Then open the URL printed in the terminal.
+
+### Database
+
+MySQL 8.4 is required for local development, tests and production. Create both databases before migrating:
+
+```sql
+CREATE DATABASE school_management CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE DATABASE school_management_testing CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+```
+
+Connection settings live in `.env` (`DB_CONNECTION`, `DB_HOST`, `DB_PORT`, `DB_DATABASE`, `DB_USERNAME`, `DB_PASSWORD`); the test suite always uses `school_management_testing` and refuses to run against any other database.
+
+Back up production on a schedule (for example a nightly `mysqldump`) and test the restore regularly. Never run the test suite against the development or production database.
 
 ### Demo account
 
@@ -126,7 +138,7 @@ Code style:
 ./vendor/bin/pint          # fix
 ```
 
-The suite uses an in-memory SQLite database and covers authentication, the app shell, localization, school structure, academic years, student enrollment, password reset, email change and translated validation messages.
+The suite runs against a dedicated MySQL testing database (`school_management_testing`, recreated for every run) and covers authentication, the app shell, localization, school structure, academic years, student enrollment, password reset, email change and translated validation messages.
 
 ## Architecture
 
