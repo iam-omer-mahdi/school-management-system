@@ -45,4 +45,22 @@ class UserFactory extends Factory
             'email_verified_at' => null,
         ]);
     }
+
+    /**
+     * Attach hashed security answers for the current recovery questions.
+     * Answers are normalized (trimmed and lowercased) like the recovery action.
+     */
+    public function withSecurityAnswers(
+        string $answer1 = 'invented-nickname',
+        string $answer2 = 'first-corner-shop',
+        string $answer3 = 'first-cover-to-cover-book'
+    ): static {
+        $normalize = fn (string $value): string => mb_strtolower(trim($value), 'UTF-8');
+
+        return $this->state(fn (array $attributes) => [
+            'security_answer_1' => Hash::make($normalize($answer1)),
+            'security_answer_2' => Hash::make($normalize($answer2)),
+            'security_answer_3' => Hash::make($normalize($answer3)),
+        ]);
+    }
 }

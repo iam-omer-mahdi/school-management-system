@@ -36,9 +36,9 @@ class PasswordResetTest extends TestCase
         $user = $this->makeUser();
 
         app(SecurityQuestionRecovery::class)->updateQuestions($user, [
-            'answer_1' => '  Nile ',
-            'answer_2' => 'Cairo',
-            'answer_3' => 'School',
+            'answer_1' => '  Invented-Nickname ',
+            'answer_2' => 'First-Corner-Shop',
+            'answer_3' => 'First-Cover-Book',
         ]);
 
         return $user->refresh();
@@ -275,9 +275,9 @@ class PasswordResetTest extends TestCase
 
         // Answers are normalized (trim + lowercase) before the hashed compare.
         $component
-            ->set('answer_1', 'nile')
-            ->set('answer_2', 'CAIRO')
-            ->set('answer_3', '  School  ')
+            ->set('answer_1', 'invented-nickname')
+            ->set('answer_2', 'FIRST-CORNER-SHOP')
+            ->set('answer_3', '  First-Cover-Book  ')
             ->call('verifyAnswers')
             ->assertRedirect(route('password.request'));
 
@@ -328,6 +328,10 @@ class PasswordResetTest extends TestCase
 
         $this->assertSame($known->get('questions'), $unknown->get('questions'));
         $this->assertCount(3, $known->get('questions'));
+        $this->assertSame(SecurityQuestionRecovery::questions(), $known->get('questions'));
+        $this->assertStringContainsString('nickname', $known->get('questions')[0]);
+        $this->assertStringContainsString('shop or café', $known->get('questions')[1]);
+        $this->assertStringContainsString('book or magazine', $known->get('questions')[2]);
     }
 
     public function test_security_questions_attempt_limited(): void

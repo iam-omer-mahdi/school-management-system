@@ -32,6 +32,7 @@ return [
     'hide_password_form' => 'Hide password form',
     'security' => 'Security questions (offline recovery)',
     'security_hint' => 'Answer the three questions below. Answers are stored hashed.',
+    'security_invented_hint' => 'You may enter an invented answer you will remember. Treat it like a password.',
     'manage_security' => 'Set security answers',
     'hide_security_form' => 'Hide security form',
     'question' => 'Question :n',

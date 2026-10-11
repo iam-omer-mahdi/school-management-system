@@ -277,6 +277,7 @@ new #[Layout('layouts::app')] class extends Component
             {{ $showSecurityForm ? __('settings.hide_security_form') : __('settings.manage_security') }}
         </x-ui.button>
         @if($showSecurityForm)
+            <div class="mt-4"><x-ui.alert type="info">{{ __('settings.security_invented_hint') }}</x-ui.alert></div>
             @php($securityQuestions = SecurityQuestionRecovery::questions())
             <form wire:submit="updateSecurity" class="mt-4 space-y-4">
                 <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
