@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 return [
-    'app_name' => 'رسوم المدارس',
+    'app_name' => 'نظام إدارة المدارس',
     'dashboard' => 'لوحة التحكم',
     'schools' => 'المدارس',
     'academic_years' => 'السنوات الدراسية',

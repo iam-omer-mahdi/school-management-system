@@ -1,11 +1,15 @@
 {
     "$schema": "https://getcomposer.org/schema.json",
-    "name": "laravel/blank-livewire-starter-kit",
+    "name": "school/management-system",
     "type": "project",
-    "description": "The official Laravel starter kit for Livewire.",
+    "description": "School Management System - bilingual Laravel and Livewire admin for schools, students and enrollment.",
     "keywords": [
+        "school",
+        "management",
         "laravel",
-        "framework"
+        "livewire",
+        "arabic",
+        "rtl"
     ],
     "license": "MIT",
     "require": {

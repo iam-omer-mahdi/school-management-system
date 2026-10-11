@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 return [
-    'app_name' => 'School Fees',
+    'app_name' => 'School Management System',
     'dashboard' => 'Dashboard',
     'schools' => 'Schools',
     'academic_years' => 'Academic years',
