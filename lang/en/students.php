@@ -45,5 +45,6 @@ return [
         'not_found' => 'Student not found.',
         'inactive_cannot_enroll' => 'Only active students can be enrolled. Reactivate first.',
         'already_enrolled' => 'Student is already enrolled in this academic year.',
+        'number_unavailable' => 'A student number could not be assigned. Please try again.',
     ],
 ];
