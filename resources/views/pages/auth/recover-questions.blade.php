@@ -127,19 +127,14 @@ new #[Layout('layouts::app')] class extends Component
             <x-ui.button type="submit" variant="primary" class="w-full" loading-target="lookup" wire:loading.attr="disabled">{{ __('common.search') }}</x-ui.button>
         </form>
     @else
-        <div class="mb-4 space-y-1 rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm text-gray-700 dark:border-gray-600 dark:bg-gray-700/40 dark:text-gray-300">
-            <div>1. {{ $this->questions[0] }}</div>
-            <div>2. {{ $this->questions[1] }}</div>
-            <div>3. {{ $this->questions[2] }}</div>
-        </div>
         <form wire:submit="verifyAnswers" class="space-y-4">
-            <x-ui.field :label="__('auth.answer').' 1'" for="answer_1" required :error="$errors->first('answer_1')">
+            <x-ui.field :label="$this->questions[0]" for="answer_1" required :error="$errors->first('answer_1')">
                 <x-ui.input id="answer_1" type="password" wire:model.blur="answer_1" :error="$errors->first('answer_1')" autocomplete="off" required />
             </x-ui.field>
-            <x-ui.field :label="__('auth.answer').' 2'" for="answer_2" required :error="$errors->first('answer_2')">
+            <x-ui.field :label="$this->questions[1]" for="answer_2" required :error="$errors->first('answer_2')">
                 <x-ui.input id="answer_2" type="password" wire:model.blur="answer_2" :error="$errors->first('answer_2')" autocomplete="off" required />
             </x-ui.field>
-            <x-ui.field :label="__('auth.answer').' 3'" for="answer_3" required :error="$errors->first('answer_3')">
+            <x-ui.field :label="$this->questions[2]" for="answer_3" required :error="$errors->first('answer_3')">
                 <x-ui.input id="answer_3" type="password" wire:model.blur="answer_3" :error="$errors->first('answer_3')" autocomplete="off" required />
             </x-ui.field>
             <x-ui.button type="submit" variant="primary" class="w-full" loading-target="verifyAnswers" wire:loading.attr="disabled">{{ __('auth.otp_verify') }}</x-ui.button>
