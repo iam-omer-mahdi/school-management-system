@@ -21,7 +21,7 @@
 @if(auth()->check())
     @php($drawerOnRight = app()->getLocale() === 'ar')
     <div class="flex min-h-screen">
-        <aside class="hidden w-64 shrink-0 flex-col bg-gray-900 p-4 text-gray-100 lg:flex dark:border-e dark:border-gray-800 dark:bg-gray-950">
+        <aside class="sticky top-0 hidden h-screen w-64 shrink-0 flex-col overflow-y-auto bg-gray-900 p-4 text-gray-100 lg:flex dark:border-e dark:border-gray-800 dark:bg-gray-950">
             <div class="flex items-center gap-2 px-2 py-2">
                 <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-indigo-600 font-semibold text-white">S</span>
                 <span class="truncate text-base font-semibold">{{ __('common.app_name') }}</span>
