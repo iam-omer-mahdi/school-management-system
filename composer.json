@@ -12,6 +12,11 @@
         "rtl"
     ],
     "license": "MIT",
+    "authors": [
+        {
+            "name": "iam-omer-mahdi"
+        }
+    ],
     "require": {
         "php": "^8.3",
         "laravel/framework": "^13.17",

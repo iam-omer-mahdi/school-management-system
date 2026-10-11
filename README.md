@@ -4,8 +4,7 @@ A modern, bilingual (English / Arabic) web application for running the administr
 
 The system is being built as a complete product, delivered in well-defined phases. Each phase ships tested, documented and usable on its own. See the [Roadmap](#roadmap).
 
-<!-- Replace <your-username> and <repo> once the repository exists -->
-[![CI](https://github.com/<your-username>/<repo>/actions/workflows/ci.yml/badge.svg)](https://github.com/<your-username>/<repo>/actions/workflows/ci.yml)
+[![CI](https://github.com/iam-omer-mahdi/school-management-system/actions/workflows/ci.yml/badge.svg)](https://github.com/iam-omer-mahdi/school-management-system/actions/workflows/ci.yml)
 ![PHP](https://img.shields.io/badge/PHP-8.5-777BB4?logo=php&logoColor=white)
 ![Laravel](https://img.shields.io/badge/Laravel-13-FF2D20?logo=laravel&logoColor=white)
 ![Livewire](https://img.shields.io/badge/Livewire-4-FB70A9)
@@ -77,16 +76,16 @@ Available now (Phase 1: Foundation):
 
 - PHP 8.5 with the extensions Laravel requires
 - Composer
-- Node.js and npm
+- Node.js and bun
 
 ### Installation
 
 ```bash
-git clone https://github.com/<your-username>/<repo>.git
-cd <repo>
+git clone https://github.com/iam-omer-mahdi/school-management-system.git
+cd school-management-system
 
 composer install
-npm install
+bun install
 
 cp .env.example .env
 php artisan key:generate
@@ -94,7 +93,7 @@ php artisan key:generate
 touch database/database.sqlite
 php artisan migrate --seed
 
-npm run build
+bun build
 ```
 
 ### Run the app
