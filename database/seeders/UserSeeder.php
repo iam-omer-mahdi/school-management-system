@@ -12,11 +12,16 @@ class UserSeeder extends Seeder
 {
     public function run(): void
     {
+        // Local development only: never seed a default account in production.
+        if (app()->isProduction()) {
+            return;
+        }
+
         User::firstOrCreate(
             ['email' => 'finance@school.local'],
             [
                 'name' => 'Finance',
-                'password' => Hash::make('password'),
+                'password' => Hash::make((string) env('SEED_ADMIN_PASSWORD', 'password')),
                 'display_locale' => 'en',
             ]
         );
