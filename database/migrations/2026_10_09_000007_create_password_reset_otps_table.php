@@ -13,8 +13,11 @@ return new class extends Migration
         Schema::create('password_reset_otps', function (Blueprint $table): void {
             $table->id();
             $table->string('email')->index();
-            $table->string('token_hash');
+            $table->string('code_hash');
             $table->timestamp('expires_at');
+            $table->unsignedTinyInteger('attempts')->default(0);
+            $table->timestamp('verified_at')->nullable();
+            $table->timestamp('used_at')->nullable();
             $table->timestamps();
         });
     }
