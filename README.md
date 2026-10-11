@@ -28,6 +28,7 @@ Add screenshots here. Suggested set:
 - [Data model](#data-model)
 - [Internationalization and RTL](#internationalization-and-rtl)
 - [Security](#security)
+- [Offline deployment](#offline-deployment)
 - [Roadmap](#roadmap)
 - [Contributing](#contributing)
 - [License](#license)
@@ -93,7 +94,7 @@ php artisan key:generate
 touch database/database.sqlite
 php artisan migrate --seed
 
-bun build
+bun run build
 ```
 
 ### Run the app
@@ -194,8 +195,17 @@ Key constraints: a grade number is unique per school, and a student has at most 
 - Password reset uses single-use, server-issued tokens that expire in 15 minutes. Completing a reset rotates the remember-me token.
 - Security-question answers are normalized and stored hashed. The questions are the same for every email address, so the recovery flow does not reveal whether an account exists.
 - Changing the email address requires proving access to the new address. Changing the password requires the current password.
+- Administrators can reset any account with `php artisan user:reset-password {email}` (run on the server; the password is prompted for, never passed as an argument).
 
 To report a vulnerability, please open a private security advisory on GitHub rather than a public issue.
+
+## Offline deployment
+
+The app itself works without internet access. Two things to know when deploying somewhere offline:
+
+- The email-code features (forgot-password code, change-email code) need a configured mail server and will not function offline.
+- Security questions are the offline recovery path. Answers may be invented, as long as they are memorable — treat them like passwords.
+- `php artisan user:reset-password {email}` is the administrator fallback. Run it on the server when a user cannot recover access any other way.
 
 ## Roadmap
 
