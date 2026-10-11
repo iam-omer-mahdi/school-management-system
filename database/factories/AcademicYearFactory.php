@@ -19,12 +19,14 @@ class AcademicYearFactory extends Factory
      */
     public function definition(): array
     {
-        $start = fake()->numberBetween(24, 30);
+        $startYear = fake()->numberBetween(24, 30) + 2000;
+        $startMonth = fake()->numberBetween(1, 9);
+        $endMonth = fake()->numberBetween($startMonth, 12);
 
         return [
-            'name' => sprintf('%d/%d', $start, $start + 1),
-            'starts_on' => null,
-            'ends_on' => null,
+            'name' => sprintf('%d/%d', $startYear, $startYear + 1),
+            'starts_on' => sprintf('%d-%02d-01', $startYear, $startMonth),
+            'ends_on' => sprintf('%d-%02d-01', $startYear + 1, $endMonth),
         ];
     }
 }
