@@ -7,6 +7,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   ci:
     runs-on: ubuntu-latest
@@ -50,6 +54,9 @@ jobs:
 
       - name: Check code style
         run: ./vendor/bin/pint --test
+
+      - name: Analyze with Larastan
+        run: vendor/bin/phpstan analyse --no-progress
 
       - name: Run tests
         run: php artisan test
