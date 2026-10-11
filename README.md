@@ -214,11 +214,12 @@ The product is delivered phase by phase. Scope for later phases is a plan, not a
 | Phase | Focus | Status |
 | --- | --- | --- |
 | 1. Foundation | Authentication and account security, schools and grades, academic years, students, enrollment, English/Arabic with RTL, light/dark themes, UI component library | Done |
-| 2. Fees and discounts | Fee structures per school, grade and academic year; installment plans; discount types and rules (sibling, scholarship, staff); per-student fee assignment | Planned |
+| 2. Fees and discounts | Fee structures per school, grade and academic year; installment plans; discount types and rules (sibling, scholarship, staff); per-student fee assignment | In progress |
 | 3. Payments | Recording payments, receipts, balances and arrears, refunds and adjustments | Planned |
-| 4. Reports and dashboards | Collection, outstanding balances and enrollment reports; filters by school, grade and year; export to PDF and Excel | Planned |
-| 5. Roles and auditing | Role-based access (finance, registrar, administrator), activity log, backups | Planned |
-| 6. Wider school management | Additional modules such as attendance, staff and academic records, to be defined once the finance core is complete | To be scoped |
+| 4. Reports | Collection, outstanding balances and enrollment reports; filters by school, grade and year; export to PDF and Excel | Planned |
+| 5. Wider school management | Additional modules such as attendance, staff and academic records, to be defined once the finance core is complete | To be scoped |
+
+Ideas for later (not committed): roles and auditing, activity log, backups.
 
 ## Contributing
 
