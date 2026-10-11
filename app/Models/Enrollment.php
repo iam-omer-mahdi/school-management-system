@@ -8,6 +8,8 @@ use Database\Factories\EnrollmentFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 /**
  * @property int $id
@@ -38,5 +40,17 @@ class Enrollment extends Model
     public function grade(): BelongsTo
     {
         return $this->belongsTo(Grade::class);
+    }
+
+    /** @return HasMany<EnrollmentFee, $this> */
+    public function fees(): HasMany
+    {
+        return $this->hasMany(EnrollmentFee::class);
+    }
+
+    /** @return HasOne<EnrollmentDiscount, $this> */
+    public function discount(): HasOne
+    {
+        return $this->hasOne(EnrollmentDiscount::class);
     }
 }
