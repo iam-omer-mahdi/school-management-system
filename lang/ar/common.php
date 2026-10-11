@@ -26,4 +26,10 @@ return [
     'loading' => 'جارٍ التحميل...',
     'no_results' => 'لا توجد نتائج.',
     'confirm_title' => 'يرجى التأكيد',
+    'required' => 'مطلوب',
+    'dismiss' => 'إغلاق',
+    'main_nav' => 'التنقل الرئيسي',
+    'open_menu' => 'فتح القائمة',
+    'close_menu' => 'إغلاق القائمة',
+    'theme_toggle' => 'تبديل المظهر',
 ];

@@ -44,6 +44,22 @@ class StudentForm extends Form
         ];
     }
 
+    /** @return array<string, string> */
+    public function validationAttributes(): array
+    {
+        return [
+            'name' => __('students.name'),
+            'phone' => __('students.phone'),
+            'secondary_phone' => __('students.secondary_phone'),
+            'home_address' => __('students.home_address'),
+            'mother_name' => __('students.mother_name'),
+            'blood_type' => __('students.blood_type'),
+            'date_of_birth' => __('students.date_of_birth'),
+            'guardian_name' => __('students.guardian_name'),
+            'guardian_relationship' => __('students.guardian_relationship'),
+        ];
+    }
+
     /** @return array<string, mixed> */
     public function data(): array
     {

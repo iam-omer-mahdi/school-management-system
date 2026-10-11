@@ -26,4 +26,10 @@ return [
     'loading' => 'Loading...',
     'no_results' => 'No results.',
     'confirm_title' => 'Please confirm',
+    'required' => 'required',
+    'dismiss' => 'Dismiss',
+    'main_nav' => 'Main navigation',
+    'open_menu' => 'Open menu',
+    'close_menu' => 'Close menu',
+    'theme_toggle' => 'Switch theme',
 ];

@@ -33,6 +33,16 @@ new #[Layout('layouts::app')] class extends Component
         $this->redirectRoute('students.show', ['student' => $student->id], navigate: true);
     }
 
+    /** @return array<string, string> */
+    public function validationAttributes(): array
+    {
+        return [
+            'school_id' => __('students.school'),
+            'grade_id' => __('students.grade'),
+            'academic_year_id' => __('students.academic_year'),
+        ];
+    }
+
     protected function validateEnrollSelection(): void
     {
         if (! $this->enrollNow) {
@@ -77,80 +87,78 @@ new #[Layout('layouts::app')] class extends Component
 };
 ?>
 
-<div class="space-y-4">
-    <div class="flex items-center gap-2">
-        <a href="{{ route('students.index') }}" wire:navigate class="text-sm text-blue-700 hover:underline">{{ __('common.back') }}</a>
-        <h1 class="text-xl font-semibold">{{ __('students.create') }}</h1>
-    </div>
+<div class="space-y-5">
+    <x-ui.page-header :title="__('students.create')" :backUrl="route('students.index')" />
 
-    <form wire:submit="save" class="space-y-4 rounded bg-white p-4 shadow">
-        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <x-field :label="__('students.name')" :error="$errors->first('form.name')">
-                <input type="text" wire:model.blur="form.name" class="w-full rounded border-gray-300 px-3 py-2" />
-            </x-field>
-            <x-field :label="__('students.phone')" :error="$errors->first('form.phone')">
-                <input type="text" wire:model.blur="form.phone" class="w-full rounded border-gray-300 px-3 py-2" />
-            </x-field>
-            <x-field :label="__('students.secondary_phone')" :error="$errors->first('form.secondary_phone')">
-                <input type="text" wire:model.blur="form.secondary_phone" class="w-full rounded border-gray-300 px-3 py-2" />
-            </x-field>
-            <x-field :label="__('students.mother_name')" :error="$errors->first('form.mother_name')">
-                <input type="text" wire:model.blur="form.mother_name" class="w-full rounded border-gray-300 px-3 py-2" />
-            </x-field>
-            <x-field :label="__('students.home_address')" :error="$errors->first('form.home_address')">
-                <input type="text" wire:model.blur="form.home_address" class="w-full rounded border-gray-300 px-3 py-2" />
-            </x-field>
-            <x-field :label="__('students.blood_type')" :error="$errors->first('form.blood_type')">
-                <input type="text" wire:model.blur="form.blood_type" class="w-full rounded border-gray-300 px-3 py-2" />
-            </x-field>
-            <x-field :label="__('students.date_of_birth')" :error="$errors->first('form.date_of_birth')">
-                <input type="date" wire:model.blur="form.date_of_birth" class="w-full rounded border-gray-300 px-3 py-2" />
-            </x-field>
-            <x-field :label="__('students.guardian_name')" :error="$errors->first('form.guardian_name')">
-                <input type="text" wire:model.blur="form.guardian_name" class="w-full rounded border-gray-300 px-3 py-2" />
-            </x-field>
-            <x-field :label="__('students.guardian_relationship')" :error="$errors->first('form.guardian_relationship')">
-                <input type="text" wire:model.blur="form.guardian_relationship" class="w-full rounded border-gray-300 px-3 py-2" />
-            </x-field>
-        </div>
-
-        <label class="flex items-center gap-2 text-sm font-medium">
-            <input type="checkbox" wire:model.live="enrollNow" />
-            {{ __('students.enroll_now') }}
-        </label>
-
-        @if($enrollNow)
-            <div class="grid grid-cols-1 gap-3 rounded border p-3 sm:grid-cols-3">
-                <x-field :label="__('students.school')" :error="$errors->first('school_id')">
-                    <select wire:model.live="school_id" class="w-full rounded border-gray-300 px-3 py-2">
-                        <option value="">—</option>
-                        @foreach($this->schools as $school)
-                            <option value="{{ $school->id }}">{{ __('schools.'.$school->code) }}</option>
-                        @endforeach
-                    </select>
-                </x-field>
-                <x-field :label="__('students.grade')" :error="$errors->first('grade_id')">
-                    <select wire:model.live="grade_id" class="w-full rounded border-gray-300 px-3 py-2">
-                        <option value="">—</option>
-                        @foreach($this->grades as $grade)
-                            <option value="{{ $grade->id }}">{{ __('schools.grade_number', ['number' => $grade->number]) }}</option>
-                        @endforeach
-                    </select>
-                </x-field>
-                <x-field :label="__('students.academic_year')" :error="$errors->first('academic_year_id')">
-                    <select wire:model.live="academic_year_id" class="w-full rounded border-gray-300 px-3 py-2">
-                        <option value="">—</option>
-                        @foreach($this->years as $year)
-                            <option value="{{ $year->id }}">{{ $year->name }}</option>
-                        @endforeach
-                    </select>
-                </x-field>
+    <x-ui.card>
+        <form wire:submit="save" class="space-y-5">
+            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <x-ui.field :label="__('students.name')" for="name" required :error="$errors->first('form.name')">
+                    <x-ui.input id="name" type="text" wire:model.blur="form.name" :error="$errors->first('form.name')" required />
+                </x-ui.field>
+                <x-ui.field :label="__('students.phone')" for="phone" required :error="$errors->first('form.phone')">
+                    <x-ui.input id="phone" type="tel" wire:model.blur="form.phone" :error="$errors->first('form.phone')" required />
+                </x-ui.field>
+                <x-ui.field :label="__('students.secondary_phone')" for="secondary_phone" :error="$errors->first('form.secondary_phone')">
+                    <x-ui.input id="secondary_phone" type="tel" wire:model.blur="form.secondary_phone" :error="$errors->first('form.secondary_phone')" />
+                </x-ui.field>
+                <x-ui.field :label="__('students.mother_name')" for="mother_name" :error="$errors->first('form.mother_name')">
+                    <x-ui.input id="mother_name" type="text" wire:model.blur="form.mother_name" :error="$errors->first('form.mother_name')" />
+                </x-ui.field>
+                <x-ui.field :label="__('students.home_address')" for="home_address" :error="$errors->first('form.home_address')">
+                    <x-ui.input id="home_address" type="text" wire:model.blur="form.home_address" :error="$errors->first('form.home_address')" />
+                </x-ui.field>
+                <x-ui.field :label="__('students.blood_type')" for="blood_type" :error="$errors->first('form.blood_type')">
+                    <x-ui.input id="blood_type" type="text" wire:model.blur="form.blood_type" :error="$errors->first('form.blood_type')" />
+                </x-ui.field>
+                <x-ui.field :label="__('students.date_of_birth')" for="date_of_birth" :error="$errors->first('form.date_of_birth')">
+                    <x-ui.input id="date_of_birth" type="date" wire:model.blur="form.date_of_birth" :error="$errors->first('form.date_of_birth')" />
+                </x-ui.field>
+                <x-ui.field :label="__('students.guardian_name')" for="guardian_name" :error="$errors->first('form.guardian_name')">
+                    <x-ui.input id="guardian_name" type="text" wire:model.blur="form.guardian_name" :error="$errors->first('form.guardian_name')" />
+                </x-ui.field>
+                <x-ui.field :label="__('students.guardian_relationship')" for="guardian_relationship" :error="$errors->first('form.guardian_relationship')">
+                    <x-ui.input id="guardian_relationship" type="text" wire:model.blur="form.guardian_relationship" :error="$errors->first('form.guardian_relationship')" />
+                </x-ui.field>
             </div>
-        @endif
 
-        <button type="submit" wire:loading.attr="disabled" class="rounded bg-gray-900 px-4 py-2 text-white hover:bg-gray-700">
-            <span wire:loading.remove>{{ __('common.save') }}</span>
-            <span wire:loading>{{ __('common.loading') }}</span>
-        </button>
-    </form>
+            <div class="rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-600 dark:bg-gray-700/40">
+                <x-ui.checkbox wire:model.live="enrollNow" :label="__('students.enroll_now')" />
+
+                @if($enrollNow)
+                    <div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
+                        <x-ui.field :label="__('students.school')" for="school_id" required :error="$errors->first('school_id')">
+                            <x-ui.select id="school_id" wire:model.live="school_id" :error="$errors->first('school_id')">
+                                <option value="">—</option>
+                                @foreach($this->schools as $school)
+                                    <option value="{{ $school->id }}">{{ __('schools.'.$school->code) }}</option>
+                                @endforeach
+                            </x-ui.select>
+                        </x-ui.field>
+                        <x-ui.field :label="__('students.grade')" for="grade_id" required :error="$errors->first('grade_id')">
+                            <x-ui.select id="grade_id" wire:model.live="grade_id" :error="$errors->first('grade_id')">
+                                <option value="">—</option>
+                                @foreach($this->grades as $grade)
+                                    <option value="{{ $grade->id }}">{{ __('schools.grade_number', ['number' => $grade->number]) }}</option>
+                                @endforeach
+                            </x-ui.select>
+                        </x-ui.field>
+                        <x-ui.field :label="__('students.academic_year')" for="academic_year_id" required :error="$errors->first('academic_year_id')">
+                            <x-ui.select id="academic_year_id" wire:model.live="academic_year_id" :error="$errors->first('academic_year_id')">
+                                <option value="">—</option>
+                                @foreach($this->years as $year)
+                                    <option value="{{ $year->id }}">{{ $year->name }}</option>
+                                @endforeach
+                            </x-ui.select>
+                        </x-ui.field>
+                    </div>
+                @endif
+            </div>
+
+            <div class="flex flex-wrap gap-2">
+                <x-ui.button type="submit" variant="primary" loading-target="save" wire:loading.attr="disabled" class="w-full sm:w-auto">{{ __('common.save') }}</x-ui.button>
+                <x-ui.button href="{{ route('students.index') }}" wire:navigate variant="secondary" :spinner="false" class="w-full sm:w-auto">{{ __('common.cancel') }}</x-ui.button>
+            </div>
+        </form>
+    </x-ui.card>
 </div>

@@ -29,23 +29,48 @@ new #[Layout('layouts::app')] class extends Component
 };
 ?>
 
-<div class="space-y-4">
-    <h1 class="text-xl font-semibold">{{ __('dashboard.title') }}</h1>
-    <p class="text-sm text-gray-600">{{ __('dashboard.welcome') }} — {{ __('dashboard.placeholder_note') }}</p>
-    <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <div class="rounded bg-white p-4 shadow">
-            <div class="text-sm text-gray-500">{{ __('dashboard.students_card') }}</div>
-            <div class="text-2xl font-semibold">{{ $this->studentCount }}</div>
-            <a href="{{ route('students.index') }}" wire:navigate class="text-sm text-blue-700 hover:underline">{{ __('common.students') }}</a>
-        </div>
-        <div class="rounded bg-white p-4 shadow">
-            <div class="text-sm text-gray-500">{{ __('dashboard.years_card') }}</div>
-            <div class="text-2xl font-semibold">{{ $this->yearCount }}</div>
-            <a href="{{ route('academic-years.index') }}" wire:navigate class="text-sm text-blue-700 hover:underline">{{ __('common.academic_years') }}</a>
-        </div>
-        <div class="rounded bg-white p-4 shadow">
-            <div class="text-sm text-gray-500">{{ __('dashboard.enrollments_card') }}</div>
-            <div class="text-2xl font-semibold">{{ $this->enrollmentCount }}</div>
-        </div>
+<div class="space-y-5">
+    <x-ui.page-header :title="__('dashboard.title')" :description="__('dashboard.welcome').' — '.__('dashboard.placeholder_note')" />
+
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <x-ui.card>
+            <div class="flex items-center gap-3">
+                <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-indigo-100 text-indigo-600 dark:bg-indigo-900 dark:text-indigo-300">
+                    <x-ui.icon name="users" class="h-5 w-5" />
+                </span>
+                <div class="min-w-0">
+                    <div class="truncate text-sm text-gray-500 dark:text-gray-400">{{ __('dashboard.students_card') }}</div>
+                    <div class="text-2xl font-semibold text-gray-900 dark:text-white">{{ $this->studentCount }}</div>
+                </div>
+            </div>
+            <div class="mt-3">
+                <a href="{{ route('students.index') }}" wire:navigate class="text-sm font-medium text-indigo-700 hover:underline focus:outline-none focus:ring-4 focus:ring-indigo-300 dark:text-indigo-400 dark:focus:ring-indigo-800">{{ __('common.students') }}</a>
+            </div>
+        </x-ui.card>
+        <x-ui.card>
+            <div class="flex items-center gap-3">
+                <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-indigo-100 text-indigo-600 dark:bg-indigo-900 dark:text-indigo-300">
+                    <x-ui.icon name="calendar" class="h-5 w-5" />
+                </span>
+                <div class="min-w-0">
+                    <div class="truncate text-sm text-gray-500 dark:text-gray-400">{{ __('dashboard.years_card') }}</div>
+                    <div class="text-2xl font-semibold text-gray-900 dark:text-white">{{ $this->yearCount }}</div>
+                </div>
+            </div>
+            <div class="mt-3">
+                <a href="{{ route('academic-years.index') }}" wire:navigate class="text-sm font-medium text-indigo-700 hover:underline focus:outline-none focus:ring-4 focus:ring-indigo-300 dark:text-indigo-400 dark:focus:ring-indigo-800">{{ __('common.academic_years') }}</a>
+            </div>
+        </x-ui.card>
+        <x-ui.card>
+            <div class="flex items-center gap-3">
+                <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-indigo-100 text-indigo-600 dark:bg-indigo-900 dark:text-indigo-300">
+                    <x-ui.icon name="cap" class="h-5 w-5" />
+                </span>
+                <div class="min-w-0">
+                    <div class="truncate text-sm text-gray-500 dark:text-gray-400">{{ __('dashboard.enrollments_card') }}</div>
+                    <div class="text-2xl font-semibold text-gray-900 dark:text-white">{{ $this->enrollmentCount }}</div>
+                </div>
+            </div>
+        </x-ui.card>
     </div>
 </div>
