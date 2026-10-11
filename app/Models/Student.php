@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Enums\StudentStatus;
+use Carbon\CarbonInterface;
 use Database\Factories\StudentFactory;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
@@ -21,12 +22,12 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property string|null $home_address
  * @property string|null $mother_name
  * @property string|null $blood_type
- * @property string|null $date_of_birth
+ * @property CarbonInterface|null $date_of_birth
  * @property string|null $guardian_name
  * @property string|null $guardian_relationship
  * @property StudentStatus $status
  * @property string|null $status_note
- * @property string|null $status_changed_at
+ * @property CarbonInterface|null $status_changed_at
  */
 class Student extends Model
 {

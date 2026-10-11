@@ -44,13 +44,9 @@ final class ResetUserPassword extends Command
         $newPassword = password('New password');
         $confirmedPassword = password('Confirm new password');
 
-        $rules = ['required', 'string', 'confirmed'];
-
-        $defaults = Password::defaults();
-
-        if ($defaults !== null) {
-            $rules[] = $defaults;
-        }
+        // Password::defaults() always resolves to a rule object (the
+        // framework falls back to min(8) when no strict callback applies).
+        $rules = ['required', 'string', 'confirmed', Password::defaults()];
 
         $validator = Validator::make(
             ['password' => $newPassword, 'password_confirmation' => $confirmedPassword],
