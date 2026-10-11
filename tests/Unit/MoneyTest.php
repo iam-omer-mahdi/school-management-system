@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit;
 
 use App\Support\Money;
+use Illuminate\Support\Facades\Blade;
 use InvalidArgumentException;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
@@ -66,6 +67,12 @@ class MoneyTest extends TestCase
         $this->assertSame(0, Money::percentOf(100000, 0));
     }
 
+    public function test_percent_of_maximum_stays_exact(): void
+    {
+        $this->assertSame(Money::MAX_MINOR, Money::percentOf(Money::MAX_MINOR, 10000));
+        $this->assertSame(1_000_000_000, Money::percentOf(Money::MAX_MINOR, 1));
+    }
+
     public function test_format_uses_western_digits_and_hides_zero_cents(): void
     {
         app()->setLocale('en');
@@ -73,5 +80,24 @@ class MoneyTest extends TestCase
         $this->assertSame('1,250 SDG', Money::format(125000));
         $this->assertSame('1,250.50 SDG', Money::format(125050));
         $this->assertSame('0 SDG', Money::format(0));
+    }
+
+    public function test_format_uses_arabic_label(): void
+    {
+        app()->setLocale('ar');
+
+        $this->assertSame('1,250 ج.س', Money::format(125000));
+    }
+
+    public function test_money_component_renders_bdi_in_both_languages(): void
+    {
+        foreach (['en' => '1,250 SDG', 'ar' => '1,250 ج.س'] as $locale => $expected) {
+            app()->setLocale($locale);
+
+            $html = Blade::render('<x-ui.money :minor="125000" />');
+
+            $this->assertStringContainsString('<bdi dir="ltr">', $html);
+            $this->assertStringContainsString($expected, $html);
+        }
     }
 }

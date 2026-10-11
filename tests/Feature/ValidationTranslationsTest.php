@@ -4,14 +4,19 @@ declare(strict_types=1);
 
 namespace Tests\Feature;
 
+use App\Actions\CreateFeeType;
+use App\Actions\CreateGradeFee;
+use App\Actions\SetEnrollmentDiscount;
 use App\Mail\ResetCodeMail;
 use App\Models\AcademicYear;
+use App\Models\Enrollment;
 use App\Models\Student;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\MessageBag;
 use Illuminate\Support\ViewErrorBag;
+use Illuminate\Validation\ValidationException;
 use Livewire\Livewire;
 use Tests\TestCase;
 
@@ -73,7 +78,7 @@ class ValidationTranslationsTest extends TestCase
 
     public function test_translation_keys_match_between_locales(): void
     {
-        foreach (['validation.php', 'auth.php', 'passwords.php', 'pagination.php'] as $file) {
+        foreach (['validation.php', 'auth.php', 'passwords.php', 'pagination.php', 'fees.php', 'students.php'] as $file) {
             $this->assertLangParity($file);
         }
 
@@ -208,6 +213,42 @@ class ValidationTranslationsTest extends TestCase
         $security = Livewire::test('pages::settings')->call('updateSecurity');
         $security->assertHasErrors(['answer_1', 'answer_2', 'answer_3']);
         $this->assertMessagesAreArabic($security->errors());
+    }
+
+    public function test_fee_errors_are_arabic(): void
+    {
+        $this->asArabic();
+
+        $bagFor = function (callable $fails): MessageBag {
+            try {
+                $fails();
+                $this->fail('Expected ValidationException');
+            } catch (ValidationException $e) {
+                return new MessageBag($e->errors());
+            }
+        };
+
+        $this->assertMessagesAreArabic($bagFor(
+            fn () => app(CreateFeeType::class)->handle(['name' => '', 'is_mandatory' => false])
+        ));
+
+        app(CreateFeeType::class)->handle(['name' => 'Bus', 'is_mandatory' => false]);
+
+        $this->assertMessagesAreArabic($bagFor(
+            fn () => app(CreateFeeType::class)->handle(['name' => 'bus', 'is_mandatory' => false])
+        ));
+
+        $this->assertMessagesAreArabic($bagFor(
+            fn () => app(CreateGradeFee::class)->handle([
+                'grade_id' => 1, 'academic_year_id' => 1, 'fee_type_id' => 1, 'amount' => 'abc',
+            ])
+        ));
+
+        $enrollment = Enrollment::factory()->create();
+
+        $this->assertMessagesAreArabic($bagFor(
+            fn () => app(SetEnrollmentDiscount::class)->handle($enrollment->id, 'abc', null)
+        ));
     }
 
     public function test_academic_year_errors_are_arabic(): void

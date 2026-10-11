@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit;
 
 use App\Support\Percent;
+use Illuminate\Support\Facades\Blade;
 use InvalidArgumentException;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
@@ -52,5 +53,13 @@ class PercentTest extends TestCase
         $this->assertSame('12.5%', Percent::format(1250));
         $this->assertSame('0.01%', Percent::format(1));
         $this->assertSame('100%', Percent::format(10000));
+    }
+
+    public function test_percent_component_renders_bdi(): void
+    {
+        $html = Blade::render('<x-ui.percent :bp="1250" />');
+
+        $this->assertStringContainsString('<bdi dir="ltr">', $html);
+        $this->assertStringContainsString('12.5%', $html);
     }
 }
