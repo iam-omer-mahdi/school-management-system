@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
@@ -19,11 +21,18 @@ use Illuminate\Support\Str;
  * @property Carbon|null $email_verified_at
  * @property string $password
  * @property string|null $remember_token
+ * @property string $display_locale
+ * @property string|null $security_question_1
+ * @property string|null $security_answer_1
+ * @property string|null $security_question_2
+ * @property string|null $security_answer_2
+ * @property string|null $security_question_3
+ * @property string|null $security_answer_3
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
-#[Fillable(['name', 'email', 'password'])]
-#[Hidden(['password', 'remember_token'])]
+#[Fillable(['name', 'email', 'password', 'display_locale'])]
+#[Hidden(['password', 'remember_token', 'security_answer_1', 'security_answer_2', 'security_answer_3'])]
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
