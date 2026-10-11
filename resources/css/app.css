@@ -5,6 +5,7 @@
 
 @source '../views';
 @source '../../node_modules/flowbite';
+@source '../../node_modules/flowbite-datepicker';
 @source '../../vendor/livewire/livewire/src/Illuminate/Pagination/resources/views/*.blade.php';
 
 @custom-variant dark (&:where(.dark, .dark *));

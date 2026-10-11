@@ -93,10 +93,10 @@ new #[Layout('layouts::app')] class extends Component
             <form wire:submit="save" class="space-y-4">
                 <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <x-ui.field :label="__('academic_years.starts_on')" for="year-starts" required :error="$errors->first('form.starts_on')">
-                        <x-ui.input id="year-starts" type="month" wire:model.live="form.starts_on" :error="$errors->first('form.starts_on')" required />
+                        <x-ui.input id="year-starts" type="text" wire:ignore data-month-picker="form.starts_on" :value="$form->starts_on" placeholder="YYYY-MM" pattern="\d{4}-\d{2}" inputmode="numeric" autocomplete="off" :error="$errors->first('form.starts_on')" required />
                     </x-ui.field>
                     <x-ui.field :label="__('academic_years.ends_on')" for="year-ends" required :error="$errors->first('form.ends_on')">
-                        <x-ui.input id="year-ends" type="month" wire:model.live="form.ends_on" :error="$errors->first('form.ends_on')" required />
+                        <x-ui.input id="year-ends" type="text" wire:ignore data-month-picker="form.ends_on" :value="$form->ends_on" placeholder="YYYY-MM" pattern="\d{4}-\d{2}" inputmode="numeric" autocomplete="off" :error="$errors->first('form.ends_on')" required />
                     </x-ui.field>
                 </div>
                 <x-ui.field :label="__('academic_years.name')" for="year-name" :error="$errors->first('form.starts_on')">
