@@ -7,6 +7,7 @@ namespace Database\Seeders;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
+use RuntimeException;
 
 class UserSeeder extends Seeder
 {
@@ -17,11 +18,17 @@ class UserSeeder extends Seeder
             return;
         }
 
+        $password = (string) config('auth.seed_admin_password', '');
+
+        if (! app()->environment('local', 'testing') && $password === '') {
+            throw new RuntimeException('SEED_ADMIN_PASSWORD must be set to run UserSeeder outside local and testing environments.');
+        }
+
         User::firstOrCreate(
             ['email' => 'finance@school.local'],
             [
                 'name' => 'Finance',
-                'password' => Hash::make((string) env('SEED_ADMIN_PASSWORD', 'password')),
+                'password' => Hash::make($password !== '' ? $password : 'password'),
                 'display_locale' => 'en',
             ]
         );

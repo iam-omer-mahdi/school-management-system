@@ -114,4 +114,17 @@ return [
 
     'password_timeout' => env('AUTH_PASSWORD_TIMEOUT', 10800),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Development Seed Password
+    |--------------------------------------------------------------------------
+    |
+    | Password used by UserSeeder for the local development account. Read
+    | through config (never env() outside config files) so configuration
+    | caching keeps working. Only honored in local and testing environments.
+    |
+    */
+
+    'seed_admin_password' => env('SEED_ADMIN_PASSWORD'),
+
 ];
