@@ -1,6 +1,51 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
+declare(strict_types=1);
 
-Route::livewire('/', 'book-list')->name('home');
-Route::livewire('/create', 'create-book')->name('book.create');
+use App\Enums\DisplayLocale;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Route;
+use Illuminate\Validation\Rule;
+
+Route::post('/locale', function (Request $request) {
+    $data = $request->validate([
+        'locale' => ['required', Rule::in(DisplayLocale::values())],
+    ]);
+
+    $request->session()->put('locale', $data['locale']);
+
+    if ($request->user() !== null) {
+        $request->user()->forceFill(['display_locale' => $data['locale']])->save();
+    }
+
+    return back();
+})->name('locale.switch');
+
+Route::middleware('guest')->group(function (): void {
+    Route::livewire('/login', 'pages::auth.login')->name('login');
+    Route::livewire('/forgot-password', 'pages::auth.forgot-password')->name('password.request');
+    Route::livewire('/recover-questions', 'pages::auth.recover-questions')->name('recovery.questions');
+});
+
+Route::middleware('auth')->group(function (): void {
+    Route::livewire('/', 'pages::dashboard')->name('dashboard');
+
+    Route::livewire('/schools', 'pages::schools.index')->name('schools.index');
+
+    Route::livewire('/academic-years', 'pages::academic-years.index')->name('academic-years.index');
+
+    Route::livewire('/students', 'pages::students.index')->name('students.index');
+    Route::livewire('/students/create', 'pages::students.create')->name('students.create');
+    Route::livewire('/students/{student}', 'pages::students.show')->name('students.show');
+
+    Route::livewire('/settings', 'pages::settings')->name('settings');
+
+    Route::post('/logout', function (Request $request) {
+        Auth::guard('web')->logout();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+
+        return redirect()->route('login');
+    })->name('logout');
+});
