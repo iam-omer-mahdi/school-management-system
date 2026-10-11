@@ -1,14 +1,30 @@
 <?php
 
+use App\Actions\RequestEmailChangeOtp;
 use App\Actions\SecurityQuestionRecovery;
+use App\Mail\ResetCodeMail;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Layout;
+use Livewire\Attributes\Locked;
 use Livewire\Component;
 
 new #[Layout('layouts::app')] class extends Component
 {
-    public string $email = '';
+    public string $new_email = '';
+
+    public string $email_code = '';
+
+    #[Locked]
+    public string $pending_email = '';
+
+    public bool $showEmailForm = false;
+
+    public bool $emailCodeSent = false;
 
     public string $current_password = '';
 
@@ -16,13 +32,13 @@ new #[Layout('layouts::app')] class extends Component
 
     public string $new_password_confirmation = '';
 
+    public bool $showPasswordForm = false;
+
     public string $answer_1 = '';
 
     public string $answer_2 = '';
 
     public string $answer_3 = '';
-
-    public bool $showPasswordForm = false;
 
     public bool $showSecurityForm = false;
 
@@ -30,7 +46,8 @@ new #[Layout('layouts::app')] class extends Component
     public function validationAttributes(): array
     {
         return [
-            'email' => __('settings.email'),
+            'new_email' => __('settings.new_email'),
+            'email_code' => __('settings.email_code'),
             'current_password' => __('settings.current_password'),
             'new_password' => __('settings.password'),
             'answer_1' => __('settings.answer', ['n' => 1]),
@@ -39,39 +56,131 @@ new #[Layout('layouts::app')] class extends Component
         ];
     }
 
-    public function mount(): void
-    {
-        $user = auth()->user();
-        $this->email = (string) $user->email;
-    }
-
-    public function updateProfile(): void
+    /**
+     * Step 1: send a verification code to the new address to prove ownership
+     * before anything changes.
+     */
+    public function sendEmailCode(RequestEmailChangeOtp $action): void
     {
         $user = auth()->user();
 
         $this->validate([
-            'email' => ['required', 'email', Rule::unique('users', 'email')->ignore($user->id)],
-            'new_password' => ['nullable', 'string', 'min:8', 'confirmed'],
-            'current_password' => ['required_with:new_password', 'string'],
+            'new_email' => ['required', 'email', Rule::unique('users', 'email')->ignore($user->id)],
         ]);
 
-        if ($this->new_password !== '') {
-            if (! Hash::check($this->current_password, (string) $user->password)) {
-                $this->addError('current_password', __('auth.failed'));
+        $address = strtolower(trim($this->new_email));
 
-                return;
-            }
+        if ($address === strtolower((string) $user->email)) {
+            $this->addError('new_email', __('settings.email_unchanged'));
 
-            $user->password = $this->new_password;
+            return;
         }
 
-        $user->email = $this->email;
+        $ip = (string) request()->ip();
+        $minuteKey = 'email-change-send:'.$user->id.'|'.$ip;
+        if (RateLimiter::tooManyAttempts($minuteKey, 1)) {
+            throw ValidationException::withMessages([
+                'new_email' => __('auth.throttle', ['seconds' => RateLimiter::availableIn($minuteKey)]),
+            ]);
+        }
+
+        $hourKey = 'email-change-send-hour:'.$user->id.'|'.$ip;
+        if (RateLimiter::tooManyAttempts($hourKey, 5)) {
+            throw ValidationException::withMessages([
+                'new_email' => __('auth.throttle', ['seconds' => RateLimiter::availableIn($hourKey)]),
+            ]);
+        }
+
+        RateLimiter::hit($minuteKey, 60);
+        RateLimiter::hit($hourKey, 3600);
+
+        $code = $action->request($user, $address);
+
+        try {
+            Mail::to($address)->send(new ResetCodeMail($code, RequestEmailChangeOtp::OTP_TTL_MINUTES, __('settings.email_code_subject')));
+        } catch (Throwable $e) {
+            Log::error('Email change mail failed.', ['email' => $address, 'error' => $e->getMessage()]);
+            $this->addError('new_email', __('settings.email_code_send_failed'));
+
+            return;
+        }
+
+        $this->pending_email = $address;
+        $this->emailCodeSent = true;
+        $this->reset('email_code');
+    }
+
+    public function resendEmailCode(RequestEmailChangeOtp $action): void
+    {
+        $this->sendEmailCode($action);
+    }
+
+    /**
+     * Step 2: verify the code. Only on server-side success does the user's
+     * email change (inside the action, against the locked pending address).
+     */
+    public function verifyEmailCode(RequestEmailChangeOtp $action): void
+    {
+        if (! $this->emailCodeSent || $this->pending_email === '') {
+            $this->cancelEmailChange();
+
+            return;
+        }
+
+        $user = auth()->user();
+        $ip = (string) request()->ip();
+        $key = 'email-change-verify:'.$user->id.'|'.$ip;
+
+        if (RateLimiter::tooManyAttempts($key, 10)) {
+            throw ValidationException::withMessages([
+                'email_code' => __('auth.throttle', ['seconds' => RateLimiter::availableIn($key)]),
+            ]);
+        }
+
+        RateLimiter::hit($key, 600);
+
+        $this->validate(['email_code' => ['required', 'string', 'size:6']]);
+
+        $action->verify($user, $this->pending_email, trim($this->email_code));
+
+        RateLimiter::clear($key);
+
+        $this->reset(['new_email', 'email_code', 'pending_email']);
+        $this->emailCodeSent = false;
+        $this->showEmailForm = false;
+
+        session()->flash('email', __('settings.email_updated'));
+    }
+
+    public function cancelEmailChange(): void
+    {
+        $this->reset(['new_email', 'email_code', 'pending_email']);
+        $this->emailCodeSent = false;
+        $this->showEmailForm = false;
+    }
+
+    public function updatePassword(): void
+    {
+        $user = auth()->user();
+
+        $this->validate([
+            'current_password' => ['required', 'string'],
+            'new_password' => ['required', 'string', 'min:8', 'confirmed'],
+        ]);
+
+        if (! Hash::check($this->current_password, (string) $user->password)) {
+            $this->addError('current_password', __('auth.failed'));
+
+            return;
+        }
+
+        $user->password = $this->new_password;
         $user->save();
 
         $this->reset(['current_password', 'new_password', 'new_password_confirmation']);
         $this->showPasswordForm = false;
 
-        session()->flash('profile', __('settings.profile_updated'));
+        session()->flash('password', __('settings.password_updated'));
     }
 
     public function updateSecurity(SecurityQuestionRecovery $recovery): void
@@ -99,34 +208,65 @@ new #[Layout('layouts::app')] class extends Component
 <div class="space-y-5">
     <x-ui.page-header :title="__('settings.title')" />
 
-    <x-ui.card :title="__('settings.profile')">
-        @if(session('profile'))
-            <div class="mb-4"><x-ui.alert type="success" dismissible>{{ session('profile') }}</x-ui.alert></div>
+    <x-ui.card :title="__('settings.email_title')">
+        @if(session('email'))
+            <div class="mb-4"><x-ui.alert type="success" dismissible>{{ session('email') }}</x-ui.alert></div>
         @endif
-        <form wire:submit="updateProfile" class="space-y-4">
-            <x-ui.field :label="__('settings.email')" for="email" required :error="$errors->first('email')">
-                <x-ui.input id="email" type="email" wire:model.blur="email" :error="$errors->first('email')" autocomplete="email" required />
-            </x-ui.field>
-            <div>
-                <x-ui.button type="button" variant="secondary" size="sm" wire:click="$toggle('showPasswordForm')" :spinner="false">
-                    {{ $showPasswordForm ? __('settings.hide_password_form') : __('settings.change_password') }}
-                </x-ui.button>
-            </div>
-            @if($showPasswordForm)
-                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                    <x-ui.field :label="__('settings.current_password')" for="current_password" :error="$errors->first('current_password')">
-                        <x-ui.input id="current_password" type="password" wire:model.blur="current_password" :error="$errors->first('current_password')" autocomplete="current-password" />
+        <x-ui.field :label="__('settings.current_email')" for="current-email">
+            <p id="current-email" class="rounded-lg border border-gray-200 bg-gray-50 p-2.5 text-sm text-gray-900 dark:border-gray-600 dark:bg-gray-700 dark:text-white">{{ auth()->user()->email }}</p>
+        </x-ui.field>
+        <div class="mt-4">
+            <x-ui.button type="button" variant="secondary" size="sm" wire:click="$toggle('showEmailForm')" :spinner="false">
+                {{ $showEmailForm ? __('settings.hide_email_form') : __('settings.change_email') }}
+            </x-ui.button>
+        </div>
+        @if($showEmailForm)
+            @if(! $emailCodeSent)
+                <form wire:submit="sendEmailCode" class="mt-4 space-y-4">
+                    <x-ui.field :label="__('settings.new_email')" for="new_email" required :error="$errors->first('new_email')">
+                        <x-ui.input id="new_email" type="email" wire:model.blur="new_email" :error="$errors->first('new_email')" autocomplete="email" required />
                     </x-ui.field>
-                    <x-ui.field :label="__('settings.password')" for="new_password" :error="$errors->first('new_password')">
-                        <x-ui.input id="new_password" type="password" wire:model.blur="new_password" :error="$errors->first('new_password')" autocomplete="new-password" />
+                    <x-ui.button type="submit" variant="primary" loading-target="sendEmailCode" wire:loading.attr="disabled">{{ __('settings.send_code') }}</x-ui.button>
+                </form>
+            @else
+                <div class="mt-4"><x-ui.alert type="info">{{ __('settings.email_code_hint') }}</x-ui.alert></div>
+                <form wire:submit="verifyEmailCode" class="mt-4 space-y-4">
+                    <x-ui.field :label="__('settings.email_code')" for="email_code" required :error="$errors->first('email_code')">
+                        <x-ui.input id="email_code" type="text" inputmode="numeric" wire:model.blur="email_code" :error="$errors->first('email_code')" autocomplete="one-time-code" required />
+                    </x-ui.field>
+                    <div class="flex flex-wrap gap-2">
+                        <x-ui.button type="submit" variant="primary" loading-target="verifyEmailCode" wire:loading.attr="disabled">{{ __('settings.verify_email') }}</x-ui.button>
+                        <x-ui.button type="button" variant="ghost" size="sm" wire:click="resendEmailCode" loading-target="resendEmailCode" wire:loading.attr="disabled">{{ __('settings.email_resend') }}</x-ui.button>
+                        <x-ui.button type="button" variant="ghost" size="sm" wire:click="cancelEmailChange" :spinner="false">{{ __('common.cancel') }}</x-ui.button>
+                    </div>
+                </form>
+            @endif
+        @endif
+    </x-ui.card>
+
+    <x-ui.card :title="__('settings.password_title')">
+        @if(session('password'))
+            <div class="mb-4"><x-ui.alert type="success" dismissible>{{ session('password') }}</x-ui.alert></div>
+        @endif
+        <x-ui.button type="button" variant="secondary" size="sm" wire:click="$toggle('showPasswordForm')" :spinner="false">
+            {{ $showPasswordForm ? __('settings.hide_password_form') : __('settings.change_password') }}
+        </x-ui.button>
+        @if($showPasswordForm)
+            <form wire:submit="updatePassword" class="mt-4 space-y-4">
+                <x-ui.field :label="__('settings.current_password')" for="current_password" required :error="$errors->first('current_password')">
+                    <x-ui.input id="current_password" type="password" wire:model.blur="current_password" :error="$errors->first('current_password')" autocomplete="current-password" required />
+                </x-ui.field>
+                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <x-ui.field :label="__('settings.password')" for="new_password" required :error="$errors->first('new_password')">
+                        <x-ui.input id="new_password" type="password" wire:model.blur="new_password" :error="$errors->first('new_password')" autocomplete="new-password" required />
+                    </x-ui.field>
+                    <x-ui.field :label="__('settings.password_confirmation')" for="new_password_confirmation" required>
+                        <x-ui.input id="new_password_confirmation" type="password" wire:model.blur="new_password_confirmation" autocomplete="new-password" required />
                     </x-ui.field>
                 </div>
-                <x-ui.field :label="__('settings.password_confirmation')" for="new_password_confirmation">
-                    <x-ui.input id="new_password_confirmation" type="password" wire:model.blur="new_password_confirmation" autocomplete="new-password" />
-                </x-ui.field>
-            @endif
-            <x-ui.button type="submit" variant="primary" loading-target="updateProfile" wire:loading.attr="disabled">{{ __('common.save') }}</x-ui.button>
-        </form>
+                <x-ui.button type="submit" variant="primary" loading-target="updatePassword" wire:loading.attr="disabled">{{ __('common.save') }}</x-ui.button>
+            </form>
+        @endif
     </x-ui.card>
 
     <x-ui.card :title="__('settings.security')" :description="__('settings.security_hint')">

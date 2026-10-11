@@ -189,15 +189,21 @@ class ValidationTranslationsTest extends TestCase
         $user = User::factory()->create(['email' => 'finance@school.local']);
         $this->actingAs($user);
 
-        $profile = Livewire::test('pages::settings')
-            ->set('email', 'not-an-email')
+        $email = Livewire::test('pages::settings')
+            ->set('new_email', 'not-an-email')
+            ->call('sendEmailCode');
+
+        $email->assertHasErrors(['new_email']);
+        $this->assertMessagesAreArabic($email->errors());
+
+        $password = Livewire::test('pages::settings')
+            ->set('current_password', 'password')
             ->set('new_password', 'short')
             ->set('new_password_confirmation', 'short')
-            ->set('current_password', 'password')
-            ->call('updateProfile');
+            ->call('updatePassword');
 
-        $profile->assertHasErrors(['email', 'new_password']);
-        $this->assertMessagesAreArabic($profile->errors());
+        $password->assertHasErrors(['new_password']);
+        $this->assertMessagesAreArabic($password->errors());
 
         $security = Livewire::test('pages::settings')->call('updateSecurity');
         $security->assertHasErrors(['answer_1', 'answer_2', 'answer_3']);
