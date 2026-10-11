@@ -136,6 +136,24 @@ document.addEventListener('livewire:navigated', () => {
     initMonthPickers();
 });
 
-document.addEventListener('livewire:morphed', () => {
-    initMonthPickers();
-});
+// The academic-year form is inserted by a Livewire roundtrip (showForm
+// toggle), so re-scan after every morph. `morphed` is a Livewire JS hook,
+// not a DOM event — `document.addEventListener('livewire:morphed')` never
+// fires, which is why the calendar previously never opened.
+function registerMonthPickerMorphHook() {
+    if (window.Livewire && typeof window.Livewire.hook === 'function') {
+        window.Livewire.hook('morphed', () => {
+            initMonthPickers();
+        });
+
+        return true;
+    }
+
+    return false;
+}
+
+if (!registerMonthPickerMorphHook()) {
+    document.addEventListener('livewire:init', () => {
+        registerMonthPickerMorphHook();
+    });
+}
