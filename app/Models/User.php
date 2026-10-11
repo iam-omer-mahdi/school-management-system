@@ -22,11 +22,8 @@ use Illuminate\Support\Str;
  * @property string $password
  * @property string|null $remember_token
  * @property string $display_locale
- * @property string|null $security_question_1
  * @property string|null $security_answer_1
- * @property string|null $security_question_2
  * @property string|null $security_answer_2
- * @property string|null $security_question_3
  * @property string|null $security_answer_3
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
