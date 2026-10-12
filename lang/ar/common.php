@@ -8,6 +8,7 @@ return [
     'schools' => 'المدارس',
     'academic_years' => 'السنوات الدراسية',
     'students' => 'الطلاب',
+    'fees' => 'الرسوم',
     'settings' => 'الإعدادات',
     'logout' => 'تسجيل الخروج',
     'login' => 'تسجيل الدخول',

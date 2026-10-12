@@ -39,6 +39,9 @@ Route::middleware('auth')->group(function (): void {
     Route::livewire('/students/create', 'pages::students.create')->name('students.create');
     Route::livewire('/students/{student}', 'pages::students.show')->name('students.show');
 
+    Route::livewire('/fee-types', 'pages::fee-types.index')->name('fee-types.index');
+    Route::livewire('/fee-schedule', 'pages::fee-schedule.index')->name('fee-schedule.index');
+
     Route::livewire('/settings', 'pages::settings')->name('settings');
 
     Route::post('/logout', function (Request $request) {

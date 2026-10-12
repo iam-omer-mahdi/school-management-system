@@ -8,6 +8,7 @@ return [
     'schools' => 'Schools',
     'academic_years' => 'Academic years',
     'students' => 'Students',
+    'fees' => 'Fees',
     'settings' => 'Settings',
     'logout' => 'Log out',
     'login' => 'Log in',
