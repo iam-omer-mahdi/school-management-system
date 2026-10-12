@@ -41,6 +41,7 @@ Route::middleware('auth')->group(function (): void {
 
     Route::livewire('/fee-types', 'pages::fee-types.index')->name('fee-types.index');
     Route::livewire('/fee-schedule', 'pages::fee-schedule.index')->name('fee-schedule.index');
+    Route::livewire('/discounts', 'pages::discounts.index')->name('discounts.index');
 
     Route::livewire('/settings', 'pages::settings')->name('settings');
 

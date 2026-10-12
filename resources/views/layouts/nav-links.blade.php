@@ -9,6 +9,7 @@ $links = [
 $feeLinks = [
     ['route' => 'fee-types.index', 'match' => 'fee-types.*', 'label' => __('fees.fee_types'), 'icon' => 'tag'],
     ['route' => 'fee-schedule.index', 'match' => 'fee-schedule.*', 'label' => __('fees.schedule'), 'icon' => 'calendar'],
+    ['route' => 'discounts.index', 'match' => 'discounts.*', 'label' => __('fees.discounts'), 'icon' => 'currency'],
 ];
 $drawerId = $drawerId ?? null;
 @endphp
