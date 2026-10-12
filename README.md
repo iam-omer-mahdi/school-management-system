@@ -45,8 +45,15 @@ Available now (Phase 1: Foundation):
 - Student records with auto-generated student numbers
 - Contact, guardian and personal details
 - Enroll a student into a grade for an academic year (one enrollment per student per year)
-- Student status lifecycle: active, transferred, expelled, left, suspended, with notes and change timestamps
-- Search by name, student number or phone, status filter and pagination
+- Status lives on the enrollment: active, suspended, transferred, expelled, left, with notes and change timestamps
+- Students can be archived (shown as inactive): hidden from the default list, blocked from new enrollments, fully viewable with history
+- Search by name, student number or phone, Active/Inactive/All filter and pagination
+
+**Fees and discounts**
+- Fee types (mandatory or optional) with a shared name normalizer; tuition is built in and protected
+- Fee schedule per grade and academic year with an applied/skipped summary
+- Fees are charged per enrollment: only active and suspended enrollments receive new mandatory fees
+- Named discount catalog with percentage-based tuition discounts, snapshotted at apply time
 
 **Accounts and security**
 - Email and password sign-in
@@ -115,6 +122,8 @@ CREATE DATABASE school_management_testing CHARACTER SET utf8mb4 COLLATE utf8mb4_
 
 Connection settings live in `.env` (`DB_CONNECTION`, `DB_HOST`, `DB_PORT`, `DB_DATABASE`, `DB_USERNAME`, `DB_PASSWORD`); the test suite always uses `school_management_testing` and refuses to run against any other database.
 
+Migrations may be edited until the first production deployment; after that, add new migrations only.
+
 Back up production on a schedule (for example a nightly `mysqldump`) and test the restore regularly. Never run the test suite against the development or production database.
 
 ### Demo account
@@ -145,7 +154,7 @@ The suite runs against a dedicated MySQL testing database (`school_management_te
 ```text
 app/
   Actions/        Single-purpose domain operations (CreateStudent, EnrollStudent, ...)
-  Enums/          DisplayLocale, StudentStatus
+  Enums/          DisplayLocale, EnrollmentStatus
   Livewire/Forms/ Form objects (AcademicYearForm, StudentForm)
   Mail/           Mailables (reset codes)
   Models/         Eloquent models
@@ -174,6 +183,11 @@ erDiagram
     GRADE ||--o{ ENROLLMENT : contains
     ACADEMIC_YEAR ||--o{ ENROLLMENT : scopes
     STUDENT ||--o{ ENROLLMENT : has
+    ENROLLMENT ||--o{ ENROLLMENT_FEE : charged
+    ENROLLMENT ||--o| ENROLLMENT_DISCOUNT : discounted
+    GRADE ||--o{ GRADE_FEE : scheduled
+    FEE_TYPE ||--o{ GRADE_FEE : defines
+    DISCOUNT ||--o{ ENROLLMENT_DISCOUNT : applied
 
     SCHOOL { string code UK
              string name UK }
@@ -184,10 +198,27 @@ erDiagram
                     date ends_on }
     STUDENT { string student_number UK
               string name
-              string status }
+              datetime archived_at }
     ENROLLMENT { int student_id FK
                  int academic_year_id FK
-                 int grade_id FK }
+                 int grade_id FK
+                 string status }
+    FEE_TYPE { string name UK
+               bool is_mandatory }
+    GRADE_FEE { int grade_id FK
+                int academic_year_id FK
+                int fee_type_id FK
+                int amount_minor }
+    ENROLLMENT_FEE { int enrollment_id FK
+                     int grade_fee_id FK
+                     int amount_minor }
+    DISCOUNT { string name UK
+               int percent_bp }
+    ENROLLMENT_DISCOUNT { int enrollment_id FK
+                          int discount_id FK
+                          string name
+                          int percent_bp
+                          int amount_minor }
 ```
 
 Key constraints: a grade number is unique per school, and a student has at most one enrollment per academic year. Foreign keys use `restrict` so history cannot be orphaned.
@@ -228,7 +259,7 @@ The product is delivered phase by phase. Scope for later phases is a plan, not a
 | 1. Foundation | Authentication and account security, schools and grades, academic years, students, enrollment, English/Arabic with RTL, light/dark themes, UI component library | Done |
 | 2. Fees and discounts | Fee structures per school, grade and academic year; installment plans; discount types and rules (sibling, scholarship, staff); per-student fee assignment | In progress |
 | 3. Payments | Recording payments, receipts, balances and arrears, refunds and adjustments | Planned |
-| 4. Reports | Collection, outstanding balances and enrollment reports; filters by school, grade and year; export to PDF and Excel | Planned |
+| 4. Reports | Collection, outstanding balances and enrollment reports; filters by school, grade and year; export to PDF and Excel. Reports show all enrollments by default, with an active-only toggle and a breakdown by status, including balances owed by students who left | Planned |
 | 5. Wider school management | Additional modules such as attendance, staff and academic records, to be defined once the finance core is complete | To be scoped |
 
 Ideas for later (not committed): roles and auditing, activity log, backups.
