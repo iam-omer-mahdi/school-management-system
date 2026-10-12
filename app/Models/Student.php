@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Models;
 
-use App\Enums\StudentStatus;
 use Carbon\CarbonInterface;
 use Database\Factories\StudentFactory;
 use Illuminate\Database\Eloquent\Attributes\Scope;
@@ -25,9 +24,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property CarbonInterface|null $date_of_birth
  * @property string|null $guardian_name
  * @property string|null $guardian_relationship
- * @property StudentStatus $status
- * @property string|null $status_note
- * @property CarbonInterface|null $status_changed_at
+ * @property CarbonInterface|null $archived_at
+ * @property string|null $archive_note
  */
 class Student extends Model
 {
@@ -45,17 +43,15 @@ class Student extends Model
         'date_of_birth',
         'guardian_name',
         'guardian_relationship',
-        'status',
-        'status_note',
-        'status_changed_at',
+        'archived_at',
+        'archive_note',
     ];
 
     protected function casts(): array
     {
         return [
-            'status' => StudentStatus::class,
             'date_of_birth' => 'date',
-            'status_changed_at' => 'datetime',
+            'archived_at' => 'datetime',
         ];
     }
 
@@ -65,9 +61,15 @@ class Student extends Model
         return $this->hasMany(Enrollment::class)->orderByDesc('id');
     }
 
-    public function isActive(): bool
+    public function isArchived(): bool
     {
-        return $this->status === StudentStatus::Active;
+        return $this->archived_at !== null;
+    }
+
+    /** @return HasMany<Enrollment, $this> */
+    public function activeEnrollments(): HasMany
+    {
+        return $this->hasMany(Enrollment::class)->whereIn('status', ['active', 'suspended']);
     }
 
     /** @param Builder<Student> $query */
@@ -89,10 +91,12 @@ class Student extends Model
 
     /** @param Builder<Student> $query */
     #[Scope]
-    protected function withStatusFilter(Builder $query, ?string $status): void
+    protected function withArchiveFilter(Builder $query, ?string $filter): void
     {
-        if ($status !== null && $status !== '') {
-            $query->where('status', $status);
-        }
+        match ($filter) {
+            'archived' => $query->whereNotNull('archived_at'),
+            'all' => null,
+            default => $query->whereNull('archived_at'),
+        };
     }
 }

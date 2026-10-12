@@ -8,7 +8,6 @@ use App\Actions\CreateGradeFee;
 use App\Actions\EnrollStudent;
 use App\Actions\RemoveEnrollmentDiscount;
 use App\Actions\SetEnrollmentDiscount;
-use App\Enums\StudentStatus;
 use App\Models\AcademicYear;
 use App\Models\Enrollment;
 use App\Models\EnrollmentDiscount;
@@ -52,7 +51,7 @@ class DiscountTest extends TestCase
             'amount' => $tuitionAmount,
         ]);
 
-        $student = Student::factory()->create(['status' => StudentStatus::Active]);
+        $student = Student::factory()->create();
 
         return app(EnrollStudent::class)->handle($student->id, $year->id, $grade->id);
     }
@@ -105,7 +104,7 @@ class DiscountTest extends TestCase
             'amount' => '150',
         ]);
 
-        $student = Student::factory()->create(['status' => StudentStatus::Active]);
+        $student = Student::factory()->create();
         $enrollment = app(EnrollStudent::class)->handle($student->id, $year->id, $grade->id);
 
         try {
@@ -163,7 +162,7 @@ class DiscountTest extends TestCase
             'amount' => '300',
         ]);
 
-        $student = Student::factory()->create(['status' => StudentStatus::Active]);
+        $student = Student::factory()->create();
         $enrollment = app(EnrollStudent::class)->handle($student->id, $year->id, $grade->id);
 
         app(SetEnrollmentDiscount::class)->handle($enrollment->id, '10', null);

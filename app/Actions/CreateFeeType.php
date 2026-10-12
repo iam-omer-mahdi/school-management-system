@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Actions;
 
 use App\Models\FeeType;
+use App\Support\TextNormalizer;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -18,7 +19,7 @@ final class CreateFeeType
      */
     public function handle(array $data): FeeType
     {
-        $name = $this->normalize((string) ($data['name'] ?? ''));
+        $name = TextNormalizer::normalize((string) ($data['name'] ?? ''));
 
         if ($name === '') {
             throw ValidationException::withMessages([
@@ -38,9 +39,9 @@ final class CreateFeeType
             ]);
         }
 
-        // The utf8mb4_unicode_ci collation makes this comparison
-        // case-insensitive, so "Bus" and "bus" collide here.
-        if (FeeType::query()->where('name', $name)->exists()) {
+        // Duplicate detection folds Arabic variants and case, so "Bus"
+        // and "bus" collide here, as do alef/hamza and ة/ه spellings.
+        if ($this->isDuplicate($name)) {
             throw ValidationException::withMessages([
                 'name' => __('fees.errors.name_taken'),
             ]);
@@ -51,23 +52,30 @@ final class CreateFeeType
                 'name' => $name,
                 'is_mandatory' => (bool) ($data['is_mandatory'] ?? false),
             ]));
-        } catch (UniqueConstraintViolationException $e) {
+        } catch (UniqueConstraintViolationException) {
             throw ValidationException::withMessages([
                 'name' => __('fees.errors.name_taken'),
             ]);
         }
     }
 
-    public function normalize(string $value): string
+    private function isDuplicate(string $name): bool
     {
-        /** @var string $collapsed */
-        $collapsed = preg_replace('/\s+/u', ' ', trim($value));
+        $key = TextNormalizer::comparisonKey($name);
 
-        return $collapsed;
+        foreach (FeeType::query()->pluck('name') as $existing) {
+            if (TextNormalizer::comparisonKey((string) $existing) === $key) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function isReserved(string $name): bool
     {
+        $key = TextNormalizer::comparisonKey($name);
+
         $candidates = [
             'Tuition',
             __('fees.tuition', locale: 'en'),
@@ -76,7 +84,7 @@ final class CreateFeeType
         ];
 
         foreach ($candidates as $reserved) {
-            if (mb_strtolower($name, 'UTF-8') === mb_strtolower($reserved, 'UTF-8')) {
+            if (TextNormalizer::comparisonKey($reserved) === $key) {
                 return true;
             }
         }

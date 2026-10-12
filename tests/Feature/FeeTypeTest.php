@@ -36,6 +36,13 @@ class FeeTypeTest extends TestCase
         $this->assertSame('Bus Fees', $type->name);
     }
 
+    public function test_normalize_strips_invisible_characters_and_nbsp(): void
+    {
+        $type = app(CreateFeeType::class)->handle(['name' => "Bu\u{200B}s\u{00A0}Fees", 'is_mandatory' => false]);
+
+        $this->assertSame('Bus Fees', $type->name);
+    }
+
     public function test_rejects_duplicate_names_case_insensitively(): void
     {
         app(CreateFeeType::class)->handle(['name' => 'Bus', 'is_mandatory' => false]);
@@ -43,6 +50,68 @@ class FeeTypeTest extends TestCase
         try {
             app(CreateFeeType::class)->handle(['name' => 'bus', 'is_mandatory' => false]);
             $this->fail('Expected ValidationException for duplicate fee type name');
+        } catch (ValidationException $e) {
+            $this->assertArrayHasKey('name', $e->errors());
+        }
+    }
+
+    /**
+     * @return array<string, array{string, string}>
+     */
+    public static function arabicVariants(): array
+    {
+        return [
+            'alef hamza above' => ['أحمد', 'احمد'],
+            'alef hamza below' => ['إحسان', 'احسان'],
+            'alef madda' => ['آمال', 'امال'],
+            'ta marbuta' => ['مدرسة', 'مدرسه'],
+            'alef maqsura' => ['علي', 'على'],
+            'tashkeel' => ['مَدرسة', 'مدرسة'],
+            'tatweel' => ['مـدرسة', 'مدرسة'],
+        ];
+    }
+
+    /**
+     * Arabic spelling variants of the same name collide.
+     */
+    #[DataProvider('arabicVariants')]
+    public function test_rejects_arabic_variant_duplicates(string $first, string $second): void
+    {
+        app(CreateFeeType::class)->handle(['name' => $first, 'is_mandatory' => false]);
+
+        try {
+            app(CreateFeeType::class)->handle(['name' => $second, 'is_mandatory' => false]);
+            $this->fail("Expected ValidationException for variant [{$second}] of [{$first}]");
+        } catch (ValidationException $e) {
+            $this->assertArrayHasKey('name', $e->errors());
+        }
+    }
+
+    /**
+     * @return array<string, array{string}>
+     */
+    public static function invisibleVariants(): array
+    {
+        return [
+            'zero-width space' => ["Bu\u{200B}s"],
+            'zero-width non-joiner' => ["Bu\u{200C}s"],
+            'bidi mark' => ["Bu\u{200E}s"],
+            'nbsp padding' => ["\u{00A0}Bus\u{00A0}"],
+            'word joiner' => ["Bu\u{2060}s"],
+        ];
+    }
+
+    /**
+     * Invisible characters cannot smuggle a duplicate name past the check.
+     */
+    #[DataProvider('invisibleVariants')]
+    public function test_rejects_invisible_character_duplicates(string $variant): void
+    {
+        app(CreateFeeType::class)->handle(['name' => 'Bus', 'is_mandatory' => false]);
+
+        try {
+            app(CreateFeeType::class)->handle(['name' => $variant, 'is_mandatory' => true]);
+            $this->fail('Expected ValidationException for invisible-character variant');
         } catch (ValidationException $e) {
             $this->assertArrayHasKey('name', $e->errors());
         }
@@ -75,6 +144,18 @@ class FeeTypeTest extends TestCase
             try {
                 app(CreateFeeType::class)->handle(['name' => $name, 'is_mandatory' => false]);
                 $this->fail("Expected ValidationException for reserved name [{$name}] in [{$locale}]");
+            } catch (ValidationException $e) {
+                $this->assertArrayHasKey('name', $e->errors());
+            }
+        }
+    }
+
+    public function test_rejects_reserved_name_variants(): void
+    {
+        foreach (['TUITION', "Tuit\u{200B}ion", 'الرسوم الدراسيه', 'رسوم دراسيه'] as $name) {
+            try {
+                app(CreateFeeType::class)->handle(['name' => $name, 'is_mandatory' => false]);
+                $this->fail("Expected ValidationException for reserved variant [{$name}]");
             } catch (ValidationException $e) {
                 $this->assertArrayHasKey('name', $e->errors());
             }

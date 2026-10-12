@@ -15,9 +15,13 @@ return new class extends Migration
             $table->foreignId('student_id')->constrained()->restrictOnDelete();
             $table->foreignId('academic_year_id')->constrained()->restrictOnDelete();
             $table->foreignId('grade_id')->constrained()->restrictOnDelete();
+            $table->string('status')->default('active');
+            $table->string('status_note')->nullable();
+            $table->timestamp('status_changed_at')->nullable();
             $table->timestamps();
 
             $table->unique(['student_id', 'academic_year_id']);
+            $table->index('status');
             $table->index(['academic_year_id', 'grade_id']);
         });
     }

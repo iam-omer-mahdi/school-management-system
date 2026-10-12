@@ -36,7 +36,6 @@ class StudentNumberTest extends TestCase
             $student = $creator->handle([
                 'name' => 'Student '.$i,
                 'phone' => '09'.str_pad((string) $i, 8, '0', STR_PAD_LEFT),
-                'status' => 'active',
             ]);
 
             $numbers[] = $student->student_number;
@@ -87,7 +86,6 @@ class StudentNumberTest extends TestCase
         $student = app(CreateStudent::class)->handle([
             'name' => 'Retry Student',
             'phone' => '0911111111',
-            'status' => 'active',
         ]);
 
         $this->assertNotEmpty($student->student_number);
@@ -105,7 +103,6 @@ class StudentNumberTest extends TestCase
             app(CreateStudent::class)->handle([
                 'name' => 'Unlucky Student',
                 'phone' => '0922222222',
-                'status' => 'active',
             ]);
             $this->fail('Expected ValidationException after repeated collisions');
         } catch (ValidationException $e) {

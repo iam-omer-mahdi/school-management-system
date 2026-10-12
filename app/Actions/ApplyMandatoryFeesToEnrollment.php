@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Actions;
 
-use App\Enums\StudentStatus;
 use App\Models\Enrollment;
 use App\Models\EnrollmentFee;
 use App\Models\GradeFee;
@@ -16,7 +15,7 @@ final class ApplyMandatoryFeesToEnrollment
 {
     /**
      * Charge every mandatory grade fee of the enrollment's grade and year.
-     * Only enrollments of active or suspended students are charged;
+     * Only enrollments whose own status is active or suspended are charged;
      * transferred, expelled and left enrollments keep whatever they have.
      * Missing charges are created idempotently; concurrent duplicates are
      * ignored because the unique constraint is the final guard.
@@ -44,28 +43,38 @@ final class ApplyMandatoryFeesToEnrollment
         return $charged;
     }
 
+    /**
+     * Mandatory schedule rows not yet charged to this enrollment.
+     * Used by the status-change modal to preview what a reactivation
+     * would add, and by the status change itself to apply them.
+     *
+     * @return Collection<int, GradeFee>
+     */
+    public function missingFor(Enrollment $enrollment): Collection
+    {
+        $chargedIds = EnrollmentFee::query()
+            ->where('enrollment_id', $enrollment->id)
+            ->pluck('grade_fee_id')
+            ->all();
+
+        return GradeFee::query()
+            ->where('grade_id', $enrollment->grade_id)
+            ->where('academic_year_id', $enrollment->academic_year_id)
+            ->whereHas('feeType', fn (Builder $query): Builder => $query->where('is_mandatory', true))
+            ->when($chargedIds !== [], fn (Builder $query): Builder => $query->whereNotIn('id', $chargedIds))
+            ->get(['id', 'grade_id', 'academic_year_id', 'fee_type_id', 'amount_minor']);
+    }
+
     private function isChargeable(Enrollment $enrollment): bool
     {
-        $status = $enrollment->relationLoaded('student')
-            ? $enrollment->student->status
-            : $enrollment->student()->value('status');
-
-        $value = $status instanceof StudentStatus ? $status->value : (string) $status;
-
-        return in_array($value, [StudentStatus::Active->value, StudentStatus::Suspended->value], true);
+        return $enrollment->status->isCharged();
     }
 
     private function charge(Enrollment $enrollment): int
     {
-        $gradeFees = GradeFee::query()
-            ->where('grade_id', $enrollment->grade_id)
-            ->where('academic_year_id', $enrollment->academic_year_id)
-            ->whereHas('feeType', fn (Builder $query): Builder => $query->where('is_mandatory', true))
-            ->get(['id', 'amount_minor']);
-
         $charged = 0;
 
-        foreach ($gradeFees as $gradeFee) {
+        foreach ($this->missingFor($enrollment) as $gradeFee) {
             try {
                 EnrollmentFee::query()->create([
                     'enrollment_id' => $enrollment->id,

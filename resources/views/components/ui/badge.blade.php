@@ -19,7 +19,7 @@ $statusColors = [
 ];
 
 $resolved = $color ?? $statusColors[$status ?? ''] ?? 'gray';
-$label = $status !== null ? __('students.status_'.$status) : $slot;
+$label = $status !== null ? __('enrollments.status_'.$status) : $slot;
 @endphp
 
 <span {{ $attributes->merge(['class' => 'inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium whitespace-nowrap '.($palette[$resolved] ?? $palette['gray'])]) }}>{{ $label }}</span>

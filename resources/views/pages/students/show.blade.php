@@ -1,8 +1,10 @@
 <?php
 
+use App\Actions\ArchiveStudent;
 use App\Actions\EnrollStudent;
-use App\Actions\UpdateStudentStatus;
-use App\Enums\StudentStatus;
+use App\Actions\RestoreStudent;
+use App\Actions\UpdateEnrollmentStatus;
+use App\Enums\EnrollmentStatus;
 use App\Livewire\Forms\StudentForm;
 use App\Models\AcademicYear;
 use App\Models\Enrollment;
@@ -33,6 +35,8 @@ new #[Layout('layouts::app')] class extends Component
 
     public ?string $status_note = null;
 
+    public ?string $archive_note = null;
+
     public function mount(Student $student): void
     {
         $this->studentId = $student->id;
@@ -43,7 +47,7 @@ new #[Layout('layouts::app')] class extends Component
     public function student(): Student
     {
         return Student::query()
-            ->select(['id', 'student_number', 'name', 'phone', 'secondary_phone', 'home_address', 'mother_name', 'blood_type', 'date_of_birth', 'guardian_name', 'guardian_relationship', 'status', 'status_note', 'status_changed_at'])
+            ->select(['id', 'student_number', 'name', 'phone', 'secondary_phone', 'home_address', 'mother_name', 'blood_type', 'date_of_birth', 'guardian_name', 'guardian_relationship', 'archived_at', 'archive_note'])
             ->findOrFail($this->studentId);
     }
 
@@ -54,7 +58,7 @@ new #[Layout('layouts::app')] class extends Component
         return Enrollment::query()
             ->where('student_id', $this->studentId)
             ->with([
-                'academicYear:id,name',
+                'academicYear:id,name,starts_on',
                 'grade:id,school_id,number',
                 'grade.school:id,code,name',
             ])
@@ -91,6 +95,14 @@ new #[Layout('layouts::app')] class extends Component
         return AcademicYear::query()->select(['id', 'name'])->orderBy('name')->get();
     }
 
+    #[Computed]
+    public function latestEnrollment(): ?Enrollment
+    {
+        return $this->enrollments
+            ->sortByDesc(fn (Enrollment $e) => [$e->academicYear?->starts_on?->format('Y-m-d') ?? '', $e->id])
+            ->first();
+    }
+
     /** @return array<string, string> */
     public function validationAttributes(): array
     {
@@ -120,17 +132,31 @@ new #[Layout('layouts::app')] class extends Component
 
         $this->showEnroll = false;
         $this->reset(['school_id', 'grade_id', 'academic_year_id']);
-        unset($this->enrollments);
+        unset($this->enrollments, $this->latestEnrollment);
         session()->flash('status', __('students.enrolled'));
     }
 
-    public function changeStatus(UpdateStudentStatus $action, string $status): void
+    public function changeEnrollmentStatus(UpdateEnrollmentStatus $action, int $enrollmentId, string $status): void
     {
-        $newStatus = StudentStatus::from($status);
-        $action->handle($this->student, $newStatus, $this->status_note);
+        $action->handle($enrollmentId, EnrollmentStatus::from($status), $this->status_note);
         $this->status_note = null;
+        unset($this->enrollments, $this->latestEnrollment);
+        session()->flash('status', __('enrollments.status_changed'));
+    }
+
+    public function archive(ArchiveStudent $action): void
+    {
+        $action->handle($this->studentId, $this->archive_note);
+        $this->archive_note = null;
         unset($this->student);
-        session()->flash('status', __('students.status_changed'));
+        session()->flash('status', __('students.saved'));
+    }
+
+    public function restore(RestoreStudent $action): void
+    {
+        $action->handle($this->studentId);
+        unset($this->student);
+        session()->flash('status', __('students.saved'));
     }
 };
 ?>
@@ -138,12 +164,18 @@ new #[Layout('layouts::app')] class extends Component
 <div class="space-y-5">
     <x-ui.page-header :title="$this->student->name" :backUrl="route('students.index')">
         <x-slot:actions>
-            <x-ui.badge :status="$this->student->status->value" />
+            @if($this->student->isArchived())
+                <x-ui.badge color="gray">{{ __('students.archived') }}</x-ui.badge>
+            @endif
         </x-slot:actions>
     </x-ui.page-header>
 
     @if(session('status'))
         <x-ui.alert type="success" dismissible>{{ session('status') }}</x-ui.alert>
+    @endif
+
+    @if($this->student->isArchived())
+        <x-ui.alert type="warning">{{ __('students.archived_notice') }}</x-ui.alert>
     @endif
 
     <x-ui.card>
@@ -205,24 +237,20 @@ new #[Layout('layouts::app')] class extends Component
         @endif
     </x-ui.card>
 
-    <x-ui.card :title="__('students.status')" :description="! $this->student->isActive() ? __('students.errors.inactive_cannot_enroll') : null">
-        <div class="flex flex-wrap items-center gap-2">
-            @foreach(\App\Enums\StudentStatus::cases() as $case)
-                <x-ui.button
-                    wire:key="status-{{ $case->value }}"
-                    variant="{{ $this->student->status === $case ? 'primary' : ($case === \App\Enums\StudentStatus::Expelled ? 'danger' : 'secondary') }}"
-                    size="sm"
-                    wire:click="changeStatus('{{ $case->value }}')"
-                    loading-target="changeStatus"
-                    wire:loading.attr="disabled"
-                >{{ __('students.status_'.$case->value) }}</x-ui.button>
-            @endforeach
-        </div>
-        <div class="mt-4">
-            <x-ui.field :label="__('students.status_note')" for="status_note">
-                <x-ui.input id="status_note" type="text" wire:model.blur="status_note" />
-            </x-ui.field>
-        </div>
+    <x-ui.card :title="__('students.archived')">
+        @if(! $this->student->isArchived())
+            @if($this->latestEnrollment && in_array($this->latestEnrollment->status->value, ['active', 'suspended'], true))
+                <x-ui.alert type="warning">{{ __('students.archive_warning') }}</x-ui.alert>
+            @endif
+            <div class="mt-4 flex flex-wrap items-center gap-2">
+                <x-ui.field :label="__('students.archive_note')" for="archive_note">
+                    <x-ui.input id="archive_note" type="text" wire:model.blur="archive_note" />
+                </x-ui.field>
+                <x-ui.button variant="danger" size="sm" wire:click="archive" loading-target="archive" wire:loading.attr="disabled">{{ __('students.archive') }}</x-ui.button>
+            </div>
+        @else
+            <x-ui.button variant="secondary" size="sm" wire:click="restore" loading-target="restore" wire:loading.attr="disabled">{{ __('students.restore') }}</x-ui.button>
+        @endif
     </x-ui.card>
 
     <x-ui.card>
@@ -237,6 +265,9 @@ new #[Layout('layouts::app')] class extends Component
         </x-slot:header>
         @if($showEnroll)
             <form wire:submit="enroll" class="mb-5 grid grid-cols-1 gap-4 rounded-lg border border-gray-200 bg-gray-50 p-4 sm:grid-cols-3 dark:border-gray-600 dark:bg-gray-700/40">
+                @if($this->latestEnrollment && $this->latestEnrollment->status === \App\Enums\EnrollmentStatus::Expelled)
+                    <x-ui.alert type="warning" class="sm:col-span-3">{{ __('students.expelled_warning') }}</x-ui.alert>
+                @endif
                 <x-ui.field :label="__('students.school')" for="enroll-school">
                     <x-ui.select id="enroll-school" wire:model.live="school_id">
                         <option value="">—</option>
@@ -273,10 +304,30 @@ new #[Layout('layouts::app')] class extends Component
         @else
             <ul class="space-y-2 text-sm">
                 @foreach($this->enrollments as $enrollment)
-                    <li wire:key="enrollment-{{ $enrollment->id }}" class="flex flex-wrap items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 dark:border-gray-600 dark:bg-gray-700/40">
-                        <span class="font-medium text-gray-900 dark:text-white">{{ $enrollment->academicYear->name }}</span>
-                        <span class="text-gray-400 dark:text-gray-500" aria-hidden="true">—</span>
-                        <span class="text-gray-700 dark:text-gray-300">{{ __('schools.'.$enrollment->grade->school->code) }} {{ __('schools.grade_number', ['number' => $enrollment->grade->number]) }}</span>
+                    <li wire:key="enrollment-{{ $enrollment->id }}" class="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 dark:border-gray-600 dark:bg-gray-700/40">
+                        <div class="flex flex-wrap items-center gap-2">
+                            <span class="font-medium text-gray-900 dark:text-white">{{ $enrollment->academicYear->name }}</span>
+                            <span class="text-gray-400 dark:text-gray-500" aria-hidden="true">—</span>
+                            <span class="text-gray-700 dark:text-gray-300">{{ __('schools.'.$enrollment->grade->school->code) }} {{ __('schools.grade_number', ['number' => $enrollment->grade->number]) }}</span>
+                            <x-ui.badge :status="$enrollment->status->value" />
+                        </div>
+                        <div class="mt-2 flex flex-wrap items-center gap-2">
+                            @foreach(\App\Enums\EnrollmentStatus::cases() as $case)
+                                <x-ui.button
+                                    wire:key="status-{{ $enrollment->id }}-{{ $case->value }}"
+                                    variant="{{ $enrollment->status === $case ? 'primary' : ($case === \App\Enums\EnrollmentStatus::Expelled ? 'danger' : 'secondary') }}"
+                                    size="sm"
+                                    wire:click="changeEnrollmentStatus({{ $enrollment->id }}, '{{ $case->value }}')"
+                                    loading-target="changeEnrollmentStatus"
+                                    wire:loading.attr="disabled"
+                                >{{ __('enrollments.status_'.$case->value) }}</x-ui.button>
+                            @endforeach
+                        </div>
+                        <div class="mt-2">
+                            <x-ui.field :label="__('enrollments.status_note')" for="status_note-{{ $enrollment->id }}">
+                                <x-ui.input id="status_note-{{ $enrollment->id }}" type="text" wire:model.blur="status_note" />
+                            </x-ui.field>
+                        </div>
                     </li>
                 @endforeach
             </ul>

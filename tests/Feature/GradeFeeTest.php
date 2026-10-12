@@ -7,8 +7,8 @@ namespace Tests\Feature;
 use App\Actions\CreateGradeFee;
 use App\Actions\DeleteGradeFee;
 use App\Actions\EnrollStudent;
-use App\Actions\UpdateStudentStatus;
-use App\Enums\StudentStatus;
+use App\Actions\UpdateEnrollmentStatus;
+use App\Enums\EnrollmentStatus;
 use App\Models\AcademicYear;
 use App\Models\Enrollment;
 use App\Models\FeeType;
@@ -42,14 +42,16 @@ class GradeFeeTest extends TestCase
     {
         [$grade, $year] = $this->fixtures();
 
-        $fee = app(CreateGradeFee::class)->handle([
+        $result = app(CreateGradeFee::class)->handle([
             'grade_id' => $grade->id,
             'academic_year_id' => $year->id,
             'fee_type_id' => $this->tuition()->id,
             'amount' => '1,250.50',
         ]);
 
-        $this->assertSame(125050, $fee->amount_minor);
+        $this->assertSame(125050, $result->gradeFee->amount_minor);
+        $this->assertSame(0, $result->applied);
+        $this->assertSame(0, $result->skipped);
         $this->assertDatabaseHas('grade_fees', [
             'grade_id' => $grade->id,
             'academic_year_id' => $year->id,
@@ -117,7 +119,7 @@ class GradeFeeTest extends TestCase
             'academic_year_id' => $year->id,
             'fee_type_id' => $bus->id,
             'amount' => '300',
-        ]);
+        ])->gradeFee;
 
         app(DeleteGradeFee::class)->handle($free->id);
 
@@ -128,9 +130,9 @@ class GradeFeeTest extends TestCase
             'academic_year_id' => $year->id,
             'fee_type_id' => $this->tuition()->id,
             'amount' => '1000',
-        ]);
+        ])->gradeFee;
 
-        $student = Student::factory()->create(['status' => StudentStatus::Active]);
+        $student = Student::factory()->create();
         app(EnrollStudent::class)->handle($student->id, $year->id, $grade->id);
 
         try {
@@ -150,19 +152,22 @@ class GradeFeeTest extends TestCase
 
         $ids = [];
 
-        foreach (StudentStatus::cases() as $status) {
-            $student = Student::factory()->create(['status' => StudentStatus::Active]);
+        foreach (EnrollmentStatus::cases() as $status) {
+            $student = Student::factory()->create();
             $enrollment = $enroller->handle($student->id, $year->id, $grade->id);
-            app(UpdateStudentStatus::class)->handle($student->refresh(), $status);
+            app(UpdateEnrollmentStatus::class)->handle($enrollment, $status);
             $ids[$status->value] = $enrollment->id;
         }
 
-        app(CreateGradeFee::class)->handle([
+        $result = app(CreateGradeFee::class)->handle([
             'grade_id' => $grade->id,
             'academic_year_id' => $year->id,
             'fee_type_id' => $this->tuition()->id,
             'amount' => '1000',
         ]);
+
+        $this->assertSame(2, $result->applied);
+        $this->assertSame(3, $result->skipped);
 
         foreach (['active', 'suspended'] as $charged) {
             $this->assertSame(
@@ -185,18 +190,20 @@ class GradeFeeTest extends TestCase
     {
         [$grade, $year] = $this->fixtures();
 
-        $student = Student::factory()->create(['status' => StudentStatus::Active]);
+        $student = Student::factory()->create();
         $enrollment = app(EnrollStudent::class)->handle($student->id, $year->id, $grade->id);
 
         $bus = FeeType::factory()->create(['name' => 'Bus', 'is_mandatory' => false]);
 
-        app(CreateGradeFee::class)->handle([
+        $result = app(CreateGradeFee::class)->handle([
             'grade_id' => $grade->id,
             'academic_year_id' => $year->id,
             'fee_type_id' => $bus->id,
             'amount' => '300',
         ]);
 
+        $this->assertSame(0, $result->applied);
+        $this->assertSame(0, $result->skipped);
         $this->assertSame(0, $enrollment->refresh()->fees()->count());
     }
 }

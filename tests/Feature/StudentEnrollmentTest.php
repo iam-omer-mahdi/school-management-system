@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace Tests\Feature;
 
+use App\Actions\ArchiveStudent;
 use App\Actions\EnrollStudent;
-use App\Actions\UpdateStudentStatus;
-use App\Enums\StudentStatus;
+use App\Actions\RestoreStudent;
+use App\Actions\UpdateEnrollmentStatus;
+use App\Enums\EnrollmentStatus;
 use App\Models\AcademicYear;
 use App\Models\Enrollment;
 use App\Models\Grade;
@@ -66,6 +68,10 @@ class StudentEnrollmentTest extends TestCase
 
         $this->assertEquals(1, Student::count());
         $this->assertEquals(1, Enrollment::count());
+        $this->assertSame(
+            EnrollmentStatus::Active,
+            Enrollment::firstOrFail()->status
+        );
     }
 
     public function test_student_number_unique_auto_generated_not_editable(): void
@@ -84,28 +90,41 @@ class StudentEnrollmentTest extends TestCase
         $response->assertDontSee('name="form.student_number"', false);
     }
 
-    public function test_inactive_students_cannot_enroll_until_reactivated(): void
+    public function test_archived_students_cannot_enroll_until_restored(): void
     {
-        $student = Student::factory()->create(['status' => StudentStatus::Suspended]);
+        $student = Student::factory()->create();
+        app(ArchiveStudent::class)->handle($student);
+
         $year = AcademicYear::factory()->create(['name' => '26/27']);
         $grade = Grade::firstOrFail();
 
-        $this->expectException(ValidationException::class);
+        try {
+            app(EnrollStudent::class)->handle($student->id, $year->id, $grade->id);
+            $this->fail('Expected ValidationException for an archived student');
+        } catch (ValidationException $e) {
+            $this->assertArrayHasKey('student_id', $e->errors());
+        }
 
-        app(EnrollStudent::class)->handle($student->id, $year->id, $grade->id);
-    }
-
-    public function test_reactivation_makes_student_available_again(): void
-    {
-        $student = Student::factory()->create(['status' => StudentStatus::Suspended]);
-        $year = AcademicYear::factory()->create(['name' => '26/27']);
-        $grade = Grade::firstOrFail();
-
-        app(UpdateStudentStatus::class)->handle($student, StudentStatus::Active);
+        app(RestoreStudent::class)->handle($student->refresh());
 
         $enrollment = app(EnrollStudent::class)->handle($student->id, $year->id, $grade->id);
 
         $this->assertEquals($student->id, $enrollment->student_id);
+    }
+
+    public function test_student_with_ended_enrollment_can_enroll_in_new_year(): void
+    {
+        $student = Student::factory()->create();
+        $oldYear = AcademicYear::factory()->create(['name' => '25/26', 'starts_on' => '2025-09-01', 'ends_on' => '2026-06-01']);
+        $newYear = AcademicYear::factory()->create(['name' => '26/27', 'starts_on' => '2026-09-01', 'ends_on' => '2027-06-01']);
+        $grade = Grade::firstOrFail();
+
+        $old = app(EnrollStudent::class)->handle($student->id, $oldYear->id, $grade->id);
+        app(UpdateEnrollmentStatus::class)->handle($old, EnrollmentStatus::Expelled);
+
+        $enrollment = app(EnrollStudent::class)->handle($student->id, $newYear->id, $grade->id);
+
+        $this->assertSame(EnrollmentStatus::Active, $enrollment->status);
     }
 
     public function test_no_double_enrollment_in_same_year(): void
@@ -149,10 +168,42 @@ class StudentEnrollmentTest extends TestCase
         $year = AcademicYear::factory()->create(['name' => '26/27']);
         $grade = Grade::firstOrFail();
 
-        app(EnrollStudent::class)->handle($student->id, $year->id, $grade->id);
-        app(UpdateStudentStatus::class)->handle($student->refresh(), StudentStatus::Left, 'moved');
+        $enrollment = app(EnrollStudent::class)->handle($student->id, $year->id, $grade->id);
+        app(UpdateEnrollmentStatus::class)->handle($enrollment, EnrollmentStatus::Left, 'moved');
 
         $this->assertEquals(1, Enrollment::where('student_id', $student->id)->count());
+    }
+
+    public function test_student_list_filter_and_latest_enrollment_column(): void
+    {
+        $user = User::factory()->create();
+        $this->actingAs($user);
+
+        $plain = Student::factory()->create(['name' => 'A Plain']);
+        $archived = Student::factory()->create(['name' => 'B Archived']);
+        app(ArchiveStudent::class)->handle($archived);
+
+        $year = AcademicYear::factory()->create(['name' => '26/27']);
+        $grade = Grade::firstOrFail();
+        app(EnrollStudent::class)->handle($plain->id, $year->id, $grade->id);
+
+        // Default shows active students with the latest enrollment year.
+        Livewire::test('pages::students.index')
+            ->assertSee('A Plain')
+            ->assertDontSee('B Archived')
+            ->assertSee('26/27');
+
+        // Archived filter shows only archived students.
+        Livewire::test('pages::students.index')
+            ->set('archive', 'archived')
+            ->assertSee('B Archived')
+            ->assertDontSee('A Plain');
+
+        // All shows everyone.
+        Livewire::test('pages::students.index')
+            ->set('archive', 'all')
+            ->assertSee('A Plain')
+            ->assertSee('B Archived');
     }
 
     public function test_student_list_bounded_query_count(): void
@@ -160,7 +211,12 @@ class StudentEnrollmentTest extends TestCase
         $user = User::factory()->create();
         $this->actingAs($user);
 
-        Student::factory()->count(20)->create();
+        $year = AcademicYear::factory()->create(['name' => '26/27']);
+        $grade = Grade::firstOrFail();
+
+        foreach (Student::factory()->count(20)->create() as $student) {
+            app(EnrollStudent::class)->handle($student->id, $year->id, $grade->id);
+        }
 
         DB::flushQueryLog();
         DB::enableQueryLog();

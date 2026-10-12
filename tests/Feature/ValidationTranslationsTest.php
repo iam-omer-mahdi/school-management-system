@@ -78,7 +78,7 @@ class ValidationTranslationsTest extends TestCase
 
     public function test_translation_keys_match_between_locales(): void
     {
-        foreach (['validation.php', 'auth.php', 'passwords.php', 'pagination.php', 'fees.php', 'students.php'] as $file) {
+        foreach (['validation.php', 'auth.php', 'passwords.php', 'pagination.php', 'fees.php', 'students.php', 'enrollments.php'] as $file) {
             $this->assertLangParity($file);
         }
 
@@ -309,7 +309,6 @@ class ValidationTranslationsTest extends TestCase
             'student_number' => 'STU-000001',
             'name' => 'Sara',
             'phone' => '0700000000',
-            'status' => 'active',
         ]);
 
         $show = Livewire::test('pages::students.show', ['student' => $student->id])

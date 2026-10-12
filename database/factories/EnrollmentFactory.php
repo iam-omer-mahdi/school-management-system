@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Database\Factories;
 
+use App\Enums\EnrollmentStatus;
 use App\Models\AcademicYear;
 use App\Models\Enrollment;
 use App\Models\Grade;
@@ -26,6 +27,9 @@ class EnrollmentFactory extends Factory
             'student_id' => Student::factory(),
             'academic_year_id' => AcademicYear::factory(),
             'grade_id' => Grade::factory(),
+            'status' => EnrollmentStatus::Active,
+            'status_note' => null,
+            'status_changed_at' => null,
         ];
     }
 }

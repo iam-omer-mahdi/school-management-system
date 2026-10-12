@@ -9,6 +9,7 @@ use App\Models\Enrollment;
 use App\Models\FeeType;
 use App\Models\Grade;
 use App\Models\GradeFee;
+use App\Models\GradeFeeResult;
 use App\Support\Money;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
@@ -24,16 +25,19 @@ final class CreateGradeFee
     /**
      * Set a fee amount for a grade and academic year. Amounts are
      * create-only and frozen into enrollment charges at assignment time.
+     * Only active and suspended enrollments are charged; ended ones
+     * (transferred, expelled, left) are counted as skipped.
      *
-     * Lock order (shared with EnrollStudent): grades, then enrollments and
-     * charges. Locking the grade first means a mandatory fee created at the
-     * same moment as an enrollment cannot be missed by either side.
+     * Lock order (shared with EnrollStudent and UpdateEnrollmentStatus):
+     * grades, then enrollments and charges. Locking the grade first means
+     * a mandatory fee created at the same moment as an enrollment cannot
+     * be missed by either side.
      *
      * @param  array{grade_id: int, academic_year_id: int, fee_type_id: int, amount?: string}  $data
      *
      * @throws ValidationException
      */
-    public function handle(array $data): GradeFee
+    public function handle(array $data): GradeFeeResult
     {
         try {
             $amountMinor = Money::fromDecimal((string) ($data['amount'] ?? ''));
@@ -49,7 +53,7 @@ final class CreateGradeFee
             ]);
         }
 
-        return DB::transaction(function () use ($data, $amountMinor): GradeFee {
+        return DB::transaction(function () use ($data, $amountMinor): GradeFeeResult {
             $grade = Grade::query()
                 ->whereKey($data['grade_id'])
                 ->lockForUpdate()
@@ -88,17 +92,28 @@ final class CreateGradeFee
                 ]);
             }
 
+            $applied = 0;
+            $skipped = 0;
+
             if ($feeType->is_mandatory) {
                 $enrollments = Enrollment::query()
                     ->where('grade_id', $grade->id)
                     ->where('academic_year_id', $data['academic_year_id'])
-                    ->with('student:id,status')
                     ->get();
 
-                $this->mandatoryFees->handleMany($enrollments);
+                foreach ($enrollments as $enrollment) {
+                    if (! $enrollment->isCharged()) {
+                        $skipped++;
+
+                        continue;
+                    }
+
+                    $this->mandatoryFees->handle($enrollment);
+                    $applied++;
+                }
             }
 
-            return $gradeFee;
+            return new GradeFeeResult($gradeFee, $applied, $skipped);
         });
     }
 }

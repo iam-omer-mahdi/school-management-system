@@ -16,6 +16,11 @@ final class EnrollStudent
     ) {}
 
     /**
+     * Enroll any non-archived student, regardless of earlier enrollment
+     * statuses. The new enrollment starts active and gets all mandatory
+     * fees. Archived students are rejected; existing enrollments of an
+     * archived student are untouched by that rule.
+     *
      * Lock order (shared with CreateGradeFee): grades, then enrollments
      * and charges. Locking the grade first means a mandatory fee created
      * at the same moment as an enrollment cannot be missed by either side.
@@ -41,9 +46,9 @@ final class EnrollStudent
                 ]);
             }
 
-            if ($student->status !== 'active') {
+            if ($student->archived_at !== null) {
                 throw ValidationException::withMessages([
-                    'student_id' => __('students.errors.inactive_cannot_enroll'),
+                    'student_id' => __('students.errors.archived_cannot_enroll'),
                 ]);
             }
 
@@ -62,6 +67,7 @@ final class EnrollStudent
                 'student_id' => $studentId,
                 'academic_year_id' => $academicYearId,
                 'grade_id' => $gradeId,
+                'status' => 'active',
             ]);
 
             $this->mandatoryFees->handle($enrollment);

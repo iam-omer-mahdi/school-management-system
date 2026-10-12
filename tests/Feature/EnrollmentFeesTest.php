@@ -9,8 +9,8 @@ use App\Actions\CreateGradeFee;
 use App\Actions\EnrollStudent;
 use App\Actions\RemoveOptionalFeeFromEnrollment;
 use App\Actions\SetEnrollmentDiscount;
-use App\Actions\UpdateStudentStatus;
-use App\Enums\StudentStatus;
+use App\Actions\UpdateEnrollmentStatus;
+use App\Enums\EnrollmentStatus;
 use App\Models\AcademicYear;
 use App\Models\Enrollment;
 use App\Models\FeeType;
@@ -44,7 +44,7 @@ class EnrollmentFeesTest extends TestCase
 
     private function enroll(Grade $grade, AcademicYear $year): Enrollment
     {
-        $student = Student::factory()->create(['status' => StudentStatus::Active]);
+        $student = Student::factory()->create();
 
         return app(EnrollStudent::class)->handle($student->id, $year->id, $grade->id);
     }
@@ -90,8 +90,15 @@ class EnrollmentFeesTest extends TestCase
 
         $this->assertSame(0, $enrollment->refresh()->fees()->count());
 
-        $this->schedule($grade, $year, $this->tuition(), '1000');
+        $result = app(CreateGradeFee::class)->handle([
+            'grade_id' => $grade->id,
+            'academic_year_id' => $year->id,
+            'fee_type_id' => $this->tuition()->id,
+            'amount' => '1000',
+        ]);
 
+        $this->assertSame(1, $result->applied);
+        $this->assertSame(0, $result->skipped);
         $this->assertSame(1, $enrollment->refresh()->fees()->count());
         $this->assertSame(100000, $enrollment->fees()->firstOrFail()->amount_minor);
     }
@@ -122,7 +129,7 @@ class EnrollmentFeesTest extends TestCase
             'academic_year_id' => $year->id,
             'fee_type_id' => $books->id,
             'amount' => '150',
-        ]);
+        ])->gradeFee;
 
         $enrollment = $this->enroll($grade, $year);
 
@@ -159,7 +166,7 @@ class EnrollmentFeesTest extends TestCase
             'academic_year_id' => $year->id,
             'fee_type_id' => $this->tuition()->id,
             'amount' => '1000',
-        ]);
+        ])->gradeFee;
 
         $enrollment = $this->enroll($grade, $year);
 
@@ -180,7 +187,7 @@ class EnrollmentFeesTest extends TestCase
             'academic_year_id' => $year->id,
             'fee_type_id' => $this->tuition()->id,
             'amount' => '1000',
-        ]);
+        ])->gradeFee;
 
         $enrollment = $this->enroll($grade, $year);
 
@@ -194,7 +201,7 @@ class EnrollmentFeesTest extends TestCase
         $this->assertSame(1, $enrollment->refresh()->fees()->count());
     }
 
-    public function test_inactive_students_keep_charges_visible(): void
+    public function test_ended_enrollments_keep_charges_visible(): void
     {
         [$grade, $year] = $this->fixtures();
 
@@ -203,7 +210,7 @@ class EnrollmentFeesTest extends TestCase
         $enrollment = $this->enroll($grade, $year);
 
         app(SetEnrollmentDiscount::class)->handle($enrollment->id, '10', null);
-        app(UpdateStudentStatus::class)->handle($enrollment->student, StudentStatus::Transferred);
+        app(UpdateEnrollmentStatus::class)->handle($enrollment, EnrollmentStatus::Transferred);
 
         $enrollment = $enrollment->refresh();
 

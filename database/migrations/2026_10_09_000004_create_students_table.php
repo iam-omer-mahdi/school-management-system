@@ -2,7 +2,6 @@
 
 declare(strict_types=1);
 
-use App\Enums\StudentStatus;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -23,14 +22,12 @@ return new class extends Migration
             $table->date('date_of_birth')->nullable();
             $table->string('guardian_name')->nullable();
             $table->string('guardian_relationship')->nullable();
-            $table->string('status')->default(StudentStatus::Active->value);
-            $table->string('status_note')->nullable();
-            $table->timestamp('status_changed_at')->nullable();
+            $table->timestamp('archived_at')->nullable();
+            $table->string('archive_note')->nullable();
             $table->timestamps();
 
             $table->index('name');
             $table->index('phone');
-            $table->index('status');
         });
     }
 

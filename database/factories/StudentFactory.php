@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Database\Factories;
 
-use App\Enums\StudentStatus;
 use App\Models\Student;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
@@ -31,9 +30,15 @@ class StudentFactory extends Factory
             'date_of_birth' => null,
             'guardian_name' => null,
             'guardian_relationship' => null,
-            'status' => StudentStatus::Active,
-            'status_note' => null,
-            'status_changed_at' => null,
+            'archived_at' => null,
+            'archive_note' => null,
         ];
+    }
+
+    public function archived(): static
+    {
+        return $this->state(fn (array $attributes): array => [
+            'archived_at' => now(),
+        ]);
     }
 }
