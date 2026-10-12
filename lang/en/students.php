@@ -22,6 +22,8 @@ return [
     'archived_at' => 'Archived at',
     'archive' => 'Archive',
     'restore' => 'Restore',
+    'confirm_archive' => 'Archive this student? Enrollments and fees stay untouched.',
+    'confirm_restore' => 'Restore this student?',
     'archived_notice' => 'This student is inactive.',
     'archive_warning' => 'This student has an active enrollment in the latest academic year.',
     'expelled_warning' => 'The most recent enrollment ended as expelled.',
