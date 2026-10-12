@@ -27,6 +27,16 @@ class TextNormalizerTest extends TestCase
         );
     }
 
+    public function test_normalize_removes_arabic_letter_mark_and_soft_hyphen(): void
+    {
+        $this->assertSame('منحة', TextNormalizer::normalize("م\u{061C}نحة"));
+        $this->assertSame('Bus', TextNormalizer::normalize("B\u{00AD}us"));
+        $this->assertSame(
+            TextNormalizer::comparisonKey('منحة'),
+            TextNormalizer::comparisonKey("م\u{061C}نحة")
+        );
+    }
+
     public function test_comparison_key_folds_arabic_variants(): void
     {
         $this->assertSame(TextNormalizer::comparisonKey('أحمد'), TextNormalizer::comparisonKey('احمد'));

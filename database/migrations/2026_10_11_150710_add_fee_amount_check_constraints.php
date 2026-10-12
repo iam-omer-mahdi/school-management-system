@@ -22,28 +22,12 @@ return new class extends Migration
 
     public function down(): void
     {
-        $this->dropCheck('enrollment_discounts', 'chk_enrollment_discounts_percent');
-        $this->dropCheck('enrollment_discounts', 'chk_enrollment_discounts_amount');
-        $this->dropCheck('discounts', 'chk_discounts_percent');
-        $this->dropCheck('enrollment_fees', 'chk_enrollment_fees_amount');
-        $this->dropCheck('grade_fees', 'chk_grade_fees_amount');
-    }
-
-    /**
-     * MySQL drops checks with DROP CHECK while MariaDB (used for local
-     * verification only; production is MySQL 8.4) needs DROP CONSTRAINT.
-     */
-    private function dropCheck(string $table, string $name): void
-    {
-        $keyword = $this->isMariaDb() ? 'CONSTRAINT' : 'CHECK';
-
-        DB::statement("ALTER TABLE {$table} DROP {$keyword} {$name}");
-    }
-
-    private function isMariaDb(): bool
-    {
-        $version = (string) DB::connection()->getPdo()->getAttribute(PDO::ATTR_SERVER_VERSION);
-
-        return str_contains(strtolower($version), 'mariadb');
+        // DROP CONSTRAINT drops named CHECKs on MySQL >= 8.0.19 and on
+        // MariaDB, so one statement covers both engines.
+        DB::statement('ALTER TABLE enrollment_discounts DROP CONSTRAINT chk_enrollment_discounts_percent');
+        DB::statement('ALTER TABLE enrollment_discounts DROP CONSTRAINT chk_enrollment_discounts_amount');
+        DB::statement('ALTER TABLE discounts DROP CONSTRAINT chk_discounts_percent');
+        DB::statement('ALTER TABLE enrollment_fees DROP CONSTRAINT chk_enrollment_fees_amount');
+        DB::statement('ALTER TABLE grade_fees DROP CONSTRAINT chk_grade_fees_amount');
     }
 };
