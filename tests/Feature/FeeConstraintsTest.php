@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Feature;
 
 use App\Models\AcademicYear;
+use App\Models\Discount;
 use App\Models\Enrollment;
 use App\Models\FeeType;
 use App\Models\Grade;
@@ -79,12 +80,36 @@ class FeeConstraintsTest extends TestCase
 
     public function test_discount_percent_must_be_within_range(): void
     {
+        $discount = Discount::factory()->create();
+
+        foreach ([0, 10001] as $percent) {
+            try {
+                DB::table('discounts')->insert([
+                    'name' => 'Extra '.$percent,
+                    'percent_bp' => $percent,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+                $this->fail("Expected QueryException for discounts percent_bp [{$percent}]");
+            } catch (QueryException) {
+                // Expected: the database rejects out-of-range percentages.
+            }
+        }
+
+        $this->assertSame(1, DB::table('discounts')->count());
+    }
+
+    public function test_enrollment_discount_percent_must_be_within_range(): void
+    {
         [$enrollment] = $this->charged();
+        $discount = Discount::factory()->create();
 
         foreach ([0, 10001] as $percent) {
             try {
                 DB::table('enrollment_discounts')->insert([
                     'enrollment_id' => $enrollment->id,
+                    'discount_id' => $discount->id,
+                    'name' => $discount->name,
                     'percent_bp' => $percent,
                     'amount_minor' => 1000,
                     'created_at' => now(),

@@ -4,11 +4,12 @@ declare(strict_types=1);
 
 namespace Tests\Feature;
 
+use App\Actions\ApplyDiscountToEnrollment;
 use App\Actions\ArchiveStudent;
+use App\Actions\CreateDiscount;
 use App\Actions\CreateGradeFee;
 use App\Actions\EnrollStudent;
 use App\Actions\RestoreStudent;
-use App\Actions\SetEnrollmentDiscount;
 use App\Actions\UpdateEnrollmentStatus;
 use App\Enums\EnrollmentStatus;
 use App\Models\AcademicYear;
@@ -91,9 +92,10 @@ class StudentArchiveTest extends TestCase
         app(ArchiveStudent::class)->handle($student);
 
         // Discounts still apply to existing enrollments of archived students.
-        $discount = app(SetEnrollmentDiscount::class)->handle($enrollment->id, '10', null);
+        $discount = app(CreateDiscount::class)->handle(['name' => 'Sibling', 'percent' => '10']);
+        $applied = app(ApplyDiscountToEnrollment::class)->handle($enrollment->id, $discount->id);
 
-        $this->assertSame(1000, $discount->percent_bp);
+        $this->assertSame(1000, $applied->percent_bp);
 
         // Status changes still apply too.
         app(UpdateEnrollmentStatus::class)->handle($enrollment->refresh(), EnrollmentStatus::Suspended, 'pause');

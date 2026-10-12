@@ -11,13 +11,16 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
- * The single tuition discount for an enrollment, stored in basis points.
+ * The single tuition discount for an enrollment, resolved from a catalog
+ * discount. The name and percentage are snapshots; later catalog changes
+ * never rewrite applied discounts.
  *
  * @property int $id
  * @property int $enrollment_id
+ * @property int $discount_id
+ * @property string $name
  * @property int $percent_bp
  * @property int $amount_minor
- * @property string|null $note
  * @property CarbonInterface|null $created_at
  * @property CarbonInterface|null $updated_at
  */
@@ -26,7 +29,7 @@ class EnrollmentDiscount extends Model
     /** @use HasFactory<EnrollmentDiscountFactory> */
     use HasFactory;
 
-    protected $fillable = ['enrollment_id', 'percent_bp', 'amount_minor', 'note'];
+    protected $fillable = ['enrollment_id', 'discount_id', 'name', 'percent_bp', 'amount_minor'];
 
     protected function casts(): array
     {
@@ -40,5 +43,11 @@ class EnrollmentDiscount extends Model
     public function enrollment(): BelongsTo
     {
         return $this->belongsTo(Enrollment::class);
+    }
+
+    /** @return BelongsTo<Discount, $this> */
+    public function discount(): BelongsTo
+    {
+        return $this->belongsTo(Discount::class);
     }
 }

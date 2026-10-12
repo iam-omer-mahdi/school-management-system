@@ -5,10 +5,11 @@ declare(strict_types=1);
 namespace Tests\Feature;
 
 use App\Actions\AddOptionalFeeToEnrollment;
+use App\Actions\ApplyDiscountToEnrollment;
+use App\Actions\CreateDiscount;
 use App\Actions\CreateGradeFee;
 use App\Actions\EnrollStudent;
 use App\Actions\RemoveOptionalFeeFromEnrollment;
-use App\Actions\SetEnrollmentDiscount;
 use App\Actions\UpdateEnrollmentStatus;
 use App\Enums\EnrollmentStatus;
 use App\Models\AcademicYear;
@@ -209,7 +210,8 @@ class EnrollmentFeesTest extends TestCase
 
         $enrollment = $this->enroll($grade, $year);
 
-        app(SetEnrollmentDiscount::class)->handle($enrollment->id, '10', null);
+        $discount = app(CreateDiscount::class)->handle(['name' => 'Sibling', 'percent' => '10']);
+        app(ApplyDiscountToEnrollment::class)->handle($enrollment->id, $discount->id);
         app(UpdateEnrollmentStatus::class)->handle($enrollment, EnrollmentStatus::Transferred);
 
         $enrollment = $enrollment->refresh();

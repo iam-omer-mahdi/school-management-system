@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace Tests\Feature;
 
+use App\Actions\ApplyDiscountToEnrollment;
+use App\Actions\CreateDiscount;
 use App\Actions\CreateGradeFee;
 use App\Actions\EnrollStudent;
 use App\Actions\RemoveEnrollmentDiscount;
-use App\Actions\SetEnrollmentDiscount;
 use App\Models\AcademicYear;
+use App\Models\Discount;
 use App\Models\Enrollment;
 use App\Models\EnrollmentDiscount;
 use App\Models\FeeType;
@@ -40,6 +42,11 @@ class DiscountTest extends TestCase
         return FeeType::query()->where('system_key', 'tuition')->firstOrFail();
     }
 
+    private function discount(string $name, string $percent): Discount
+    {
+        return app(CreateDiscount::class)->handle(['name' => $name, 'percent' => $percent]);
+    }
+
     private function enrolledWithTuition(string $tuitionAmount): Enrollment
     {
         [$grade, $year] = $this->fixtures();
@@ -56,39 +63,27 @@ class DiscountTest extends TestCase
         return app(EnrollStudent::class)->handle($student->id, $year->id, $grade->id);
     }
 
-    public function test_sets_percentage_discount_with_resolved_amount(): void
+    public function test_applies_catalog_discount_with_resolved_amount_and_snapshot(): void
     {
         $enrollment = $this->enrolledWithTuition('1000');
+        $discount = $this->discount('Sibling', '10');
 
-        $discount = app(SetEnrollmentDiscount::class)->handle($enrollment->id, '10', null);
+        $applied = app(ApplyDiscountToEnrollment::class)->handle($enrollment->id, $discount->id);
 
-        $this->assertSame(1000, $discount->percent_bp);
-        $this->assertSame(10000, $discount->amount_minor);
+        $this->assertSame($discount->id, $applied->discount_id);
+        $this->assertSame('Sibling', $applied->name);
+        $this->assertSame(1000, $applied->percent_bp);
+        $this->assertSame(10000, $applied->amount_minor);
     }
 
     public function test_discount_rounds_half_up(): void
     {
         $enrollment = $this->enrolledWithTuition('0.03');
+        $discount = $this->discount('Half', '50');
 
-        $discount = app(SetEnrollmentDiscount::class)->handle($enrollment->id, '50', null);
+        $applied = app(ApplyDiscountToEnrollment::class)->handle($enrollment->id, $discount->id);
 
-        $this->assertSame(2, $discount->amount_minor);
-    }
-
-    public function test_rejects_out_of_range_percentages(): void
-    {
-        $enrollment = $this->enrolledWithTuition('1000');
-
-        foreach (['0', '0.00', '100.01', 'abc', ''] as $percent) {
-            try {
-                app(SetEnrollmentDiscount::class)->handle($enrollment->id, $percent, null);
-                $this->fail("Expected ValidationException for percent [{$percent}]");
-            } catch (ValidationException $e) {
-                $this->assertArrayHasKey('percent', $e->errors());
-            }
-        }
-
-        $this->assertSame(0, EnrollmentDiscount::count());
+        $this->assertSame(2, $applied->amount_minor);
     }
 
     public function test_requires_tuition_charge(): void
@@ -106,29 +101,33 @@ class DiscountTest extends TestCase
 
         $student = Student::factory()->create();
         $enrollment = app(EnrollStudent::class)->handle($student->id, $year->id, $grade->id);
+        $discount = $this->discount('Sibling', '10');
 
         try {
-            app(SetEnrollmentDiscount::class)->handle($enrollment->id, '10', null);
+            app(ApplyDiscountToEnrollment::class)->handle($enrollment->id, $discount->id);
             $this->fail('Expected ValidationException without a tuition charge');
         } catch (ValidationException $e) {
-            $this->assertArrayHasKey('percent', $e->errors());
+            $this->assertArrayHasKey('discount_id', $e->errors());
         }
     }
 
-    public function test_one_discount_per_enrollment_with_edit_and_remove(): void
+    public function test_one_discount_per_enrollment_with_replace_and_remove(): void
     {
         $enrollment = $this->enrolledWithTuition('1000');
+        $sibling = $this->discount('Sibling', '10');
+        $staff = $this->discount('Staff', '20');
 
-        app(SetEnrollmentDiscount::class)->handle($enrollment->id, '10', 'Sibling');
-        app(SetEnrollmentDiscount::class)->handle($enrollment->id, '20', 'Updated');
+        app(ApplyDiscountToEnrollment::class)->handle($enrollment->id, $sibling->id);
+        app(ApplyDiscountToEnrollment::class)->handle($enrollment->id, $staff->id);
 
         $this->assertSame(1, EnrollmentDiscount::where('enrollment_id', $enrollment->id)->count());
 
-        $discount = EnrollmentDiscount::where('enrollment_id', $enrollment->id)->firstOrFail();
+        $applied = EnrollmentDiscount::where('enrollment_id', $enrollment->id)->firstOrFail();
 
-        $this->assertSame(2000, $discount->percent_bp);
-        $this->assertSame(20000, $discount->amount_minor);
-        $this->assertSame('Updated', $discount->note);
+        $this->assertSame($staff->id, $applied->discount_id);
+        $this->assertSame('Staff', $applied->name);
+        $this->assertSame(2000, $applied->percent_bp);
+        $this->assertSame(20000, $applied->amount_minor);
 
         app(RemoveEnrollmentDiscount::class)->handle($enrollment->id);
 
@@ -165,7 +164,7 @@ class DiscountTest extends TestCase
         $student = Student::factory()->create();
         $enrollment = app(EnrollStudent::class)->handle($student->id, $year->id, $grade->id);
 
-        app(SetEnrollmentDiscount::class)->handle($enrollment->id, '10', null);
+        app(ApplyDiscountToEnrollment::class)->handle($enrollment->id, $this->discount('Sibling', '10')->id);
 
         $enrollment->load(['fees.gradeFee.feeType', 'discount']);
 

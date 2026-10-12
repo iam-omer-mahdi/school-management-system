@@ -4,9 +4,10 @@ declare(strict_types=1);
 
 namespace Tests\Feature;
 
+use App\Actions\ApplyDiscountToEnrollment;
+use App\Actions\CreateDiscount;
 use App\Actions\CreateFeeType;
 use App\Actions\CreateGradeFee;
-use App\Actions\SetEnrollmentDiscount;
 use App\Mail\ResetCodeMail;
 use App\Models\AcademicYear;
 use App\Models\Enrollment;
@@ -245,9 +246,14 @@ class ValidationTranslationsTest extends TestCase
         ));
 
         $enrollment = Enrollment::factory()->create();
+        $discount = app(CreateDiscount::class)->handle(['name' => 'Sibling', 'percent' => '10']);
 
         $this->assertMessagesAreArabic($bagFor(
-            fn () => app(SetEnrollmentDiscount::class)->handle($enrollment->id, 'abc', null)
+            fn () => app(CreateDiscount::class)->handle(['name' => '', 'percent' => 'abc'])
+        ));
+
+        $this->assertMessagesAreArabic($bagFor(
+            fn () => app(ApplyDiscountToEnrollment::class)->handle($enrollment->id, $discount->id)
         ));
     }
 
