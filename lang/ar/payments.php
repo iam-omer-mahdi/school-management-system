@@ -27,6 +27,7 @@ return [
     'closed_without_payment' => 'أُغلق دون سداد',
     'will_no_longer_be_owed' => ':amount لن يعد مستحقًا',
     'errors' => [
+        'already_voided' => 'هذا الصف ملغي بالفعل.',
         'amount_exceeds_remaining' => 'المبلغ أكبر من الرصيد المتبقي.',
         'refund_exceeds_outstanding' => 'المبلغ أكبر من المدفوع بالزيادة المستحق.',
         'void_blocked_by_refunds' => 'لا يمكن إلغاء هذه الدفعة الزائدة لوجود استردادات عليها.',

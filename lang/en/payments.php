@@ -27,6 +27,7 @@ return [
     'closed_without_payment' => 'Closed without payment',
     'will_no_longer_be_owed' => ':amount will no longer be owed',
     'errors' => [
+        'already_voided' => 'This row was already voided.',
         'amount_exceeds_remaining' => 'The amount is more than the remaining balance.',
         'refund_exceeds_outstanding' => 'The amount is more than the outstanding overpayment.',
         'void_blocked_by_refunds' => 'This overpayment cannot be voided while refunds against it exist.',
