@@ -40,6 +40,7 @@ return [
     'recovery_unavailable' => 'Recovery is not available for this email.',
     'recovery_invalid' => 'The answers do not match our records.',
     'answer' => 'Answer',
+    'lookup' => 'Continue',
     'security_q1' => 'What nickname did your classmates give to the teacher you remember most?',
     'security_q2' => 'What was the name of the first shop or café where you bought something on your own?',
     'security_q3' => 'What was the title of the first book or magazine you read from cover to cover as a child?',

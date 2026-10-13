@@ -30,7 +30,7 @@ new #[Layout('layouts::app')] class extends Component
 ?>
 
 <div class="space-y-5">
-    <x-ui.page-header :title="__('dashboard.title')" :description="__('dashboard.welcome').' — '.__('dashboard.placeholder_note')" />
+    <x-ui.page-header :title="__('dashboard.title')" :description="__('dashboard.welcome')" />
 
     <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <x-ui.card>

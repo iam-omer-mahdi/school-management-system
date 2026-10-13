@@ -35,6 +35,7 @@ return [
     'tuition_net' => 'Tuition net',
     'total_due' => 'Total due',
     'add_optional_fee' => 'Add optional fee',
+    'add' => 'Add',
     'select_fee' => 'Select a fee',
     'select_discount' => 'Select a discount',
     'apply_discount' => 'Apply',
@@ -53,6 +54,7 @@ return [
     'discounts' => 'Discounts',
     'discount_name' => 'Discount name',
     'percentage' => 'Percentage',
+    'percentage_hint' => 'Number from 1 to 100.',
     'note' => 'Note',
     'errors' => [
         'name_taken' => 'This fee type name is already used.',
@@ -71,5 +73,7 @@ return [
         'fees_not_set' => 'Tuition is not set for this grade and year yet.',
         'discount_missing' => 'No discount is set for this enrollment.',
         'grade_not_found' => 'Grade not found.',
+        'enrollment_ended' => 'No fees or discounts can be added to an ended enrollment.',
+        'percent_invalid' => 'Enter a percentage between 1 and 100 (up to two decimals).',
     ],
 ];

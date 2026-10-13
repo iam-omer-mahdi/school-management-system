@@ -7,6 +7,7 @@ $variants = [
     'primary' => 'border-transparent bg-indigo-600 text-white shadow-xs hover:bg-indigo-700 focus:ring-indigo-300 active:bg-indigo-800 dark:bg-indigo-600 dark:hover:bg-indigo-700 dark:focus:ring-indigo-800',
     'secondary' => 'border-gray-300 bg-white text-gray-900 shadow-xs hover:bg-gray-100 focus:ring-gray-100 active:bg-gray-200 dark:border-gray-600 dark:bg-gray-800 dark:text-white dark:hover:border-gray-600 dark:hover:bg-gray-700 dark:focus:ring-gray-700',
     'danger' => 'border-transparent bg-red-700 text-white shadow-xs hover:bg-red-800 focus:ring-red-300 active:bg-red-900 dark:bg-red-600 dark:hover:bg-red-700 dark:focus:ring-red-900',
+    'warning' => 'border-transparent bg-amber-500 text-white shadow-xs hover:bg-amber-600 focus:ring-amber-300 active:bg-amber-700 dark:bg-amber-500 dark:hover:bg-amber-600 dark:focus:ring-amber-800',
     'ghost' => 'border-transparent text-indigo-700 hover:bg-indigo-100 focus:ring-indigo-200 active:bg-indigo-200 dark:text-indigo-300 dark:hover:bg-gray-700 dark:focus:ring-gray-700',
 ];
 

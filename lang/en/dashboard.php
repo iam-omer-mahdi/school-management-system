@@ -9,5 +9,4 @@ return [
     'years_card' => 'Academic years',
     'enrollments_card' => 'Enrollments',
     'schools_card' => 'Schools',
-    'placeholder_note' => 'Detailed finance cards arrive in Step 3.',
 ];

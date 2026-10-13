@@ -99,7 +99,7 @@ new #[Layout('layouts::app')] class extends Component
             </x-slot:head>
             @foreach($this->types as $type)
                 <tr wire:key="type-{{ $type->id }}">
-                    <td class="font-medium text-gray-900 dark:text-white">{{ $type->name }}</td>
+                    <td class="font-medium text-gray-900 dark:text-white">@if($type->isTuition()){{ __('fees.tuition') }}@else{{ $type->name }}@endif</td>
                     <td>
                         @if($type->is_mandatory)
                             <x-ui.badge color="blue">{{ __('fees.mandatory') }}</x-ui.badge>

@@ -9,5 +9,4 @@ return [
     'years_card' => 'السنوات الدراسية',
     'enrollments_card' => 'التسجيلات',
     'schools_card' => 'المدارس',
-    'placeholder_note' => 'بطاقات المالية التفصيلية تأتي في الخطوة 3.',
 ];

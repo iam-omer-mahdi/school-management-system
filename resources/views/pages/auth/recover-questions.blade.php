@@ -29,9 +29,9 @@ new #[Layout('layouts::app')] class extends Component
     {
         return [
             'emailInput' => __('auth.email'),
-            'answer_1' => __('auth.answer').' 1',
-            'answer_2' => __('auth.answer').' 2',
-            'answer_3' => __('auth.answer').' 3',
+            'answer_1' => __('settings.answer', ['n' => 1]),
+            'answer_2' => __('settings.answer', ['n' => 2]),
+            'answer_3' => __('settings.answer', ['n' => 3]),
         ];
     }
 
@@ -124,7 +124,7 @@ new #[Layout('layouts::app')] class extends Component
             <x-ui.field :label="__('auth.email')" for="email" required :error="$errors->first('emailInput')">
                 <x-ui.input id="email" type="email" wire:model.blur="emailInput" :error="$errors->first('emailInput')" autocomplete="email" required />
             </x-ui.field>
-            <x-ui.button type="submit" variant="primary" class="w-full" loading-target="lookup" wire:loading.attr="disabled">{{ __('common.search') }}</x-ui.button>
+            <x-ui.button type="submit" variant="primary" class="w-full" loading-target="lookup" wire:loading.attr="disabled">{{ __('auth.lookup') }}</x-ui.button>
         </form>
     @else
         <form wire:submit="verifyAnswers" class="space-y-4">

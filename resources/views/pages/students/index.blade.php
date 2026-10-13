@@ -101,7 +101,7 @@ new #[Layout('layouts::app')] class extends Component
                     <td>{{ $student->phone }}</td>
                     <td>
                         @if($latest)
-                            <span>{{ $latest->academicYear->name }} — {{ $latest->grade->number }}</span>
+                            <span>{{ $latest->academicYear->name }} — {{ __('schools.grade_number', ['number' => $latest->grade->number]) }}</span>
                             <x-ui.badge :status="$latest->status->value" />
                         @else
                             {{ __('enrollments.not_enrolled') }}
