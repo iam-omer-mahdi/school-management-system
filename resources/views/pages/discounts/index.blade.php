@@ -91,8 +91,8 @@ new #[Layout('layouts::app')] class extends Component
                     <x-ui.field :label="__('fees.discount_name')" for="discount-name" required :error="$errors->first('name')">
                         <x-ui.input id="discount-name" type="text" wire:model.blur="name" :error="$errors->first('name')" required autocomplete="off" />
                     </x-ui.field>
-                    <x-ui.field :label="__('fees.percentage')" for="discount-percent" required :error="$errors->first('percent')">
-                        <x-ui.input id="discount-percent" type="text" wire:model.blur="percent" :error="$errors->first('percent')" inputmode="decimal" dir="ltr" autocomplete="off" class="font-mono" required />
+                    <x-ui.field :label="__('fees.percentage')" for="discount-percent" required :error="$errors->first('percent')" :hint="__('fees.percentage_hint')">
+                        <x-ui.input id="discount-percent" type="number" min="1" max="100" step="0.01" wire:model.blur="percent" :error="$errors->first('percent')" inputmode="decimal" dir="ltr" autocomplete="off" class="font-mono" required />
                     </x-ui.field>
                 </div>
                 @if($this->parsedPercent)

@@ -27,6 +27,13 @@ final class ApplyDiscountToEnrollment
     public function handle(int $enrollmentId, int $discountId): EnrollmentDiscount
     {
         $enrollment = Enrollment::query()->findOrFail($enrollmentId);
+
+        if ($enrollment->isEnded()) {
+            throw ValidationException::withMessages([
+                'discount_id' => __('fees.errors.enrollment_ended'),
+            ]);
+        }
+
         $discount = Discount::query()->findOrFail($discountId);
 
         $tuitionMinor = $this->tuitionMinor($enrollment);

@@ -10,6 +10,9 @@ use Livewire\Form;
 
 class StudentForm extends Form
 {
+    /** @var list<string> */
+    public const BLOOD_TYPES = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
+
     public string $name = '';
 
     public string $phone = '';
@@ -37,7 +40,7 @@ class StudentForm extends Form
             'secondary_phone' => ['nullable', 'string', 'max:30'],
             'home_address' => ['nullable', 'string', 'max:255'],
             'mother_name' => ['nullable', 'string', 'max:255'],
-            'blood_type' => ['nullable', 'string', 'max:10'],
+            'blood_type' => ['nullable', 'string', 'in:A+,A-,B+,B-,AB+,AB-,O+,O-'],
             'date_of_birth' => ['nullable', 'date'],
             'guardian_name' => ['nullable', 'string', 'max:255'],
             'guardian_relationship' => ['nullable', 'string', 'max:255'],

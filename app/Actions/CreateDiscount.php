@@ -43,7 +43,7 @@ final class CreateDiscount
             $basisPoints = Percent::parse((string) ($data['percent'] ?? ''));
         } catch (InvalidArgumentException) {
             throw ValidationException::withMessages([
-                'percent' => __('validation.numeric', ['attribute' => __('fees.percentage')]),
+                'percent' => __('fees.errors.percent_invalid'),
             ]);
         }
 

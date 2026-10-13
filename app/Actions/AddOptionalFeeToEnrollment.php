@@ -24,6 +24,13 @@ final class AddOptionalFeeToEnrollment
     public function handle(int $enrollmentId, int $gradeFeeId): EnrollmentFee
     {
         $enrollment = Enrollment::query()->findOrFail($enrollmentId);
+
+        if ($enrollment->isEnded()) {
+            throw ValidationException::withMessages([
+                'grade_fee_id' => __('fees.errors.enrollment_ended'),
+            ]);
+        }
+
         $gradeFee = GradeFee::query()->findOrFail($gradeFeeId);
         $feeType = FeeType::query()->find($gradeFee->fee_type_id);
 
