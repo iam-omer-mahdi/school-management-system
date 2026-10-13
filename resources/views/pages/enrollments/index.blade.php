@@ -5,6 +5,7 @@ use App\Models\AcademicYear;
 use App\Models\Enrollment;
 use App\Models\Grade;
 use App\Models\School;
+use App\Models\Student;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Url;
@@ -29,6 +30,9 @@ new #[Layout('layouts::app')] class extends Component
 
     #[Url]
     public string $search = '';
+
+    #[Url]
+    public string $sort = '';
 
     public ?int $applied_school_id = null;
 
@@ -68,6 +72,11 @@ new #[Layout('layouts::app')] class extends Component
         $this->resetPage();
     }
 
+    public function updatedSort(): void
+    {
+        $this->resetPage();
+    }
+
     /** @return \Illuminate\Database\Eloquent\Builder<Enrollment> */
     private function baseQuery(): \Illuminate\Database\Eloquent\Builder
     {
@@ -95,7 +104,7 @@ new #[Layout('layouts::app')] class extends Component
             return new \Illuminate\Pagination\LengthAwarePaginator([], 0, 15, 1);
         }
 
-        return $this->baseQuery()
+        $query = $this->baseQuery()
             ->with([
                 'student:id,student_number,name,archived_at',
                 'grade:id,school_id,number',
@@ -103,9 +112,19 @@ new #[Layout('layouts::app')] class extends Component
                 'academicYear:id,name',
                 'fees:enrollment_id,grade_fee_id,amount_minor',
                 'discount:enrollment_id,amount_minor',
-            ])
-            ->orderByDesc('id')
-            ->paginate(15);
+            ]);
+
+        match ($this->sort) {
+            'name_asc' => $query->orderBy(Student::select('name')->whereColumn('students.id', 'enrollments.student_id'), 'asc'),
+            'name_desc' => $query->orderBy(Student::select('name')->whereColumn('students.id', 'enrollments.student_id'), 'desc'),
+            'total_asc', 'total_desc' => $query
+                ->withSum('fees as fees_total', 'amount_minor')
+                ->withSum('discount as discount_total', 'amount_minor')
+                ->orderByRaw('COALESCE(fees_total, 0) - COALESCE(discount_total, 0) '.($this->sort === 'total_asc' ? 'asc' : 'desc')),
+            default => $query->orderByDesc('id'),
+        };
+
+        return $query->paginate(15);
     }
 
     /** @return array<string, int> */
@@ -212,6 +231,15 @@ new #[Layout('layouts::app')] class extends Component
                     @foreach(\App\Enums\EnrollmentStatus::cases() as $case)
                         <option value="{{ $case->value }}">{{ __('enrollments.status_'.$case->value) }}</option>
                     @endforeach
+                </x-ui.select>
+            </x-ui.field>
+            <x-ui.field :label="__('enrollments.sort')" for="enrollments-sort" class="sm:w-56 sm:shrink-0">
+                <x-ui.select id="enrollments-sort" wire:model.live="sort">
+                    <option value="">{{ __('enrollments.sort_default') }}</option>
+                    <option value="name_asc">{{ __('enrollments.sort_name_asc') }}</option>
+                    <option value="name_desc">{{ __('enrollments.sort_name_desc') }}</option>
+                    <option value="total_asc">{{ __('enrollments.sort_total_asc') }}</option>
+                    <option value="total_desc">{{ __('enrollments.sort_total_desc') }}</option>
                 </x-ui.select>
             </x-ui.field>
             <div class="flex flex-wrap items-center gap-2 text-sm sm:ms-auto">

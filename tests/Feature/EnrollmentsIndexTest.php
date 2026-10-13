@@ -406,4 +406,107 @@ class EnrollmentsIndexTest extends TestCase
 
         $this->assertLessThanOrEqual(30, $count);
     }
+
+    public function test_sorts_by_student_name_both_directions(): void
+    {
+        $this->actingAs(User::factory()->create());
+
+        $school = School::factory()->create(['code' => 'test', 'name' => 'Test']);
+        $grade = Grade::factory()->create(['school_id' => $school->id, 'number' => 1]);
+        $year = $this->year(2030);
+
+        foreach (['Charlie Sorted', 'Alpha Sorted', 'Bravo Sorted'] as $name) {
+            $student = Student::factory()->create(['name' => $name]);
+            app(EnrollStudent::class)->handle($student->id, $year->id, $grade->id);
+        }
+
+        $page = Livewire::test('pages::enrollments.index')
+            ->set('school_id', $school->id)
+            ->set('grade_id', $grade->id)
+            ->set('academic_year_id', $year->id)
+            ->call('applyFilters')
+            ->assertSee(__('enrollments.sort_default'));
+
+        $page->set('sort', 'name_asc')
+            ->assertSeeInOrder(['Alpha Sorted', 'Bravo Sorted', 'Charlie Sorted']);
+
+        $page->set('sort', 'name_desc')
+            ->assertSeeInOrder(['Charlie Sorted', 'Bravo Sorted', 'Alpha Sorted']);
+    }
+
+    public function test_sorts_by_total_due_both_directions(): void
+    {
+        $this->actingAs(User::factory()->create());
+
+        $school = School::factory()->create(['code' => 'test', 'name' => 'Test']);
+        $grade = Grade::factory()->create(['school_id' => $school->id, 'number' => 1]);
+        $year = $this->year(2030);
+
+        app(CreateGradeFee::class)->handle([
+            'grade_id' => $grade->id,
+            'academic_year_id' => $year->id,
+            'fee_type_id' => $this->tuition()->id,
+            'amount' => '1000',
+        ]);
+
+        $books = FeeType::factory()->create(['name' => 'Books', 'is_mandatory' => false]);
+        app(CreateGradeFee::class)->handle([
+            'grade_id' => $grade->id,
+            'academic_year_id' => $year->id,
+            'fee_type_id' => $books->id,
+            'amount' => '150',
+        ]);
+
+        // Plain: 1000. Discounted: 1000 - 10% = 900. With books: 1000 + 150 = 1150.
+        $plain = Student::factory()->create(['name' => 'Plain Totals']);
+        app(EnrollStudent::class)->handle($plain->id, $year->id, $grade->id);
+
+        $cheap = Student::factory()->create(['name' => 'Cheap Totals']);
+        $cheapEnrollment = app(EnrollStudent::class)->handle($cheap->id, $year->id, $grade->id);
+        $discount = app(CreateDiscount::class)->handle(['name' => 'Sibling', 'percent' => '10']);
+        app(ApplyDiscountToEnrollment::class)->handle($cheapEnrollment->id, $discount->id);
+
+        $pricey = Student::factory()->create(['name' => 'Pricey Totals']);
+        $priceyEnrollment = app(EnrollStudent::class)->handle($pricey->id, $year->id, $grade->id);
+        $booksFee = GradeFee::query()
+            ->where('grade_id', $grade->id)
+            ->where('fee_type_id', $books->id)
+            ->firstOrFail();
+        app(AddOptionalFeeToEnrollment::class)->handle($priceyEnrollment->id, $booksFee->id);
+
+        $page = Livewire::test('pages::enrollments.index')
+            ->set('school_id', $school->id)
+            ->set('grade_id', $grade->id)
+            ->set('academic_year_id', $year->id)
+            ->call('applyFilters');
+
+        $page->set('sort', 'total_asc')
+            ->assertSeeInOrder(['Cheap Totals', 'Plain Totals', 'Pricey Totals']);
+
+        $page->set('sort', 'total_desc')
+            ->assertSeeInOrder(['Pricey Totals', 'Plain Totals', 'Cheap Totals']);
+    }
+
+    public function test_unknown_sort_falls_back_to_newest_first(): void
+    {
+        $this->actingAs(User::factory()->create());
+
+        $school = School::factory()->create(['code' => 'test', 'name' => 'Test']);
+        $grade = Grade::factory()->create(['school_id' => $school->id, 'number' => 1]);
+        $year = $this->year(2030);
+
+        $first = Student::factory()->create(['name' => 'First Created']);
+        app(EnrollStudent::class)->handle($first->id, $year->id, $grade->id);
+
+        $second = Student::factory()->create(['name' => 'Second Created']);
+        app(EnrollStudent::class)->handle($second->id, $year->id, $grade->id);
+
+        Livewire::test('pages::enrollments.index')
+            ->set('school_id', $school->id)
+            ->set('grade_id', $grade->id)
+            ->set('academic_year_id', $year->id)
+            ->call('applyFilters')
+            ->set('sort', 'not-a-sort')
+            ->assertSeeInOrder(['Second Created', 'First Created']);
+    }
 }
