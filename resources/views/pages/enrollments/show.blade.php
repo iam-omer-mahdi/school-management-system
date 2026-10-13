@@ -2,9 +2,13 @@
 
 use App\Actions\AddOptionalFeeToEnrollment;
 use App\Actions\ApplyDiscountToEnrollment;
+use App\Actions\RecordPayment;
+use App\Actions\RecordRefund;
 use App\Actions\RemoveEnrollmentDiscount;
 use App\Actions\RemoveOptionalFeeFromEnrollment;
 use App\Actions\UpdateEnrollmentStatus;
+use App\Actions\VoidPayment;
+use App\Actions\VoidRefund;
 use App\Enums\EnrollmentStatus;
 use App\Models\Discount;
 use App\Models\Enrollment;
@@ -28,6 +32,49 @@ new #[Layout('layouts::app')] class extends Component
 
     public ?string $optionalChoice = null;
 
+    public bool $showPaymentModal = false;
+
+    public string $payMethod = 'cash';
+
+    public ?string $payTxn = null;
+
+    public ?string $payDate = null;
+
+    public ?string $payNote = null;
+
+    public string $payTotal = '';
+
+    /** @var array<int, string> */
+    public array $payAlloc = [];
+
+    public bool $confirmOverpayment = false;
+
+    public bool $lastTxnReused = false;
+
+    /** @var array<int> */
+    public array $lastPaymentIds = [];
+
+    /** @var array<int, string> */
+    public array $selectedReceiptIds = [];
+
+    public bool $showRefundModal = false;
+
+    public string $refundAmount = '';
+
+    public string $refundMethod = 'cash';
+
+    public ?string $refundTxn = null;
+
+    public ?string $refundDate = null;
+
+    public ?string $refundNote = null;
+
+    public ?int $voidTargetId = null;
+
+    public ?string $voidTargetType = null;
+
+    public ?string $voidReason = null;
+
     public function mount(Enrollment $enrollment): void
     {
         $this->enrollmentId = $enrollment->id;
@@ -43,7 +90,11 @@ new #[Layout('layouts::app')] class extends Component
                 'grade:id,school_id,number',
                 'grade.school:id,code,name',
                 'fees.gradeFee.feeType',
+                'fees.payments',
                 'discount',
+                'payments.enrollmentFee.feeType',
+                'payments',
+                'refunds',
             ])
             ->findOrFail($this->enrollmentId);
     }
@@ -88,7 +139,131 @@ new #[Layout('layouts::app')] class extends Component
         return [
             'discountChoice' => __('fees.discount'),
             'optionalChoice' => __('fees.fee_type'),
+            'payTotal' => __('payments.amount'),
+            'payAlloc.*' => __('payments.amount'),
+            'payMethod' => __('payments.method'),
+            'payTxn' => __('payments.transaction_number'),
+            'payDate' => __('payments.paid_on'),
+            'refundAmount' => __('payments.amount'),
+            'refundMethod' => __('payments.method'),
+            'refundTxn' => __('payments.transaction_number'),
+            'refundDate' => __('payments.refunded_on'),
+            'refundNote' => __('fees.note'),
+            'voidReason' => __('payments.void_reason'),
         ];
+    }
+
+    #[Computed]
+    public function txnReuseWarning(): bool
+    {
+        if (! $this->showPaymentModal || $this->payMethod !== 'bank_transfer' || trim((string) $this->payTxn) === '') {
+            return false;
+        }
+
+        return \App\Models\Payment::query()
+            ->where('transaction_number', trim((string) $this->payTxn))
+            ->where('enrollment_id', '!=', $this->enrollmentId)
+            ->whereNull('voided_at')
+            ->exists();
+    }
+
+    #[Computed]
+    public function parsedPayTotal(): ?int
+    {
+        try {
+            return Money::fromDecimal($this->payTotal);
+        } catch (\InvalidArgumentException) {
+            return null;
+        }
+    }
+
+    /**
+     * Total minus allocated, or null when either side is not a valid
+     * amount. Drives the live Unallocated line and the Save gate.
+     */
+    #[Computed]
+    public function payUnallocated(): ?int
+    {
+        try {
+            $total = Money::fromDecimal($this->payTotal);
+        } catch (\InvalidArgumentException) {
+            return null;
+        }
+
+        $allocated = 0;
+
+        foreach ($this->payAlloc as $value) {
+            if (trim((string) $value) === '') {
+                continue;
+            }
+
+            try {
+                $allocated += Money::fromDecimal((string) $value);
+            } catch (\InvalidArgumentException) {
+                return null;
+            }
+        }
+
+        return $total - $allocated;
+    }
+
+    public function openPaymentModal(): void
+    {
+        $this->resetValidation();
+        $this->reset(['payMethod', 'payTxn', 'payDate', 'payNote', 'payTotal', 'payAlloc', 'confirmOverpayment', 'lastTxnReused', 'lastPaymentIds']);
+        $this->payMethod = 'cash';
+        $this->payDate = date('Y-m-d');
+        unset($this->txnReuseWarning, $this->payUnallocated);
+        $this->showPaymentModal = true;
+    }
+
+    public function closePaymentModal(): void
+    {
+        $this->resetValidation();
+        $this->showPaymentModal = false;
+    }
+
+    public function savePayment(RecordPayment $action): void
+    {
+        $this->validate(['payTotal' => ['required', 'string']]);
+
+        $rows = [];
+
+        foreach ($this->payAlloc as $feeId => $value) {
+            if (trim((string) $value) === '') {
+                continue;
+            }
+
+            $rows[] = ['enrollment_fee_id' => (int) $feeId, 'amount' => (string) $value];
+        }
+
+        $unallocated = $this->payUnallocated;
+
+        if ($unallocated === null || $unallocated < 0 || ($unallocated > 0 && ! $this->confirmOverpayment)) {
+            $this->addError('payTotal', __('validation.numeric', ['attribute' => __('payments.amount')]));
+
+            return;
+        }
+
+        if ($unallocated > 0) {
+            $rows[] = ['enrollment_fee_id' => null, 'amount' => (string) $unallocated];
+        }
+
+        $result = $action->handle([
+            'enrollment_id' => $this->enrollmentId,
+            'rows' => $rows,
+            'method' => $this->payMethod,
+            'transaction_number' => $this->payTxn,
+            'paid_on' => $this->payDate ?? date('Y-m-d'),
+            'note' => $this->payNote,
+        ]);
+
+        $this->lastPaymentIds = $result['payments']->pluck('id')->all();
+        $this->lastTxnReused = $result['transaction_reused'];
+        $this->showPaymentModal = false;
+        $this->reset(['payTotal', 'payAlloc', 'confirmOverpayment']);
+        unset($this->enrollment, $this->payUnallocated, $this->txnReuseWarning);
+        session()->flash('status', __('payments.payment_recorded'));
     }
 
     public function openStatusModal(string $status): void
@@ -138,6 +313,68 @@ new #[Layout('layouts::app')] class extends Component
         session()->flash('status', __('fees.charge_added'));
     }
 
+    public function openRefundModal(): void
+    {
+        $this->resetValidation();
+        $this->reset(['refundAmount', 'refundMethod', 'refundTxn', 'refundDate', 'refundNote']);
+        $this->refundMethod = 'cash';
+        $this->refundDate = date('Y-m-d');
+        $this->showRefundModal = true;
+    }
+
+    public function closeRefundModal(): void
+    {
+        $this->resetValidation();
+        $this->showRefundModal = false;
+    }
+
+    public function saveRefund(RecordRefund $action): void
+    {
+        $action->handle([
+            'enrollment_id' => $this->enrollmentId,
+            'amount' => $this->refundAmount,
+            'method' => $this->refundMethod,
+            'transaction_number' => $this->refundTxn,
+            'refunded_on' => $this->refundDate ?? date('Y-m-d'),
+            'note' => $this->refundNote,
+        ]);
+
+        $this->showRefundModal = false;
+        $this->reset(['refundAmount', 'refundTxn', 'refundNote']);
+        unset($this->enrollment);
+        session()->flash('status', __('payments.refund_recorded'));
+    }
+
+    public function openVoidModal(string $type, int $id): void
+    {
+        $this->resetValidation();
+        $this->voidTargetType = $type;
+        $this->voidTargetId = $id;
+        $this->voidReason = null;
+    }
+
+    public function closeVoidModal(): void
+    {
+        $this->resetValidation();
+        $this->voidTargetType = null;
+        $this->voidTargetId = null;
+        $this->voidReason = null;
+    }
+
+    public function confirmVoid(VoidPayment $voidPayment, VoidRefund $voidRefund): void
+    {
+        if ($this->voidTargetType === 'refund') {
+            $voidRefund->handle((int) $this->voidTargetId, $this->voidReason);
+            session()->flash('status', __('payments.refund_voided'));
+        } else {
+            $voidPayment->handle((int) $this->voidTargetId, $this->voidReason);
+            session()->flash('status', __('payments.payment_voided'));
+        }
+
+        $this->closeVoidModal();
+        unset($this->enrollment);
+    }
+
     public function removeOptional(RemoveOptionalFeeFromEnrollment $action, int $gradeFeeId): void
     {
         $action->handle($this->enrollmentId, $gradeFeeId);
@@ -165,6 +402,7 @@ new #[Layout('layouts::app')] class extends Component
     $previewMinor = ($tuitionMinor !== null && $choice) ? \App\Support\Money::percentOf($tuitionMinor, $choice->percent_bp) : null;
     $options = $this->optionalOptions;
     $isEnded = $enrollment->isEnded();
+    $balance = \App\Support\EnrollmentBalance::forEnrollment($enrollment);
 @endphp
 
 <div class="space-y-6">
@@ -225,19 +463,31 @@ new #[Layout('layouts::app')] class extends Component
         @if($enrollment->fees->isEmpty())
             <p class="text-sm text-gray-600 dark:text-gray-400">{{ __('fees.no_charges') }}</p>
         @else
-            <ul class="space-y-2">
+            <x-ui.table>
+                <x-slot:head>
+                    <th>{{ __('fees.fee_type') }}</th>
+                    <th>{{ __('fees.amount') }}</th>
+                    <th>{{ __('fees.discount') }}</th>
+                    <th>{{ __('payments.paid') }}</th>
+                    <th>{{ __('payments.remaining') }}</th>
+                    <th>{{ __('common.actions') }}</th>
+                </x-slot:head>
                 @foreach($enrollment->fees as $charge)
-                    <li wire:key="charge-{{ $charge->id }}" class="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-gray-50 px-3 py-2.5 dark:bg-gray-700/40">
-                        <span class="text-gray-700 dark:text-gray-300">@if($charge->gradeFee->feeType->isTuition()){{ __('fees.tuition') }}@else{{ $charge->gradeFee->feeType->name }}@endif</span>
-                        <span class="flex items-center gap-2">
-                            <x-ui.money :minor="$charge->amount_minor" />
+                    @php $feeBalance = $balance['fees'][$charge->id] ?? ['charged' => $charge->amount_minor, 'discount' => 0, 'paid' => 0, 'remaining' => $charge->amount_minor]; @endphp
+                    <tr wire:key="charge-{{ $charge->id }}">
+                        <td class="font-medium text-gray-900 dark:text-white">@if($charge->gradeFee->feeType->isTuition()){{ __('fees.tuition') }}@else{{ $charge->gradeFee->feeType->name }}@endif</td>
+                        <td><x-ui.money :minor="$feeBalance['charged']" /></td>
+                        <td><x-ui.money :minor="$feeBalance['discount']" /></td>
+                        <td><x-ui.money :minor="$feeBalance['paid']" /></td>
+                        <td><x-ui.money :minor="$feeBalance['remaining']" /></td>
+                        <td>
                             @if(! $charge->gradeFee->feeType->is_mandatory)
                                 <x-ui.button variant="ghost" size="sm" wire:click="removeOptional({{ $charge->grade_fee_id }})" loading-target="removeOptional" wire:loading.attr="disabled" :spinner="false" class="text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/30">{{ __('common.delete') }}</x-ui.button>
                             @endif
-                        </span>
-                    </li>
+                        </td>
+                    </tr>
                 @endforeach
-            </ul>
+            </x-ui.table>
         @endif
         @if($isEnded)
             <p class="mt-4 text-sm text-gray-500 dark:text-gray-400">{{ __('fees.errors.enrollment_ended') }}</p>
@@ -302,14 +552,232 @@ new #[Layout('layouts::app')] class extends Component
                 <div><dt class="text-gray-500 dark:text-gray-400">{{ __('fees.tuition') }}</dt><dd class="font-medium text-gray-900 dark:text-white"><x-ui.money :minor="$tuitionMinor" /></dd></div>
                 <div><dt class="text-gray-500 dark:text-gray-400">{{ __('fees.discount') }}</dt><dd class="font-medium text-gray-900 dark:text-white"><x-ui.money :minor="$appliedDiscount?->amount_minor ?? 0" /></dd></div>
                 <div><dt class="text-gray-500 dark:text-gray-400">{{ __('fees.tuition_net') }}</dt><dd class="font-medium text-gray-900 dark:text-white"><x-ui.money :minor="$netMinor" /></dd></div>
-                <div><dt class="text-gray-500 dark:text-gray-400">{{ __('fees.total_due') }}</dt><dd class="font-medium text-gray-900 dark:text-white"><x-ui.money :minor="$totalMinor" /></dd></div>
+                <div><dt class="text-gray-500 dark:text-gray-400">{{ __('payments.paid') }}</dt><dd class="font-medium text-gray-900 dark:text-white"><x-ui.money :minor="$balance['paid']" /></dd></div>
+                <div><dt class="text-gray-500 dark:text-gray-400">{{ __('fees.total_due') }}</dt><dd class="font-medium text-gray-900 dark:text-white"><x-ui.money :minor="$balance['owed']" /></dd></div>
+                @if($balance['overpaid_outstanding'] > 0)
+                    <div><dt class="text-gray-500 dark:text-gray-400">{{ __('payments.overpaid') }}</dt><dd class="font-medium text-gray-900 dark:text-white"><x-ui.money :minor="$balance['overpaid_outstanding']" /></dd></div>
+                @endif
+                <div><dt class="text-gray-500 dark:text-gray-400">{{ __('payments.received') }}</dt><dd class="font-medium text-gray-900 dark:text-white"><x-ui.money :minor="$balance['cash_received']" /></dd></div>
             </dl>
+            @if($isEnded)
+                <p class="mt-4 text-sm text-gray-600 dark:text-gray-400">{{ __('payments.closed_without_payment') }}: <x-ui.money :minor="$balance['closed_without_payment']" /></p>
+            @endif
         </x-ui.card>
     @endif
 
-    <x-ui.card :title="__('enrollments.payments')">
-        <p class="text-sm text-gray-600 dark:text-gray-400">{{ __('enrollments.payments_placeholder') }}</p>
+    <x-ui.card>
+        <x-slot:header>
+            <div class="flex items-center justify-between gap-2">
+                <h2 class="text-base font-semibold text-gray-900 dark:text-white">{{ __('payments.payment') }}</h2>
+                @if(! $isEnded)
+                    <x-ui.button variant="primary" size="sm" wire:click="openPaymentModal" :spinner="false">
+                        <x-ui.icon name="plus" class="h-4 w-4" />
+                        {{ __('payments.add_payment') }}
+                    </x-ui.button>
+                @endif
+            </div>
+        </x-slot:header>
+        @if($isEnded)
+            <p class="text-sm text-gray-500 dark:text-gray-400">{{ __('payments.errors.ended_no_payments') }}</p>
+        @endif
+        @if($lastTxnReused)
+            <x-ui.alert type="warning">{{ __('payments.transaction_reused') }}</x-ui.alert>
+        @endif
+        @if($lastPaymentIds !== [])
+            <p class="mt-3">
+                <x-ui.button href="{{ route('enrollments.receipt', ['enrollment' => $enrollment->id, 'payments' => implode(',', $lastPaymentIds)]) }}" variant="secondary" size="sm" :spinner="false">{{ __('payments.print_receipt') }}</x-ui.button>
+            </p>
+        @endif
+        @php
+            $history = $enrollment->payments->sortByDesc('id');
+            $selectedHistory = collect($selectedReceiptIds)->map(fn ($id) => (int) $id)->all();
+        @endphp
+        @if($history->isEmpty())
+            <p class="mt-3 text-sm text-gray-600 dark:text-gray-400">{{ __('payments.no_payments') }}</p>
+        @else
+            <ul class="mt-3 space-y-2 text-sm">
+                @foreach($history as $payment)
+                    <li wire:key="payment-{{ $payment->id }}" class="flex flex-wrap items-center gap-2 rounded-lg bg-gray-50 px-3 py-2.5 dark:bg-gray-700/40">
+                        <input type="checkbox" wire:model.live="selectedReceiptIds" value="{{ $payment->id }}" aria-label="{{ $payment->reference() }}" class="h-4 w-4 shrink-0 rounded-sm border-gray-300 bg-gray-100 text-indigo-600 focus:ring-2 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-700" />
+                        <span class="font-mono text-gray-700 dark:text-gray-300" dir="ltr">{{ $payment->reference() }}</span>
+                        <span class="text-gray-700 dark:text-gray-300">
+                            @if($payment->isOverpayment())
+                                {{ __('payments.overpaid') }}
+                            @elseif($payment->enrollmentFee?->gradeFee?->feeType?->isTuition())
+                                {{ __('fees.tuition') }}
+                            @else
+                                {{ $payment->enrollmentFee?->gradeFee?->feeType?->name }}
+                            @endif
+                        </span>
+                        <x-ui.money :minor="$payment->amount_minor" />
+                        <span class="text-gray-500 dark:text-gray-400">{{ $payment->method === \App\Enums\PaymentMethod::BankTransfer ? __('payments.bank_transfer') : __('payments.cash') }}</span>
+                        @if($payment->isVoided())
+                            <x-ui.badge color="red">{{ __('payments.void') }}: {{ $payment->void_reason }}</x-ui.badge>
+                        @else
+                            <x-ui.button href="{{ route('enrollments.receipt', ['enrollment' => $enrollment->id, 'payments' => (string) $payment->id]) }}" variant="ghost" size="sm" :spinner="false">{{ __('payments.print') }}</x-ui.button>
+                            <x-ui.button variant="ghost" size="sm" wire:click="openVoidModal('payment', {{ $payment->id }})" loading-target="confirmVoid" wire:loading.attr="disabled" :spinner="false" class="text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/30">{{ __('payments.void') }}</x-ui.button>
+                        @endif
+                    </li>
+                @endforeach
+            </ul>
+            @if($selectedHistory !== [])
+                <p class="mt-3">
+                    <x-ui.button href="{{ route('enrollments.receipt', ['enrollment' => $enrollment->id, 'payments' => implode(',', $selectedHistory)]) }}" variant="secondary" size="sm" :spinner="false">{{ __('payments.print_receipt') }}</x-ui.button>
+                </p>
+            @endif
+        @endif
     </x-ui.card>
+
+    <x-ui.card>
+        <x-slot:header>
+            <div class="flex items-center justify-between gap-2">
+                <h2 class="text-base font-semibold text-gray-900 dark:text-white">{{ __('payments.refunds') }}</h2>
+                @if($balance['overpaid_outstanding'] > 0)
+                    <x-ui.button variant="secondary" size="sm" wire:click="openRefundModal" :spinner="false">{{ __('payments.refund') }}</x-ui.button>
+                @endif
+            </div>
+        </x-slot:header>
+        <p class="flex flex-wrap items-center gap-2 text-sm">
+            <span class="text-gray-500 dark:text-gray-400">{{ __('payments.overpaid') }}:</span>
+            <x-ui.money :minor="$balance['overpaid_outstanding']" />
+        </p>
+        @php $refundHistory = $enrollment->refunds->sortByDesc('id'); @endphp
+        @if($refundHistory->isEmpty())
+            <p class="mt-3 text-sm text-gray-600 dark:text-gray-400">{{ __('payments.no_refunds') }}</p>
+        @else
+            <ul class="mt-3 space-y-2 text-sm">
+                @foreach($refundHistory as $refund)
+                    <li wire:key="refund-{{ $refund->id }}" class="flex flex-wrap items-center gap-2 rounded-lg bg-gray-50 px-3 py-2.5 dark:bg-gray-700/40">
+                        <x-ui.money :minor="$refund->amount_minor" />
+                        <span class="text-gray-500 dark:text-gray-400">{{ $refund->method === \App\Enums\PaymentMethod::BankTransfer ? __('payments.bank_transfer') : __('payments.cash') }}</span>
+                        @if($refund->transaction_number !== null)
+                            <span class="font-mono text-gray-500 dark:text-gray-400" dir="ltr">{{ $refund->transaction_number }}</span>
+                        @endif
+                        <span class="text-gray-500 dark:text-gray-400">{{ $refund->refunded_on?->format('Y-m-d') }}</span>
+                        @if($refund->isVoided())
+                            <x-ui.badge color="red">{{ __('payments.void') }}: {{ $refund->void_reason }}</x-ui.badge>
+                        @else
+                            <x-ui.button variant="ghost" size="sm" wire:click="openVoidModal('refund', {{ $refund->id }})" loading-target="confirmVoid" wire:loading.attr="disabled" :spinner="false" class="text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/30">{{ __('payments.void') }}</x-ui.button>
+                        @endif
+                    </li>
+                @endforeach
+            </ul>
+        @endif
+    </x-ui.card>
+
+    @if($showPaymentModal)
+        <x-ui.modal :title="__('payments.add_payment')" close="closePaymentModal">
+            <form wire:submit="savePayment" class="space-y-4">
+                @if($errors->any())
+                    <x-ui.alert type="error">
+                        <ul class="list-disc space-y-1 ps-5">
+                            @foreach($errors->all() as $message)
+                                <li>{{ $message }}</li>
+                            @endforeach
+                        </ul>
+                    </x-ui.alert>
+                @endif
+                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <x-ui.field :label="__('payments.method')" for="pay-method" required>
+                        <x-ui.select id="pay-method" wire:model.live="payMethod">
+                            <option value="cash">{{ __('payments.cash') }}</option>
+                            <option value="bank_transfer">{{ __('payments.bank_transfer') }}</option>
+                        </x-ui.select>
+                    </x-ui.field>
+                    <x-ui.field :label="__('payments.paid_on')" for="pay-date" required :error="$errors->first('paid_on')">
+                        <x-ui.input id="pay-date" type="date" wire:model.blur="payDate" :error="$errors->first('paid_on')" required />
+                    </x-ui.field>
+                </div>
+                @if($payMethod === 'bank_transfer')
+                    <x-ui.field :label="__('payments.transaction_number')" for="pay-txn" required :error="$errors->first('transaction_number')">
+                        <x-ui.input id="pay-txn" type="text" wire:model.blur="payTxn" :error="$errors->first('transaction_number')" autocomplete="off" dir="ltr" required />
+                    </x-ui.field>
+                    @if($this->txnReuseWarning)
+                        <x-ui.alert type="warning">{{ __('payments.transaction_reused') }}</x-ui.alert>
+                    @endif
+                @endif
+                <x-ui.field :label="__('fees.note')" for="pay-note">
+                    <x-ui.input id="pay-note" type="text" wire:model.blur="payNote" autocomplete="off" />
+                </x-ui.field>
+                <x-ui.field :label="__('payments.amount')" for="pay-total" required :error="$errors->first('payTotal')">
+                    <x-ui.input id="pay-total" type="text" wire:model.blur="payTotal" :error="$errors->first('payTotal')" inputmode="decimal" dir="ltr" autocomplete="off" class="font-mono" required />
+                </x-ui.field>
+                @foreach($enrollment->fees as $charge)
+                    @php $feeRemaining = $balance['fees'][$charge->id]['remaining'] ?? 0; @endphp
+                    <x-ui.field :label="$charge->gradeFee->feeType->isTuition() ? __('fees.tuition') : $charge->gradeFee->feeType->name" for="pay-alloc-{{ $charge->id }}">
+                        <div class="flex items-center gap-3">
+                            <x-ui.input id="pay-alloc-{{ $charge->id }}" type="text" wire:model.blur="payAlloc.{{ $charge->id }}" inputmode="decimal" dir="ltr" autocomplete="off" class="font-mono" :disabled="$feeRemaining <= 0" />
+                            <span class="shrink-0 text-xs text-gray-500 dark:text-gray-400"><x-ui.money :minor="max(0, $feeRemaining)" /></span>
+                        </div>
+                    </x-ui.field>
+                @endforeach
+                <p class="flex flex-wrap items-center gap-2 text-sm">
+                    <span class="text-gray-500 dark:text-gray-400">{{ __('payments.unallocated') }}:</span>
+                    @if($this->payUnallocated === null)
+                        <span class="text-gray-500 dark:text-gray-400">—</span>
+                    @else
+                        <x-ui.money :minor="max(0, $this->payUnallocated)" />
+                    @endif
+                </p>
+                @if($this->payUnallocated !== null && $this->payUnallocated > 0)
+                    <x-ui.checkbox wire:model.live="confirmOverpayment" :label="__('payments.record_overpayment').' ('. \App\Support\Money::format($this->payUnallocated) .')'" />
+                @endif
+            </form>
+            <x-slot:footer>
+                <x-ui.button variant="secondary" wire:click="closePaymentModal" :spinner="false">{{ __('common.cancel') }}</x-ui.button>
+                <x-ui.button variant="primary" wire:click="savePayment" loading-target="savePayment" wire:loading.attr="disabled" :disabled="$this->payUnallocated === null || $this->payUnallocated < 0 || ($this->payUnallocated > 0 && ! $confirmOverpayment)">{{ __('common.save') }}</x-ui.button>
+            </x-slot:footer>
+        </x-ui.modal>
+    @endif
+
+    @if($showRefundModal)
+        <x-ui.modal :title="__('payments.refund')" close="closeRefundModal">
+            <form wire:submit="saveRefund" class="space-y-4">
+                <p class="text-sm text-gray-600 dark:text-gray-400">{{ __('payments.overpaid') }}: <x-ui.money :minor="$balance['overpaid_outstanding']" /></p>
+                <x-ui.field :label="__('payments.amount')" for="refund-amount" required :error="$errors->first('amount')">
+                    <x-ui.input id="refund-amount" type="text" wire:model.blur="refundAmount" :error="$errors->first('amount')" inputmode="decimal" dir="ltr" autocomplete="off" class="font-mono" required />
+                </x-ui.field>
+                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <x-ui.field :label="__('payments.method')" for="refund-method" required>
+                        <x-ui.select id="refund-method" wire:model.live="refundMethod">
+                            <option value="cash">{{ __('payments.cash') }}</option>
+                            <option value="bank_transfer">{{ __('payments.bank_transfer') }}</option>
+                        </x-ui.select>
+                    </x-ui.field>
+                    <x-ui.field :label="__('payments.refunded_on')" for="refund-date" required :error="$errors->first('refunded_on')">
+                        <x-ui.input id="refund-date" type="date" wire:model.blur="refundDate" :error="$errors->first('refunded_on')" required />
+                    </x-ui.field>
+                </div>
+                @if($refundMethod === 'bank_transfer')
+                    <x-ui.field :label="__('payments.transaction_number')" for="refund-txn" required :error="$errors->first('transaction_number')">
+                        <x-ui.input id="refund-txn" type="text" wire:model.blur="refundTxn" :error="$errors->first('transaction_number')" autocomplete="off" dir="ltr" required />
+                    </x-ui.field>
+                @endif
+                <x-ui.field :label="__('fees.note')" for="refund-note" required :error="$errors->first('note')">
+                    <x-ui.input id="refund-note" type="text" wire:model.blur="refundNote" :error="$errors->first('note')" autocomplete="off" required />
+                </x-ui.field>
+            </form>
+            <x-slot:footer>
+                <x-ui.button variant="secondary" wire:click="closeRefundModal" :spinner="false">{{ __('common.cancel') }}</x-ui.button>
+                <x-ui.button variant="primary" wire:click="saveRefund" loading-target="saveRefund" wire:loading.attr="disabled">{{ __('common.save') }}</x-ui.button>
+            </x-slot:footer>
+        </x-ui.modal>
+    @endif
+
+    @if($voidTargetType !== null && $voidTargetId !== null)
+        <x-ui.modal :title="__('payments.void')" close="closeVoidModal">
+            <p class="text-sm">{{ $voidTargetType === 'refund' ? __('payments.refund') : __('payments.payment') }}</p>
+            <div class="mt-3">
+                <x-ui.field :label="__('payments.void_reason')" for="void-reason" required :error="$errors->first('void_reason')">
+                    <x-ui.input id="void-reason" type="text" wire:model.blur="voidReason" :error="$errors->first('void_reason')" autocomplete="off" required />
+                </x-ui.field>
+            </div>
+            <x-slot:footer>
+                <x-ui.button variant="secondary" wire:click="closeVoidModal" :spinner="false">{{ __('common.cancel') }}</x-ui.button>
+                <x-ui.button variant="danger" wire:click="confirmVoid" loading-target="confirmVoid" wire:loading.attr="disabled">{{ __('payments.void') }}</x-ui.button>
+            </x-slot:footer>
+        </x-ui.modal>
+    @endif
 
     @if($statusTargetStatus)
         @php
@@ -318,6 +786,9 @@ new #[Layout('layouts::app')] class extends Component
         @endphp
         <x-ui.modal :title="__('enrollments.change_status')" close="$set('statusTargetStatus', null)">
             <p class="font-medium text-gray-900 dark:text-white">{{ __('enrollments.status_'.$statusTargetStatus) }}</p>
+            @if($enrollment->status->isCharged() && $targetStatus && ! $targetStatus->isCharged() && $balance['owed'] > 0)
+                <div class="mt-3"><x-ui.alert type="warning">{{ __('payments.will_no_longer_be_owed', ['amount' => \App\Support\Money::format($balance['owed'])]) }}</x-ui.alert></div>
+            @endif
             @if($needsPreview)
                 @if($this->missingFees->isNotEmpty())
                     <h3 class="mt-4 text-sm font-semibold text-gray-900 dark:text-white">{{ __('enrollments.missing_fees_title') }}</h3>

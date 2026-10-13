@@ -40,6 +40,7 @@ Route::middleware('auth')->group(function (): void {
     Route::livewire('/students/{student}', 'pages::students.show')->name('students.show');
 
     Route::livewire('/enrollments', 'pages::enrollments.index')->name('enrollments.index');
+    Route::livewire('/enrollments/{enrollment}/receipt', 'pages::enrollments.receipt')->name('enrollments.receipt');
     Route::livewire('/enrollments/{enrollment}', 'pages::enrollments.show')->name('enrollments.show');
 
     Route::livewire('/fee-types', 'pages::fee-types.index')->name('fee-types.index');
