@@ -1,30 +1,25 @@
 <?php
 
-use App\Actions\AddOptionalFeeToEnrollment;
-use App\Actions\ApplyDiscountToEnrollment;
 use App\Actions\ArchiveStudent;
 use App\Actions\EnrollStudent;
-use App\Actions\RemoveEnrollmentDiscount;
-use App\Actions\RemoveOptionalFeeFromEnrollment;
 use App\Actions\RestoreStudent;
-use App\Actions\UpdateEnrollmentStatus;
 use App\Enums\EnrollmentStatus;
 use App\Livewire\Forms\StudentForm;
 use App\Models\AcademicYear;
-use App\Models\Discount;
 use App\Models\Enrollment;
 use App\Models\Grade;
-use App\Models\GradeFee;
 use App\Models\School;
 use App\Models\Student;
-use App\Support\Money;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Locked;
 use Livewire\Component;
+use Livewire\WithPagination;
 
 new #[Layout('layouts::app')] class extends Component
 {
+    use WithPagination;
+
     #[Locked]
     public int $studentId;
 
@@ -34,17 +29,13 @@ new #[Layout('layouts::app')] class extends Component
 
     public bool $showEnroll = false;
 
+    public ?int $expandedEnrollment = null;
+
     public ?int $school_id = null;
 
     public ?int $grade_id = null;
 
     public ?int $academic_year_id = null;
-
-    public ?string $statusModalNote = null;
-
-    public ?int $statusTargetEnrollment = null;
-
-    public ?string $statusTargetStatus = null;
 
     public bool $showArchiveModal = false;
 
@@ -52,16 +43,16 @@ new #[Layout('layouts::app')] class extends Component
 
     public ?string $archive_note = null;
 
-    /** @var array<int, string> */
-    public array $discountChoice = [];
-
-    /** @var array<int, string> */
-    public array $optionalChoice = [];
-
     public function mount(Student $student): void
     {
         $this->studentId = $student->id;
         $this->form->fillFrom($student);
+        $this->expandedEnrollment = Enrollment::query()
+            ->where('student_id', $student->id)
+            ->with('academicYear:id,name,starts_on')
+            ->get()
+            ->sortByDesc(fn (Enrollment $e) => [$e->academicYear?->starts_on?->format('Y-m-d') ?? '', $e->id])
+            ->first()?->id;
     }
 
     #[Computed]
@@ -72,9 +63,9 @@ new #[Layout('layouts::app')] class extends Component
             ->findOrFail($this->studentId);
     }
 
-    /** @return \Illuminate\Database\Eloquent\Collection<int, Enrollment> */
+    /** @return \Illuminate\Contracts\Pagination\LengthAwarePaginator<int, Enrollment> */
     #[Computed]
-    public function enrollments(): \Illuminate\Database\Eloquent\Collection
+    public function enrollments(): \Illuminate\Contracts\Pagination\LengthAwarePaginator
     {
         return Enrollment::query()
             ->where('student_id', $this->studentId)
@@ -86,55 +77,7 @@ new #[Layout('layouts::app')] class extends Component
                 'discount',
             ])
             ->orderByDesc('id')
-            ->get();
-    }
-
-    /** @return \Illuminate\Database\Eloquent\Collection<int, Discount> */
-    #[Computed]
-    public function catalogDiscounts(): \Illuminate\Database\Eloquent\Collection
-    {
-        return Discount::query()->select(['id', 'name', 'percent_bp'])->orderBy('name')->get();
-    }
-
-    /**
-     * Optional schedule rows each enrollment could still take, keyed by
-     * enrollment id. Loaded once for all visible enrollments.
-     *
-     * @return array<int, \Illuminate\Database\Eloquent\Collection<int, GradeFee>>
-     */
-    #[Computed]
-    public function optionalOptions(): array
-    {
-        $enrollments = $this->enrollments;
-
-        if ($enrollments->isEmpty()) {
-            return [];
-        }
-
-        $pairs = $enrollments->map(fn (Enrollment $e) => [$e->grade_id, $e->academic_year_id])->unique();
-
-        $optionals = GradeFee::query()
-            ->whereHas('feeType', fn ($query) => $query->where('is_mandatory', false))
-            ->where(function ($query) use ($pairs): void {
-                foreach ($pairs as [$gradeId, $yearId]) {
-                    $query->orWhere(fn ($q) => $q->where('grade_id', $gradeId)->where('academic_year_id', $yearId));
-                }
-            })
-            ->with('feeType:id,name')
-            ->get();
-
-        $options = [];
-
-        foreach ($enrollments as $enrollment) {
-            $charged = $enrollment->fees->pluck('grade_fee_id')->all();
-            $options[$enrollment->id] = $optionals
-                ->where('grade_id', $enrollment->grade_id)
-                ->where('academic_year_id', $enrollment->academic_year_id)
-                ->reject(fn (GradeFee $fee) => in_array($fee->id, $charged, true))
-                ->values();
-        }
-
-        return $options;
+            ->paginate(5);
     }
 
     /** @return \Illuminate\Database\Eloquent\Collection<int, School> */
@@ -169,32 +112,17 @@ new #[Layout('layouts::app')] class extends Component
     #[Computed]
     public function latestEnrollment(): ?Enrollment
     {
-        return $this->enrollments
+        return Enrollment::query()
+            ->where('student_id', $this->studentId)
+            ->with('academicYear:id,name,starts_on')
+            ->get()
             ->sortByDesc(fn (Enrollment $e) => [$e->academicYear?->starts_on?->format('Y-m-d') ?? '', $e->id])
             ->first();
     }
 
-    #[Computed]
-    public function statusTarget(): ?Enrollment
+    public function toggleExpanded(int $enrollmentId): void
     {
-        if ($this->statusTargetEnrollment === null) {
-            return null;
-        }
-
-        return $this->enrollments->firstWhere('id', $this->statusTargetEnrollment);
-    }
-
-    /** @return \Illuminate\Database\Eloquent\Collection<int, GradeFee> */
-    #[Computed]
-    public function missingFees(): \Illuminate\Database\Eloquent\Collection
-    {
-        if ($this->statusTargetEnrollment === null) {
-            return new \Illuminate\Database\Eloquent\Collection();
-        }
-
-        $missing = Enrollment::query()->findOrFail($this->statusTargetEnrollment);
-
-        return app(UpdateEnrollmentStatus::class)->missingFor($missing)->load('feeType:id,name');
+        $this->expandedEnrollment = $this->expandedEnrollment === $enrollmentId ? null : $enrollmentId;
     }
 
     /** @return array<string, string> */
@@ -203,8 +131,6 @@ new #[Layout('layouts::app')] class extends Component
         return [
             'grade_id' => __('students.grade'),
             'academic_year_id' => __('students.academic_year'),
-            'discountChoice.*' => __('fees.discount'),
-            'optionalChoice.*' => __('fees.fee_type'),
         ];
     }
 
@@ -226,73 +152,23 @@ new #[Layout('layouts::app')] class extends Component
 
         $action->handle($this->studentId, (int) $this->academic_year_id, (int) $this->grade_id);
 
+        $enrollment = Enrollment::query()
+            ->where('student_id', $this->studentId)
+            ->orderByDesc('id')
+            ->first();
+
         $this->showEnroll = false;
         $this->reset(['school_id', 'grade_id', 'academic_year_id']);
-        unset($this->enrollments, $this->latestEnrollment, $this->optionalOptions);
+        $this->resetPage();
+        $this->expandedEnrollment = $enrollment?->id;
+        unset($this->enrollments, $this->latestEnrollment);
         session()->flash('status', __('students.enrolled'));
-    }
-
-    public function openStatusModal(int $enrollmentId, string $status): void
-    {
-        $this->statusTargetEnrollment = $enrollmentId;
-        $this->statusTargetStatus = $status;
-        $this->statusModalNote = null;
-        unset($this->statusTarget, $this->missingFees);
-    }
-
-    public function confirmStatusChange(UpdateEnrollmentStatus $action): void
-    {
-        $action->handle(
-            (int) $this->statusTargetEnrollment,
-            EnrollmentStatus::from((string) $this->statusTargetStatus),
-            $this->statusModalNote
-        );
-
-        $this->statusTargetEnrollment = null;
-        $this->statusTargetStatus = null;
-        $this->statusModalNote = null;
-        unset($this->enrollments, $this->latestEnrollment, $this->optionalOptions, $this->statusTarget, $this->missingFees);
-        session()->flash('status', __('enrollments.status_changed'));
     }
 
     public function openArchiveModal(): void
     {
         $this->archive_note = null;
         $this->showArchiveModal = true;
-    }
-
-    public function applyDiscount(ApplyDiscountToEnrollment $action, int $enrollmentId): void
-    {
-        $choice = $this->discountChoice[$enrollmentId] ?? null;
-
-        $this->validate(['discountChoice.'.$enrollmentId => ['required', 'exists:discounts,id']]);
-
-        $action->handle($enrollmentId, (int) $choice);
-        unset($this->enrollments, $this->optionalOptions);
-        session()->flash('status', __('fees.discount_applied'));
-    }
-
-    public function removeDiscount(RemoveEnrollmentDiscount $action, int $enrollmentId): void
-    {
-        $action->handle($enrollmentId);
-        unset($this->enrollments);
-        session()->flash('status', __('fees.discount_removed'));
-    }
-
-    public function addOptional(AddOptionalFeeToEnrollment $action, int $enrollmentId): void
-    {
-        $this->validate(['optionalChoice.'.$enrollmentId => ['required', 'exists:grade_fees,id']]);
-
-        $action->handle($enrollmentId, (int) $this->optionalChoice[$enrollmentId]);
-        unset($this->optionalChoice[$enrollmentId], $this->enrollments, $this->optionalOptions);
-        session()->flash('status', __('fees.charge_added'));
-    }
-
-    public function removeOptional(RemoveOptionalFeeFromEnrollment $action, int $enrollmentId, int $gradeFeeId): void
-    {
-        $action->handle($enrollmentId, $gradeFeeId);
-        unset($this->enrollments, $this->optionalOptions);
-        session()->flash('status', __('fees.charge_removed'));
     }
 
     public function archive(ArchiveStudent $action): void
@@ -314,7 +190,7 @@ new #[Layout('layouts::app')] class extends Component
 };
 ?>
 
-<div class="space-y-5">
+<div class="space-y-6">
     <x-ui.page-header :title="$this->student->name" :backUrl="route('students.index')">
         <x-slot:actions>
             @if($this->student->isArchived())
@@ -333,15 +209,22 @@ new #[Layout('layouts::app')] class extends Component
 
     <x-ui.card>
         <x-slot:header>
-            <div class="flex items-center justify-between gap-2">
-                <h2 class="text-base font-semibold text-gray-900">{{ __('students.details') }}</h2>
+            <div class="flex items-center justify-between gap-3">
+                <h2 class="text-base font-semibold text-gray-900 dark:text-white">{{ __('students.details') }}</h2>
                 @if(! $editing)
-                    <x-ui.button variant="ghost" size="sm" wire:click="$set('editing', true)" :spinner="false">{{ __('common.edit') }}</x-ui.button>
+                    <div class="flex shrink-0 items-center gap-2">
+                        <x-ui.button variant="warning" size="sm" wire:click="$set('editing', true)" :spinner="false">{{ __('common.edit') }}</x-ui.button>
+                        @if(! $this->student->isArchived())
+                            <x-ui.button variant="danger" size="sm" wire:click="openArchiveModal" :spinner="false">{{ __('students.archive') }}</x-ui.button>
+                        @else
+                            <x-ui.button variant="secondary" size="sm" wire:click="$set('showRestoreModal', true)" :spinner="false">{{ __('students.restore') }}</x-ui.button>
+                        @endif
+                    </div>
                 @endif
             </div>
         </x-slot:header>
         @if(! $editing)
-            <dl class="grid grid-cols-1 gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
+            <dl class="grid grid-cols-1 gap-x-8 gap-y-5 text-sm sm:grid-cols-2">
                 <div><dt class="text-gray-500 dark:text-gray-400">{{ __('students.student_number') }}</dt><dd class="mt-0.5 font-medium text-gray-900 dark:text-white">{{ $this->student->student_number }}</dd></div>
                 <div><dt class="text-gray-500 dark:text-gray-400">{{ __('students.name') }}</dt><dd class="mt-0.5 font-medium text-gray-900 dark:text-white">{{ $this->student->name }}</dd></div>
                 <div><dt class="text-gray-500 dark:text-gray-400">{{ __('students.phone') }}</dt><dd class="mt-0.5 font-medium text-gray-900 dark:text-white">{{ $this->student->phone }}</dd></div>
@@ -352,49 +235,67 @@ new #[Layout('layouts::app')] class extends Component
                 <div><dt class="text-gray-500 dark:text-gray-400">{{ __('students.guardian_relationship') }}</dt><dd class="mt-0.5 font-medium text-gray-900 dark:text-white">{{ $this->student->guardian_relationship }}</dd></div>
             </dl>
         @else
-            <form wire:submit="update" class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <form wire:submit="update" class="space-y-8">
                 <div class="sm:col-span-2">
                     <x-ui.field :label="__('students.student_number')">
                         <x-ui.input type="text" value="{{ $this->student->student_number }}" readonly disabled aria-label="{{ __('students.student_number') }}" />
                     </x-ui.field>
                 </div>
-                <x-ui.field :label="__('students.name')" for="edit-name" required :error="$errors->first('form.name')">
-                    <x-ui.input id="edit-name" type="text" wire:model.blur="form.name" :error="$errors->first('form.name')" required />
-                </x-ui.field>
-                <x-ui.field :label="__('students.phone')" for="edit-phone" required :error="$errors->first('form.phone')">
-                    <x-ui.input id="edit-phone" type="tel" wire:model.blur="form.phone" :error="$errors->first('form.phone')" required />
-                </x-ui.field>
-                <x-ui.field :label="__('students.secondary_phone')" for="edit-secondary">
-                    <x-ui.input id="edit-secondary" type="tel" wire:model.blur="form.secondary_phone" />
-                </x-ui.field>
-                <x-ui.field :label="__('students.mother_name')" for="edit-mother">
-                    <x-ui.input id="edit-mother" type="text" wire:model.blur="form.mother_name" />
-                </x-ui.field>
-                <x-ui.field :label="__('students.home_address')" for="edit-address">
-                    <x-ui.input id="edit-address" type="text" wire:model.blur="form.home_address" />
-                </x-ui.field>
-                <x-ui.field :label="__('students.blood_type')" for="edit-blood">
-                    <x-ui.input id="edit-blood" type="text" wire:model.blur="form.blood_type" />
-                </x-ui.field>
-                <x-ui.field :label="__('students.date_of_birth')" for="edit-dob">
-                    <x-ui.input id="edit-dob" type="date" wire:model.blur="form.date_of_birth" />
-                </x-ui.field>
-                <x-ui.field :label="__('students.guardian_name')" for="edit-guardian">
-                    <x-ui.input id="edit-guardian" type="text" wire:model.blur="form.guardian_name" />
-                </x-ui.field>
-                <div class="flex flex-wrap gap-2 sm:col-span-2">
-                    <x-ui.button type="submit" variant="primary" loading-target="update" wire:loading.attr="disabled">{{ __('common.save') }}</x-ui.button>
+                <fieldset>
+                    <legend class="text-sm font-semibold text-gray-900 dark:text-white">{{ __('students.section_basic') }}</legend>
+                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ __('students.section_basic_hint') }}</p>
+                    <div class="mt-5 grid grid-cols-1 gap-x-6 gap-y-5 sm:grid-cols-2">
+                        <x-ui.field :label="__('students.name')" for="edit-name" required :error="$errors->first('form.name')">
+                            <x-ui.input id="edit-name" type="text" wire:model.blur="form.name" :error="$errors->first('form.name')" required />
+                        </x-ui.field>
+                        <x-ui.field :label="__('students.date_of_birth')" for="edit-dob">
+                            <x-ui.input id="edit-dob" type="date" wire:model.blur="form.date_of_birth" />
+                        </x-ui.field>
+                        <x-ui.field :label="__('students.mother_name')" for="edit-mother">
+                            <x-ui.input id="edit-mother" type="text" wire:model.blur="form.mother_name" />
+                        </x-ui.field>
+                        <x-ui.field :label="__('students.blood_type')" for="edit-blood">
+                            <x-ui.select id="edit-blood" wire:model.blur="form.blood_type">
+                                <option value="">—</option>
+                                @foreach(\App\Livewire\Forms\StudentForm::BLOOD_TYPES as $bloodType)
+                                    <option value="{{ $bloodType }}">{{ $bloodType }}</option>
+                                @endforeach
+                            </x-ui.select>
+                        </x-ui.field>
+                    </div>
+                </fieldset>
+                <fieldset class="border-t border-gray-200 pt-7 dark:border-gray-700">
+                    <legend class="text-sm font-semibold text-gray-900 dark:text-white">{{ __('students.section_contact') }}</legend>
+                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ __('students.section_contact_hint') }}</p>
+                    <div class="mt-5 grid grid-cols-1 gap-x-6 gap-y-5 sm:grid-cols-2">
+                        <x-ui.field :label="__('students.phone')" for="edit-phone" required :error="$errors->first('form.phone')">
+                            <x-ui.input id="edit-phone" type="tel" wire:model.blur="form.phone" :error="$errors->first('form.phone')" required />
+                        </x-ui.field>
+                        <x-ui.field :label="__('students.secondary_phone')" for="edit-secondary">
+                            <x-ui.input id="edit-secondary" type="tel" wire:model.blur="form.secondary_phone" />
+                        </x-ui.field>
+                        <x-ui.field :label="__('students.home_address')" for="edit-address" class="sm:col-span-2">
+                            <x-ui.input id="edit-address" type="text" wire:model.blur="form.home_address" />
+                        </x-ui.field>
+                    </div>
+                </fieldset>
+                <fieldset class="border-t border-gray-200 pt-7 dark:border-gray-700">
+                    <legend class="text-sm font-semibold text-gray-900 dark:text-white">{{ __('students.section_guardian') }}</legend>
+                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ __('students.section_guardian_hint') }}</p>
+                    <div class="mt-5 grid grid-cols-1 gap-x-6 gap-y-5 sm:grid-cols-2">
+                        <x-ui.field :label="__('students.guardian_name')" for="edit-guardian">
+                            <x-ui.input id="edit-guardian" type="text" wire:model.blur="form.guardian_name" />
+                        </x-ui.field>
+                        <x-ui.field :label="__('students.guardian_relationship')" for="edit-guardian-relationship">
+                            <x-ui.input id="edit-guardian-relationship" type="text" wire:model.blur="form.guardian_relationship" />
+                        </x-ui.field>
+                    </div>
+                </fieldset>
+                <div class="flex flex-col-reverse gap-3 border-t border-gray-200 pt-6 sm:flex-row sm:justify-end dark:border-gray-700">
                     <x-ui.button type="button" variant="secondary" wire:click="$set('editing', false)" :spinner="false">{{ __('common.cancel') }}</x-ui.button>
+                    <x-ui.button type="submit" variant="primary" loading-target="update" wire:loading.attr="disabled">{{ __('common.save') }}</x-ui.button>
                 </div>
             </form>
-        @endif
-    </x-ui.card>
-
-    <x-ui.card :title="__('students.archived')">
-        @if(! $this->student->isArchived())
-            <x-ui.button variant="danger" size="sm" wire:click="openArchiveModal" :spinner="false">{{ __('students.archive') }}</x-ui.button>
-        @else
-            <x-ui.button variant="secondary" size="sm" wire:click="$set('showRestoreModal', true)" :spinner="false">{{ __('students.restore') }}</x-ui.button>
         @endif
     </x-ui.card>
 
@@ -402,9 +303,9 @@ new #[Layout('layouts::app')] class extends Component
         <x-ui.modal :title="__('students.archive')" close="$set('showArchiveModal', false)">
             <p>{{ __('students.confirm_archive') }}</p>
             @if($this->latestEnrollment && in_array($this->latestEnrollment->status->value, ['active', 'suspended'], true))
-                <div class="mt-3"><x-ui.alert type="warning">{{ __('students.archive_warning') }}</x-ui.alert></div>
+                <div class="mt-4"><x-ui.alert type="warning">{{ __('students.archive_warning') }}</x-ui.alert></div>
             @endif
-            <div class="mt-3">
+            <div class="mt-4">
                 <x-ui.field :label="__('students.archive_note')" for="archive_note" :error="$errors->first('archive_note')">
                     <x-ui.input id="archive_note" type="text" wire:model.blur="archive_note" :error="$errors->first('archive_note')" />
                 </x-ui.field>
@@ -437,45 +338,51 @@ new #[Layout('layouts::app')] class extends Component
             </div>
         </x-slot:header>
         @if($showEnroll)
-            <form wire:submit="enroll" class="mb-5 grid grid-cols-1 gap-4 rounded-lg border border-gray-200 bg-gray-50 p-4 sm:grid-cols-3 dark:border-gray-600 dark:bg-gray-700/40">
-                @if($this->latestEnrollment && $this->latestEnrollment->status === \App\Enums\EnrollmentStatus::Expelled)
-                    <x-ui.alert type="warning" class="sm:col-span-3">{{ __('students.expelled_warning') }}</x-ui.alert>
-                @endif
-                <x-ui.field :label="__('students.school')" for="enroll-school">
-                    <x-ui.select id="enroll-school" wire:model.live="school_id">
-                        <option value="">—</option>
-                        @foreach($this->schools as $school)
-                            <option value="{{ $school->id }}">{{ __('schools.'.$school->code) }}</option>
-                        @endforeach
-                    </x-ui.select>
-                </x-ui.field>
-                <x-ui.field :label="__('students.grade')" for="enroll-grade" required :error="$errors->first('grade_id')">
-                    <x-ui.select id="enroll-grade" wire:model.live="grade_id" :error="$errors->first('grade_id')">
-                        <option value="">—</option>
-                        @foreach($this->grades as $grade)
-                            <option value="{{ $grade->id }}">{{ __('schools.grade_number', ['number' => $grade->number]) }}</option>
-                        @endforeach
-                    </x-ui.select>
-                </x-ui.field>
-                <x-ui.field :label="__('students.academic_year')" for="enroll-year" required :error="$errors->first('academic_year_id')">
-                    <x-ui.select id="enroll-year" wire:model.live="academic_year_id" :error="$errors->first('academic_year_id')">
-                        <option value="">—</option>
-                        @foreach($this->years as $year)
-                            <option value="{{ $year->id }}">{{ $year->name }}</option>
-                        @endforeach
-                    </x-ui.select>
-                </x-ui.field>
-                <div class="flex flex-wrap gap-2 sm:col-span-3">
-                    <x-ui.button type="submit" variant="primary" loading-target="enroll" wire:loading.attr="disabled">{{ __('students.enroll') }}</x-ui.button>
-                    <x-ui.button type="button" variant="secondary" wire:click="$set('showEnroll', false)" :spinner="false">{{ __('common.cancel') }}</x-ui.button>
+            <form wire:submit="enroll" class="mb-6 space-y-6 rounded-xl border border-gray-200 bg-gray-50 p-5 sm:p-6 dark:border-gray-600 dark:bg-gray-700/40">
+                <div>
+                    <h3 class="text-sm font-semibold text-gray-900 dark:text-white">{{ __('students.enroll_title') }}</h3>
+                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ __('students.school') }} · {{ __('students.grade') }} · {{ __('students.academic_year') }}</p>
                 </div>
-                @error('student_id')<p class="text-sm text-red-600 sm:col-span-3" role="alert">{{ $message }}</p>@enderror
+                @if($this->latestEnrollment && $this->latestEnrollment->status === \App\Enums\EnrollmentStatus::Expelled)
+                    <x-ui.alert type="warning">{{ __('students.expelled_warning') }}</x-ui.alert>
+                @endif
+                <div class="grid grid-cols-1 gap-x-6 gap-y-5 sm:grid-cols-3">
+                    <x-ui.field :label="__('students.school')" for="enroll-school">
+                        <x-ui.select id="enroll-school" wire:model.live="school_id">
+                            <option value="">—</option>
+                            @foreach($this->schools as $school)
+                                <option value="{{ $school->id }}">{{ __('schools.'.$school->code) }}</option>
+                            @endforeach
+                        </x-ui.select>
+                    </x-ui.field>
+                    <x-ui.field :label="__('students.grade')" for="enroll-grade" required :error="$errors->first('grade_id')">
+                        <x-ui.select id="enroll-grade" wire:model.live="grade_id" :error="$errors->first('grade_id')">
+                            <option value="">—</option>
+                            @foreach($this->grades as $grade)
+                                <option value="{{ $grade->id }}">{{ __('schools.grade_number', ['number' => $grade->number]) }}</option>
+                            @endforeach
+                        </x-ui.select>
+                    </x-ui.field>
+                    <x-ui.field :label="__('students.academic_year')" for="enroll-year" required :error="$errors->first('academic_year_id')">
+                        <x-ui.select id="enroll-year" wire:model.live="academic_year_id" :error="$errors->first('academic_year_id')">
+                            <option value="">—</option>
+                            @foreach($this->years as $year)
+                                <option value="{{ $year->id }}">{{ $year->name }}</option>
+                            @endforeach
+                        </x-ui.select>
+                    </x-ui.field>
+                </div>
+                <div class="flex flex-col-reverse gap-3 border-t border-gray-200 pt-5 sm:flex-row sm:justify-end dark:border-gray-600">
+                    <x-ui.button type="button" variant="secondary" wire:click="$set('showEnroll', false)" :spinner="false">{{ __('common.cancel') }}</x-ui.button>
+                    <x-ui.button type="submit" variant="primary" loading-target="enroll" wire:loading.attr="disabled">{{ __('students.enroll') }}</x-ui.button>
+                </div>
+                @error('student_id')<p class="text-sm text-red-600" role="alert">{{ $message }}</p>@enderror
             </form>
         @endif
         @if($this->enrollments->isEmpty())
-            <p class="text-sm text-gray-600">{{ __('students.no_enrollments') }}</p>
+            <p class="text-sm text-gray-600 dark:text-gray-400">{{ __('students.no_enrollments') }}</p>
         @else
-            <ul class="space-y-3 text-sm">
+            <ul class="space-y-4 text-sm">
                 @foreach($this->enrollments as $enrollment)
                     @php
                         $tuitionMinor = null;
@@ -490,145 +397,41 @@ new #[Layout('layouts::app')] class extends Component
                         $appliedDiscount = $enrollment->discount;
                         $netMinor = $tuitionMinor !== null ? $tuitionMinor - ($appliedDiscount?->amount_minor ?? 0) : null;
                         $totalMinor = $netMinor !== null ? $netMinor + $otherMinor : null;
-                        $choice = $this->catalogDiscounts->firstWhere('id', (int) ($discountChoice[$enrollment->id] ?? 0));
-                        $previewMinor = ($tuitionMinor !== null && $choice) ? \App\Support\Money::percentOf($tuitionMinor, $choice->percent_bp) : null;
-                        $options = $this->optionalOptions[$enrollment->id] ?? collect();
+                        $isOpen = $this->expandedEnrollment === $enrollment->id;
                     @endphp
-                    <li wire:key="enrollment-{{ $enrollment->id }}" class="space-y-3 rounded-lg border border-gray-200 bg-gray-50 px-3 py-3 dark:border-gray-600 dark:bg-gray-700/40">
-                        <div class="flex flex-wrap items-center gap-2">
-                            <span class="font-medium text-gray-900 dark:text-white">{{ $enrollment->academicYear->name }}</span>
-                            <span class="text-gray-400 dark:text-gray-500" aria-hidden="true">—</span>
-                            <span class="text-gray-700 dark:text-gray-300">{{ __('schools.'.$enrollment->grade->school->code) }} {{ __('schools.grade_number', ['number' => $enrollment->grade->number]) }}</span>
-                            <x-ui.badge :status="$enrollment->status->value" />
+                    <li wire:key="enrollment-{{ $enrollment->id }}" class="rounded-xl border border-gray-200 bg-gray-50 dark:border-gray-600 dark:bg-gray-700/40">
+                        <button
+                            type="button"
+                            wire:click="toggleExpanded({{ $enrollment->id }})"
+                            aria-expanded="{{ $isOpen ? 'true' : 'false' }}"
+                            aria-controls="enrollment-body-{{ $enrollment->id }}"
+                            class="flex w-full cursor-pointer items-center gap-x-3 gap-y-2 p-5 text-start focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-inset sm:px-6 dark:focus:ring-indigo-400"
+                        >
+                            <span class="min-w-0 flex-1">
+                                <span class="flex flex-wrap items-center gap-x-3 gap-y-1">
+                                    <span class="text-base font-semibold text-gray-900 dark:text-white">{{ $enrollment->academicYear->name }}</span>
+                                    <span class="text-gray-400 dark:text-gray-500" aria-hidden="true">—</span>
+                                    <span class="text-gray-700 dark:text-gray-300">{{ __('schools.'.$enrollment->grade->school->code) }} {{ __('schools.grade_number', ['number' => $enrollment->grade->number]) }}</span>
+                                    <x-ui.badge :status="$enrollment->status->value" />
+                                </span>
+                                <span class="mt-1 block text-xs text-gray-500 dark:text-gray-400">
+                                    @if($totalMinor !== null)<x-ui.money :minor="$totalMinor" /> · {{ __('fees.total_due') }}@else{{ __('fees.errors.fees_not_set') }}@endif
+                                </span>
+                            </span>
+                            <svg class="h-5 w-5 shrink-0 text-gray-500 transition-transform dark:text-gray-400 @if($isOpen) rotate-180 @endif" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg>
+                            <span class="sr-only">{{ $enrollment->academicYear->name }}</span>
+                        </button>
+                        @if($isOpen)
+                        <div id="enrollment-body-{{ $enrollment->id }}" class="border-t border-gray-200 px-5 py-4 sm:px-6 dark:border-gray-600">
+                            <x-ui.button href="{{ route('enrollments.show', $enrollment) }}" wire:navigate variant="secondary" size="sm" :spinner="false">{{ __('enrollments.view_details') }}</x-ui.button>
                         </div>
-                        <div class="flex flex-wrap items-center gap-2">
-                            @foreach(\App\Enums\EnrollmentStatus::cases() as $case)
-                                <x-ui.button
-                                    wire:key="status-{{ $enrollment->id }}-{{ $case->value }}"
-                                    variant="{{ $enrollment->status === $case ? 'primary' : ($case === \App\Enums\EnrollmentStatus::Expelled ? 'danger' : 'secondary') }}"
-                                    size="sm"
-                                    wire:click="openStatusModal({{ $enrollment->id }}, '{{ $case->value }}')"
-                                    :spinner="false"
-                                >{{ __('enrollments.status_'.$case->value) }}</x-ui.button>
-                            @endforeach
-                        </div>
-
-                        <div>
-                            <h3 class="mb-1 text-sm font-semibold text-gray-900 dark:text-white">{{ __('fees.charges') }}</h3>
-                            @if($enrollment->fees->isEmpty())
-                                <p class="text-sm text-gray-600 dark:text-gray-400">{{ __('fees.no_charges') }}</p>
-                            @else
-                                <ul class="space-y-1">
-                                    @foreach($enrollment->fees as $charge)
-                                        <li wire:key="charge-{{ $charge->id }}" class="flex flex-wrap items-center justify-between gap-2 rounded-md bg-white px-2 py-1.5 dark:bg-gray-800">
-                                            <span class="text-gray-700 dark:text-gray-300">{{ $charge->gradeFee->feeType->name }}</span>
-                                            <span class="flex items-center gap-2">
-                                                <x-ui.money :minor="$charge->amount_minor" />
-                                                @if(! $charge->gradeFee->feeType->is_mandatory)
-                                                    <x-ui.button variant="ghost" size="sm" wire:click="removeOptional({{ $enrollment->id }}, {{ $charge->grade_fee_id }})" loading-target="removeOptional" wire:loading.attr="disabled" :spinner="false" class="text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/30">{{ __('common.delete') }}</x-ui.button>
-                                                @endif
-                                            </span>
-                                        </li>
-                                    @endforeach
-                                </ul>
-                            @endif
-                            @if($options->isNotEmpty())
-                                <div class="mt-2 flex flex-col gap-2 sm:flex-row sm:items-end">
-                                    <x-ui.field :label="__('fees.add_optional_fee')" for="optional-{{ $enrollment->id }}" class="flex-1" :error="$errors->first('optionalChoice.'.$enrollment->id)">
-                                        <x-ui.select id="optional-{{ $enrollment->id }}" wire:model.live="optionalChoice.{{ $enrollment->id }}" :error="$errors->first('optionalChoice.'.$enrollment->id)">
-                                            <option value="">—</option>
-                                            @foreach($options as $option)
-                                                <option value="{{ $option->id }}">{{ $option->feeType->name }} — {{ \App\Support\Money::format($option->amount_minor) }}</option>
-                                            @endforeach
-                                        </x-ui.select>
-                                    </x-ui.field>
-                                    <x-ui.button variant="secondary" size="sm" wire:click="addOptional({{ $enrollment->id }})" loading-target="addOptional" wire:loading.attr="disabled">{{ __('common.create') }}</x-ui.button>
-                                </div>
-                            @endif
-                        </div>
-
-                        <div>
-                            <h3 class="mb-1 text-sm font-semibold text-gray-900 dark:text-white">{{ __('fees.discount') }}</h3>
-                            @if($appliedDiscount)
-                                <p class="flex flex-wrap items-center gap-2">
-                                    <span class="text-gray-700 dark:text-gray-300">{{ $appliedDiscount->name }}</span>
-                                    <x-ui.percent :bp="$appliedDiscount->percent_bp" />
-                                    <span aria-hidden="true">—</span>
-                                    <x-ui.money :minor="$appliedDiscount->amount_minor" />
-                                    <x-ui.button variant="ghost" size="sm" wire:click="removeDiscount({{ $enrollment->id }})" loading-target="removeDiscount" wire:loading.attr="disabled" :spinner="false" class="text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/30">{{ __('fees.remove_discount') }}</x-ui.button>
-                                </p>
-                            @endif
-                            @if($tuitionMinor === null)
-                                <p><x-ui.badge color="gray">{{ __('fees.errors.fees_not_set') }}</x-ui.badge></p>
-                            @elseif($this->catalogDiscounts->isEmpty())
-                                <p class="text-sm text-gray-600 dark:text-gray-400">{{ __('fees.empty_catalog') }} <a href="{{ route('discounts.index') }}" wire:navigate class="font-medium text-indigo-700 hover:underline dark:text-indigo-400">{{ __('fees.discounts') }}</a></p>
-                            @else
-                                <div class="flex flex-col gap-2 sm:flex-row sm:items-end">
-                                    <x-ui.field :label="__('fees.select_discount')" for="discount-{{ $enrollment->id }}" class="flex-1" :error="$errors->first('discountChoice.'.$enrollment->id)">
-                                        <x-ui.select id="discount-{{ $enrollment->id }}" wire:model.live="discountChoice.{{ $enrollment->id }}" :error="$errors->first('discountChoice.'.$enrollment->id)">
-                                            <option value="">—</option>
-                                            @foreach($this->catalogDiscounts as $catalog)
-                                                <option value="{{ $catalog->id }}">{{ $catalog->name }} ({{ \App\Support\Percent::format($catalog->percent_bp) }})</option>
-                                            @endforeach
-                                        </x-ui.select>
-                                    </x-ui.field>
-                                    <x-ui.button variant="secondary" size="sm" wire:click="applyDiscount({{ $enrollment->id }})" loading-target="applyDiscount" wire:loading.attr="disabled">{{ $appliedDiscount ? __('fees.replace_discount') : __('fees.apply_discount') }}</x-ui.button>
-                                </div>
-                                @if($previewMinor !== null && $choice)
-                                    <p class="mt-1 text-sm text-gray-600 dark:text-gray-400"><x-ui.money :minor="$previewMinor" /> <span aria-hidden="true">→</span> {{ __('fees.tuition_net') }} <x-ui.money :minor="$tuitionMinor - $previewMinor" /></p>
-                                @endif
-                            @endif
-                            @if($errors->first('discount_id'))
-                                <p class="mt-1 text-sm text-red-600 dark:text-red-500" role="alert">{{ $errors->first('discount_id') }}</p>
-                            @endif
-                        </div>
-
-                        @if($totalMinor !== null)
-                            <dl class="grid grid-cols-2 gap-x-4 gap-y-1 border-t border-gray-200 pt-2 text-sm dark:border-gray-600 sm:grid-cols-4">
-                                <div><dt class="text-gray-500 dark:text-gray-400">{{ __('fees.tuition') }}</dt><dd class="font-medium text-gray-900 dark:text-white"><x-ui.money :minor="$tuitionMinor" /></dd></div>
-                                <div><dt class="text-gray-500 dark:text-gray-400">{{ __('fees.discount') }}</dt><dd class="font-medium text-gray-900 dark:text-white"><x-ui.money :minor="$appliedDiscount?->amount_minor ?? 0" /></dd></div>
-                                <div><dt class="text-gray-500 dark:text-gray-400">{{ __('fees.tuition_net') }}</dt><dd class="font-medium text-gray-900 dark:text-white"><x-ui.money :minor="$netMinor" /></dd></div>
-                                <div><dt class="text-gray-500 dark:text-gray-400">{{ __('fees.total_due') }}</dt><dd class="font-medium text-gray-900 dark:text-white"><x-ui.money :minor="$totalMinor" /></dd></div>
-                            </dl>
                         @endif
                     </li>
                 @endforeach
             </ul>
+            @if($this->enrollments->hasPages())
+                <div class="mt-4">{{ $this->enrollments->links() }}</div>
+            @endif
         @endif
     </x-ui.card>
-
-    @if($statusTargetEnrollment && $statusTargetStatus && $this->statusTarget)
-        @php
-            $targetStatus = \App\Enums\EnrollmentStatus::from($statusTargetStatus);
-            $needsPreview = ! $this->statusTarget->status->isCharged() && $targetStatus->isCharged();
-        @endphp
-        <x-ui.modal :title="__('enrollments.change_status')" close="$set('statusTargetEnrollment', null)">
-            <p class="font-medium text-gray-900 dark:text-white">{{ __('enrollments.status_'.$statusTargetStatus) }}</p>
-            @if($needsPreview)
-                @if($this->missingFees->isNotEmpty())
-                    <h3 class="mt-3 text-sm font-semibold text-gray-900 dark:text-white">{{ __('enrollments.missing_fees_title') }}</h3>
-                    <ul class="mt-1 space-y-1">
-                        @foreach($this->missingFees as $missing)
-                            <li wire:key="missing-{{ $missing->id }}" class="flex items-center justify-between gap-2 rounded-md bg-gray-50 px-2 py-1.5 dark:bg-gray-700/40">
-                                <span>{{ $missing->feeType->name }}</span>
-                                <x-ui.money :minor="$missing->amount_minor" />
-                            </li>
-                        @endforeach
-                    </ul>
-                    <p class="mt-2">{{ __('enrollments.missing_fees_confirm') }}</p>
-                @else
-                    <p class="mt-2">{{ __('enrollments.no_missing_fees') }}</p>
-                @endif
-            @endif
-            <div class="mt-3">
-                <x-ui.field :label="__('enrollments.status_note')" for="status-modal-note" :error="$errors->first('status_note')">
-                    <x-ui.input id="status-modal-note" type="text" wire:model.blur="statusModalNote" :error="$errors->first('status_note')" />
-                </x-ui.field>
-            </div>
-            <x-slot:footer>
-                <x-ui.button variant="secondary" wire:click="$set('statusTargetEnrollment', null)" :spinner="false">{{ __('common.cancel') }}</x-ui.button>
-                <x-ui.button variant="primary" wire:click="confirmStatusChange" loading-target="confirmStatusChange" wire:loading.attr="disabled">{{ __('common.save') }}</x-ui.button>
-            </x-slot:footer>
-        </x-ui.modal>
-    @endif
 </div>

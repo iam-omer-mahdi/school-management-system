@@ -60,11 +60,11 @@ class EnrollmentCardTest extends TestCase
         $sibling = app(CreateDiscount::class)->handle(['name' => 'Sibling', 'percent' => '10']);
 
         // Live preview shows the resolved discount and the new tuition net.
-        Livewire::test('pages::students.show', ['student' => $student->id])
-            ->set('discountChoice.'.$enrollment->id, (string) $sibling->id)
+        Livewire::test('pages::enrollments.show', ['enrollment' => $enrollment->id])
+            ->set('discountChoice', (string) $sibling->id)
             ->assertSee(Money::format(10000))
             ->assertSee(Money::format(90000))
-            ->call('applyDiscount', $enrollment->id)
+            ->call('applyDiscount')
             ->assertHasNoErrors();
 
         $this->assertSame(
@@ -74,16 +74,16 @@ class EnrollmentCardTest extends TestCase
 
         $staff = app(CreateDiscount::class)->handle(['name' => 'Staff', 'percent' => '20']);
 
-        Livewire::test('pages::students.show', ['student' => $student->id])
-            ->set('discountChoice.'.$enrollment->id, (string) $staff->id)
-            ->call('applyDiscount', $enrollment->id)
+        Livewire::test('pages::enrollments.show', ['enrollment' => $enrollment->id])
+            ->set('discountChoice', (string) $staff->id)
+            ->call('applyDiscount')
             ->assertHasNoErrors();
 
         $this->assertSame(1, EnrollmentDiscount::where('enrollment_id', $enrollment->id)->count());
         $this->assertSame('Staff', EnrollmentDiscount::where('enrollment_id', $enrollment->id)->firstOrFail()->name);
 
-        Livewire::test('pages::students.show', ['student' => $student->id])
-            ->call('removeDiscount', $enrollment->id)
+        Livewire::test('pages::enrollments.show', ['enrollment' => $enrollment->id])
+            ->call('removeDiscount')
             ->assertHasNoErrors();
 
         $this->assertSame(0, EnrollmentDiscount::where('enrollment_id', $enrollment->id)->count());
@@ -95,10 +95,10 @@ class EnrollmentCardTest extends TestCase
         [$grade, $year] = $this->fixtures();
 
         $student = Student::factory()->create();
-        app(EnrollStudent::class)->handle($student->id, $year->id, $grade->id);
+        $enrollment = app(EnrollStudent::class)->handle($student->id, $year->id, $grade->id);
         app(CreateDiscount::class)->handle(['name' => 'Sibling', 'percent' => '10']);
 
-        Livewire::test('pages::students.show', ['student' => $student->id])
+        Livewire::test('pages::enrollments.show', ['enrollment' => $enrollment->id])
             ->assertSee(__('fees.errors.fees_not_set'));
     }
 
@@ -115,11 +115,11 @@ class EnrollmentCardTest extends TestCase
         ]);
 
         $student = Student::factory()->create();
-        app(EnrollStudent::class)->handle($student->id, $year->id, $grade->id);
+        $enrollment = app(EnrollStudent::class)->handle($student->id, $year->id, $grade->id);
 
         $this->assertSame(0, Discount::count());
 
-        Livewire::test('pages::students.show', ['student' => $student->id])
+        Livewire::test('pages::enrollments.show', ['enrollment' => $enrollment->id])
             ->assertSee(route('discounts.index'));
     }
 
@@ -150,18 +150,18 @@ class EnrollmentCardTest extends TestCase
         app(ApplyDiscountToEnrollment::class)->handle($enrollment->id, $discount->id);
 
         // Tuition 1000 - 10% + books 150 = 1050 total due.
-        Livewire::test('pages::students.show', ['student' => $student->id])
+        Livewire::test('pages::enrollments.show', ['enrollment' => $enrollment->id])
             ->assertSee(__('fees.total_due'))
             ->assertSee(Money::format(90000))
-            ->set('optionalChoice.'.$enrollment->id, (string) $booksFee->id)
-            ->call('addOptional', $enrollment->id)
+            ->set('optionalChoice', (string) $booksFee->id)
+            ->call('addOptional')
             ->assertHasNoErrors()
             ->assertSee(Money::format(105000));
 
         $this->assertSame(2, $enrollment->refresh()->fees()->count());
 
-        Livewire::test('pages::students.show', ['student' => $student->id])
-            ->call('removeOptional', $enrollment->id, $booksFee->id)
+        Livewire::test('pages::enrollments.show', ['enrollment' => $enrollment->id])
+            ->call('removeOptional', $booksFee->id)
             ->assertHasNoErrors();
 
         $this->assertSame(1, $enrollment->refresh()->fees()->count());

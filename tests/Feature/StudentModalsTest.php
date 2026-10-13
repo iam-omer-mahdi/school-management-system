@@ -58,8 +58,8 @@ class StudentModalsTest extends TestCase
             'amount' => '1000',
         ]);
 
-        Livewire::test('pages::students.show', ['student' => $student->id])
-            ->call('openStatusModal', $enrollment->id, 'active')
+        Livewire::test('pages::enrollments.show', ['enrollment' => $enrollment->id])
+            ->call('openStatusModal', 'active')
             ->assertSee(__('enrollments.missing_fees_confirm'))
             ->assertSee(Money::format(100000))
             ->set('statusModalNote', 'back')
@@ -73,13 +73,13 @@ class StudentModalsTest extends TestCase
         $this->assertSame(1, $fresh->fees()->count());
 
         // Nothing missing anymore: the preview says so instead of listing fees.
-        Livewire::test('pages::students.show', ['student' => $student->id])
-            ->call('openStatusModal', $enrollment->id, 'left')
+        Livewire::test('pages::enrollments.show', ['enrollment' => $enrollment->id])
+            ->call('openStatusModal', 'left')
             ->call('confirmStatusChange')
             ->assertHasNoErrors();
 
-        Livewire::test('pages::students.show', ['student' => $student->id])
-            ->call('openStatusModal', $enrollment->id, 'active')
+        Livewire::test('pages::enrollments.show', ['enrollment' => $enrollment->id])
+            ->call('openStatusModal', 'active')
             ->assertSee(__('enrollments.no_missing_fees'))
             ->assertDontSee(__('enrollments.missing_fees_title'));
     }
@@ -92,8 +92,8 @@ class StudentModalsTest extends TestCase
         $student = Student::factory()->create();
         $enrollment = app(EnrollStudent::class)->handle($student->id, $year->id, $grade->id);
 
-        Livewire::test('pages::students.show', ['student' => $student->id])
-            ->call('openStatusModal', $enrollment->id, 'suspended')
+        Livewire::test('pages::enrollments.show', ['enrollment' => $enrollment->id])
+            ->call('openStatusModal', 'suspended')
             ->assertSee(__('enrollments.change_status'))
             ->assertDontSee(__('enrollments.missing_fees_title'))
             ->call('confirmStatusChange')
@@ -154,6 +154,37 @@ class StudentModalsTest extends TestCase
             ->assertHasNoErrors();
 
         $this->assertSame(2, Enrollment::where('student_id', $student->id)->count());
+    }
+
+    public function test_status_group_labels_current_and_disables_it(): void
+    {
+        $this->actingAs(User::factory()->create());
+        [$grade, $year] = $this->fixtures();
+
+        $student = Student::factory()->create();
+        $enrollment = app(EnrollStudent::class)->handle($student->id, $year->id, $grade->id);
+
+        Livewire::test('pages::enrollments.show', ['enrollment' => $enrollment->id])
+            ->assertSee(__('enrollments.change_status'))
+            ->assertSee('role="group"', false)
+            ->assertSee('aria-pressed="true"', false)
+            ->assertDontSee("openStatusModal('active')", false)
+            ->assertSee("openStatusModal('suspended')", false);
+    }
+
+    public function test_current_expelled_keeps_solid_danger_while_other_expelled_is_flat(): void
+    {
+        $this->actingAs(User::factory()->create());
+        [$grade, $year] = $this->fixtures();
+
+        $student = Student::factory()->create();
+        $enrollment = app(EnrollStudent::class)->handle($student->id, $year->id, $grade->id);
+        app(UpdateEnrollmentStatus::class)->handle($enrollment, EnrollmentStatus::Expelled);
+
+        Livewire::test('pages::enrollments.show', ['enrollment' => $enrollment->id])
+            ->assertSee('aria-pressed="true"', false)
+            ->assertDontSee("openStatusModal('expelled')", false)
+            ->assertSee("openStatusModal('active')", false);
     }
 
     public function test_archived_student_page_shows_inactive_badge(): void

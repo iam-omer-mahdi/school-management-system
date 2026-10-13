@@ -3,6 +3,15 @@
 declare(strict_types=1);
 
 return [
+    'title' => 'Enrollments',
+    'search_placeholder' => 'Search by student name or number...',
+    'filter_all' => 'All',
+    'total' => ':count enrollments',
+    'apply' => 'Apply',
+    'select_filters' => 'Select a school, grade and year, then apply to view enrollments.',
+    'view_details' => 'View details',
+    'payments' => 'Payments',
+    'payments_placeholder' => 'Payments will be managed here.',
     'status' => 'Enrollment status',
     'status_note' => 'Status note',
     'status_active' => 'Active',

@@ -3,10 +3,19 @@
 declare(strict_types=1);
 
 return [
+    'title' => 'التسجيلات',
+    'search_placeholder' => 'ابحث باسم الطالب أو رقمه...',
+    'filter_all' => 'الكل',
+    'total' => ':count تسجيلات',
+    'apply' => 'تطبيق',
+    'select_filters' => 'اختر المدرسة والصف والسنة الدراسية ثم اضغط تطبيق لعرض التسجيلات.',
+    'view_details' => 'عرض التفاصيل',
+    'payments' => 'المدفوعات',
+    'payments_placeholder' => 'ستُدار المدفوعات هنا.',
     'status' => 'حالة التسجيل',
     'status_note' => 'ملاحظة الحالة',
     'status_active' => 'نشط',
-    'status_suspended' => 'موقوف',
+    'status_suspended' => 'مجمد',
     'status_transferred' => 'منقول',
     'status_expelled' => 'مفصول',
     'status_left' => 'مغادر',
