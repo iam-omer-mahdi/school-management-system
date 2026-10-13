@@ -33,6 +33,7 @@ class FeesPagesTest extends TestCase
     {
         $this->get(route('fee-types.index'))->assertRedirect(route('login'));
         $this->get(route('fee-schedule.index'))->assertRedirect(route('login'));
+        $this->get(route('fee-schedule.create'))->assertRedirect(route('login'));
     }
 
     public function test_sidebar_shows_grouped_fees_section(): void
@@ -97,7 +98,7 @@ class FeesPagesTest extends TestCase
         $this->assertTrue(FeeType::query()->where('system_key', 'tuition')->exists());
     }
 
-    public function test_schedule_create_confirms_and_reports_applied_and_skipped(): void
+    public function test_schedule_create_reports_applied_and_skipped_and_redirects_to_index(): void
     {
         $this->actingAs(User::factory()->create());
 
@@ -112,7 +113,7 @@ class FeesPagesTest extends TestCase
         $endedEnrollment = app(EnrollStudent::class)->handle($ended->id, $year->id, $grade->id);
         app(UpdateEnrollmentStatus::class)->handle($endedEnrollment, EnrollmentStatus::Left);
 
-        Livewire::test('pages::fee-schedule.index')
+        Livewire::test('pages::fee-schedule.create')
             ->set('school_id', $grade->school_id)
             ->set('grade_id', $grade->id)
             ->set('academic_year_id', $year->id)
@@ -120,13 +121,48 @@ class FeesPagesTest extends TestCase
             ->set('amount', '1000')
             ->call('save')
             ->assertHasNoErrors()
-            ->assertSet('showConfirm', true)
-            ->call('confirmSave')
-            ->assertHasNoErrors();
+            ->assertRedirect(route('fee-schedule.index', [
+                'school_id' => $grade->school_id,
+                'grade_id' => $grade->id,
+                'academic_year_id' => $year->id,
+            ]));
 
         $this->assertSame(1, GradeFee::count());
         $this->assertSame(1, $active->enrollments()->firstOrFail()->fees()->count());
         $this->assertSame(0, $endedEnrollment->refresh()->fees()->count());
+    }
+
+    public function test_set_fee_page_validates_grade_year_type_and_amount(): void
+    {
+        $this->actingAs(User::factory()->create());
+
+        Livewire::test('pages::fee-schedule.create')
+            ->call('save')
+            ->assertHasErrors(['grade_id', 'academic_year_id', 'fee_type_id', 'amount']);
+
+        $this->assertSame(0, GradeFee::count());
+    }
+
+    public function test_set_fee_page_starts_blank(): void
+    {
+        $this->actingAs(User::factory()->create());
+
+        Livewire::test('pages::fee-schedule.create')
+            ->assertSet('school_id', null)
+            ->assertSet('grade_id', null)
+            ->assertSet('academic_year_id', null)
+            ->assertSet('fee_type_id', null)
+            ->assertSet('amount', '');
+    }
+
+    public function test_index_has_no_set_fee_modal_state(): void
+    {
+        $this->actingAs(User::factory()->create());
+
+        Livewire::test('pages::fee-schedule.index')
+            ->assertSee(route('fee-schedule.create'))
+            ->assertDontSee('set-fee-type', false)
+            ->assertDontSee('set-fee-amount', false);
     }
 
     public function test_schedule_delete_flow_blocks_charged_fee(): void

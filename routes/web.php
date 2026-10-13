@@ -39,8 +39,12 @@ Route::middleware('auth')->group(function (): void {
     Route::livewire('/students/create', 'pages::students.create')->name('students.create');
     Route::livewire('/students/{student}', 'pages::students.show')->name('students.show');
 
+    Route::livewire('/enrollments', 'pages::enrollments.index')->name('enrollments.index');
+    Route::livewire('/enrollments/{enrollment}', 'pages::enrollments.show')->name('enrollments.show');
+
     Route::livewire('/fee-types', 'pages::fee-types.index')->name('fee-types.index');
     Route::livewire('/fee-schedule', 'pages::fee-schedule.index')->name('fee-schedule.index');
+    Route::livewire('/fee-schedule/create', 'pages::fee-schedule.create')->name('fee-schedule.create');
     Route::livewire('/discounts', 'pages::discounts.index')->name('discounts.index');
 
     Route::livewire('/settings', 'pages::settings')->name('settings');
