@@ -110,8 +110,13 @@ new #[Layout('layouts::app')] class extends Component
                 'grade:id,school_id,number',
                 'grade.school:id,code,name',
                 'academicYear:id,name',
-                'fees:enrollment_id,grade_fee_id,amount_minor',
+                'fees:id,enrollment_id,grade_fee_id,amount_minor',
+                'fees.gradeFee:id,fee_type_id',
+                'fees.gradeFee.feeType:id,system_key',
+                'fees.payments' => fn ($payments) => $payments->whereNull('voided_at')->select(['id', 'enrollment_id', 'enrollment_fee_id', 'amount_minor', 'kind', 'voided_at']),
                 'discount:enrollment_id,amount_minor',
+                'payments' => fn ($payments) => $payments->whereNull('voided_at')->select(['id', 'enrollment_id', 'enrollment_fee_id', 'amount_minor', 'kind', 'voided_at']),
+                'refunds' => fn ($refunds) => $refunds->whereNull('voided_at')->select(['id', 'enrollment_id', 'amount_minor']),
             ]);
 
         match ($this->sort) {
@@ -120,7 +125,8 @@ new #[Layout('layouts::app')] class extends Component
             'total_asc', 'total_desc' => $query
                 ->withSum('fees as fees_total', 'amount_minor')
                 ->withSum('discount as discount_total', 'amount_minor')
-                ->orderByRaw('COALESCE(fees_total, 0) - COALESCE(discount_total, 0) '.($this->sort === 'total_asc' ? 'asc' : 'desc')),
+                ->withSum(['payments as paid_total' => fn ($payments) => $payments->whereNull('voided_at')->where('kind', 'fee')], 'amount_minor')
+                ->orderByRaw("CASE WHEN status IN ('active', 'suspended') THEN COALESCE(fees_total, 0) - COALESCE(discount_total, 0) - COALESCE(paid_total, 0) ELSE 0 END ".($this->sort === 'total_asc' ? 'asc' : 'desc')),
             default => $query->orderByDesc('id'),
         };
 
@@ -272,10 +278,10 @@ new #[Layout('layouts::app')] class extends Component
                         <th>{{ __('enrollments.status') }}</th>
                         <th>{{ __('fees.total_due') }}</th>
                     </x-slot:head>
-                    @foreach($this->enrollments as $enrollment)
-                        @php
-                            $totalMinor = $enrollment->fees->sum('amount_minor') - ($enrollment->discount?->amount_minor ?? 0);
-                        @endphp
+            @foreach($this->enrollments as $enrollment)
+                @php
+                    $balance = \App\Support\EnrollmentBalance::forEnrollment($enrollment);
+                @endphp
                         <tr wire:key="enrollment-{{ $enrollment->id }}" class="transition hover:bg-gray-50 dark:hover:bg-gray-700">
                             <td>{{ $enrollment->student->student_number }}</td>
                             <td>
@@ -287,8 +293,8 @@ new #[Layout('layouts::app')] class extends Component
                             <td>{{ __('schools.'.$enrollment->grade->school->code) }}</td>
                             <td>{{ __('schools.grade_number', ['number' => $enrollment->grade->number]) }}</td>
                             <td>{{ $enrollment->academicYear->name }}</td>
-                            <td><x-ui.badge :status="$enrollment->status->value" /></td>
-                            <td><x-ui.money :minor="$totalMinor" /></td>
+                    <td><x-ui.badge :status="$enrollment->status->value" /></td>
+                    <td><x-ui.money :minor="$balance['owed']" /></td>
                         </tr>
                     @endforeach
                 </x-ui.table>
