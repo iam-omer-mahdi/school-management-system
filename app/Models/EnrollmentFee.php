@@ -9,6 +9,7 @@ use Database\Factories\EnrollmentFeeFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * A frozen copy of the grade fee amount at assignment time.
@@ -44,5 +45,11 @@ class EnrollmentFee extends Model
     public function gradeFee(): BelongsTo
     {
         return $this->belongsTo(GradeFee::class);
+    }
+
+    /** @return HasMany<Payment, $this> */
+    public function payments(): HasMany
+    {
+        return $this->hasMany(Payment::class);
     }
 }

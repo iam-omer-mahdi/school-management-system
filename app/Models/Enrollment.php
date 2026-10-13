@@ -75,6 +75,18 @@ class Enrollment extends Model
         return $this->hasMany(EnrollmentFee::class);
     }
 
+    /** @return HasMany<Payment, $this> */
+    public function payments(): HasMany
+    {
+        return $this->hasMany(Payment::class);
+    }
+
+    /** @return HasMany<Refund, $this> */
+    public function refunds(): HasMany
+    {
+        return $this->hasMany(Refund::class);
+    }
+
     /** @return HasOne<EnrollmentDiscount, $this> */
     public function discount(): HasOne
     {

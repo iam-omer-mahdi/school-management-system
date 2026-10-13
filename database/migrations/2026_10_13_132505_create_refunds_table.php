@@ -1,0 +1,35 @@
+<?php
+
+declare(strict_types=1);
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::create('refunds', function (Blueprint $table): void {
+            $table->id();
+            $table->unsignedBigInteger('enrollment_id');
+            $table->string('kind', 16);
+            $table->unsignedBigInteger('amount_minor');
+            $table->string('method', 16);
+            $table->string('transaction_number', 100)->nullable();
+            $table->date('refunded_on');
+            $table->string('note', 255);
+            $table->timestamp('voided_at')->nullable();
+            $table->string('void_reason', 255)->nullable();
+            $table->timestamps();
+
+            $table->foreign('enrollment_id', 'ref_enrollment_fk')->references('id')->on('enrollments')->restrictOnDelete();
+            $table->index('enrollment_id', 'ref_enrollment_idx');
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('refunds');
+    }
+};
