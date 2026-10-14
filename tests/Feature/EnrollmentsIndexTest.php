@@ -13,9 +13,12 @@ use App\Actions\EnrollStudent;
 use App\Actions\UpdateEnrollmentStatus;
 use App\Enums\EnrollmentStatus;
 use App\Models\AcademicYear;
+use App\Models\Enrollment;
+use App\Models\EnrollmentFee;
 use App\Models\FeeType;
 use App\Models\Grade;
 use App\Models\GradeFee;
+use App\Models\Payment;
 use App\Models\School;
 use App\Models\Student;
 use App\Models\User;
@@ -405,6 +408,102 @@ class EnrollmentsIndexTest extends TestCase
             ->assertSee('N Plus One 8');
 
         $this->assertLessThanOrEqual(30, $count);
+    }
+
+    public function test_five_hundred_enrollments_render_within_query_bound(): void
+    {
+        $this->actingAs(User::factory()->create());
+
+        $school = School::factory()->create(['code' => 'perf', 'name' => 'Performance']);
+        $grade = Grade::factory()->create(['school_id' => $school->id, 'number' => 1]);
+        $year = $this->year(2030);
+
+        $gradeFee = app(CreateGradeFee::class)->handle([
+            'grade_id' => $grade->id,
+            'academic_year_id' => $year->id,
+            'fee_type_id' => $this->tuition()->id,
+            'amount' => '1000',
+        ])->gradeFee;
+
+        // Bulk-insert the performance rows: factories still define the
+        // values, but one insert per table keeps this guard fast.
+        $now = now();
+        $students = Student::factory()->count(500)->make();
+        Student::query()->insert($students->map(fn (Student $student): array => [
+            'student_number' => $student->student_number,
+            'name' => $student->name,
+            'phone' => $student->phone,
+            'secondary_phone' => null,
+            'home_address' => null,
+            'mother_name' => null,
+            'blood_type' => null,
+            'date_of_birth' => null,
+            'guardian_name' => null,
+            'guardian_relationship' => null,
+            'archived_at' => null,
+            'archive_note' => null,
+            'created_at' => $now,
+            'updated_at' => $now,
+        ])->all());
+
+        $studentIds = Student::query()
+            ->whereIn('student_number', $students->pluck('student_number')->all())
+            ->pluck('id', 'student_number');
+
+        Enrollment::query()->insert($students->map(fn (Student $student): array => [
+            'student_id' => $studentIds[$student->student_number],
+            'academic_year_id' => $year->id,
+            'grade_id' => $grade->id,
+            'status' => EnrollmentStatus::Active->value,
+            'status_note' => null,
+            'status_changed_at' => null,
+            'created_at' => $now,
+            'updated_at' => $now,
+        ])->all());
+
+        $enrollmentIds = Enrollment::query()
+            ->whereIn('student_id', $studentIds->values()->all())
+            ->pluck('id', 'student_id');
+
+        EnrollmentFee::query()->insert($studentIds->values()->map(fn (int $studentId): array => [
+            'enrollment_id' => $enrollmentIds[$studentId],
+            'grade_fee_id' => $gradeFee->id,
+            'amount_minor' => $gradeFee->amount_minor,
+            'created_at' => $now,
+            'updated_at' => $now,
+        ])->all());
+
+        $chargeIds = EnrollmentFee::query()
+            ->whereIn('enrollment_id', $enrollmentIds->values()->all())
+            ->pluck('id', 'enrollment_id');
+
+        Payment::query()->insert($studentIds->values()->map(fn (int $studentId, int $index): array => [
+            'enrollment_id' => $enrollmentIds[$studentId],
+            'enrollment_fee_id' => $chargeIds[$enrollmentIds[$studentId]],
+            'amount_minor' => $index % 2 === 0 ? 100000 : 10000,
+            'method' => 'cash',
+            'transaction_number' => null,
+            'paid_on' => date('Y-m-d'),
+            'note' => null,
+            'created_at' => $now,
+            'updated_at' => $now,
+        ])->all());
+
+        $latest = Enrollment::query()->orderByDesc('id')->firstOrFail();
+        $page = Livewire::test('pages::enrollments.index')
+            ->set('school_id', $school->id)
+            ->set('grade_id', $grade->id)
+            ->set('academic_year_id', $year->id);
+
+        $count = 0;
+        DB::listen(function () use (&$count): void {
+            $count++;
+        });
+
+        $page->call('applyFilters')
+            ->assertSee(route('enrollments.show', $latest), false);
+
+        $this->assertLessThanOrEqual(35, $count);
     }
 
     public function test_sorts_by_student_name_both_directions(): void
