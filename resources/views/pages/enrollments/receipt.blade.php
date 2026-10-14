@@ -90,11 +90,11 @@ new #[Layout('layouts::print')] class extends Component
         <div><dt class="text-gray-500">{{ __('students.student_number') }}</dt><dd class="mt-0.5 font-medium text-gray-900" dir="ltr">{{ $enrollment->student->student_number }}</dd></div>
     </dl>
 
-    <ul class="space-y-2 text-sm">
+    <ul class="space-y-3 text-sm">
         @foreach($payments as $payment)
-            <li wire:key="receipt-{{ $payment->id }}" class="rounded-lg border border-gray-200 px-3 py-2.5">
+            <li wire:key="receipt-{{ $payment->id }}" class="space-y-3 rounded-lg border border-gray-200 p-4">
                 @if($payment->isVoided())
-                    <p class="mb-1 text-sm font-bold uppercase tracking-wider text-red-700">{{ __('payments.void') }}@if($payment->void_reason): {{ $payment->void_reason }}@endif</p>
+                    <p class="text-sm font-bold uppercase tracking-wider text-red-700">{{ __('payments.void') }}@if($payment->void_reason): {{ $payment->void_reason }}@endif</p>
                 @endif
                 <div class="flex flex-wrap items-center justify-between gap-2">
                     <span class="font-medium text-gray-900">
@@ -108,19 +108,17 @@ new #[Layout('layouts::print')] class extends Component
                     </span>
                     <x-ui.money :minor="$payment->amount_minor" />
                 </div>
-                <div class="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500">
-                    <span class="font-mono" dir="ltr">{{ $payment->reference() }}</span>
-                    <span>{{ $payment->method === \App\Enums\PaymentMethod::BankTransfer ? __('payments.bank_transfer') : __('payments.cash') }}</span>
-                    @if($payment->transaction_number !== null)
-                        <span class="font-mono" dir="ltr">{{ $payment->transaction_number }}</span>
-                    @endif
-                    <span dir="ltr">{{ $payment->paid_on?->format('Y-m-d') }}</span>
-                </div>
+                <dl class="grid grid-cols-1 gap-x-8 gap-y-2 text-sm sm:grid-cols-3">
+                    <div><dt class="text-gray-500">{{ __('payments.reference') }}</dt><dd class="mt-0.5 font-mono font-medium text-gray-900" dir="ltr">{{ $payment->reference() }}</dd></div>
+                    <div><dt class="text-gray-500">{{ __('payments.transaction_number') }}</dt><dd class="mt-0.5 font-mono font-medium text-gray-900" dir="ltr">{{ $payment->transaction_number ?? '—' }}</dd></div>
+                    <div><dt class="text-gray-500">{{ __('payments.paid_on') }}</dt><dd class="mt-0.5 font-medium text-gray-900" dir="ltr">{{ $payment->paid_on?->format('Y-m-d') }}</dd></div>
+                </dl>
+                <p class="text-xs text-gray-500">{{ $payment->method === \App\Enums\PaymentMethod::BankTransfer ? __('payments.bank_transfer') : __('payments.cash') }}</p>
             </li>
         @endforeach
     </ul>
 
-    <p class="flex items-center justify-between border-t border-gray-200 pt-4 text-base font-bold text-gray-900">
+    <p class="mt-1 flex items-center justify-between border-t border-gray-200 pt-5 text-base font-bold text-gray-900">
         <span>{{ __('payments.total') }}</span>
         <x-ui.money :minor="$validTotal" />
     </p>

@@ -22,6 +22,7 @@ return [
     'void' => 'Void',
     'void_reason' => 'Void reason',
     'receipt' => 'Receipt',
+    'reference' => 'Reference',
     'print' => 'Print',
     'print_receipt' => 'Print receipt',
     'received' => 'Received',

@@ -22,6 +22,7 @@ return [
     'void' => 'إلغاء',
     'void_reason' => 'سبب الإلغاء',
     'receipt' => 'إيصال',
+    'reference' => 'المرجع',
     'print' => 'طباعة',
     'print_receipt' => 'طباعة الإيصال',
     'received' => 'المستلم',
