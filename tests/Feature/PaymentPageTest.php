@@ -11,6 +11,7 @@ use App\Actions\CreateGradeFee;
 use App\Actions\EnrollStudent;
 use App\Actions\RecordPayment;
 use App\Actions\UpdateEnrollmentStatus;
+use App\Actions\VoidPayment;
 use App\Enums\EnrollmentStatus;
 use App\Enums\PaymentKind;
 use App\Models\AcademicYear;
@@ -24,6 +25,7 @@ use App\Models\Student;
 use App\Models\User;
 use App\Support\Money;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Validation\ValidationException;
 use Livewire\Livewire;
 use Tests\TestCase;
 
@@ -325,6 +327,156 @@ class PaymentPageTest extends TestCase
         }
 
         $this->assertSame('غير مخصص', __('payments.unallocated'));
+    }
+
+    public function test_void_rejects_payment_from_another_enrollment(): void
+    {
+        $this->actingAs(User::factory()->create());
+        [$grade, $year] = $this->fixtures();
+        $tuitionFee = $this->scheduleTuition($grade, $year);
+
+        $first = $this->enroll($grade, $year);
+        $second = $this->enroll($grade, $year);
+
+        $make = fn (Enrollment $e): Payment => app(RecordPayment::class)->handle([
+            'enrollment_id' => $e->id,
+            'total_minor' => 10000,
+            'rows' => [['grade_fee_id' => $tuitionFee->id, 'amount_minor' => 10000]],
+            'overpayment_minor' => 0,
+            'overpayment_confirmed' => false,
+            'method' => 'cash',
+            'transaction_number' => null,
+            'paid_on' => date('Y-m-d'),
+            'note' => null,
+        ])['payments']->firstOrFail();
+
+        $foreign = $make($second);
+
+        Livewire::test('pages::enrollments.show', ['enrollment' => $first->id])
+            ->call('openVoidModal', 'payment', $foreign->id)
+            ->set('voidReason', 'Sneaky')
+            ->call('confirmVoid')
+            ->assertHasErrors(['payment_id']);
+
+        $this->assertNull($foreign->refresh()->voided_at);
+
+        try {
+            app(VoidPayment::class)->handle($first->id, $foreign->id, 'Sneaky');
+            $this->fail('Expected ValidationException for cross-enrollment void');
+        } catch (ValidationException $e) {
+            $this->assertArrayHasKey('payment_id', $e->errors());
+        }
+    }
+
+    public function test_tampered_status_and_void_type_are_rejected_without_server_error(): void
+    {
+        $this->actingAs(User::factory()->create());
+        [$grade, $year] = $this->fixtures();
+        $this->scheduleTuition($grade, $year);
+        $enrollment = $this->enroll($grade, $year);
+
+        Livewire::test('pages::enrollments.show', ['enrollment' => $enrollment->id])
+            ->call('openStatusModal', 'bogus')
+            ->assertHasErrors(['status']);
+
+        $this->assertSame(EnrollmentStatus::Active, $enrollment->refresh()->status);
+
+        Livewire::test('pages::enrollments.show', ['enrollment' => $enrollment->id])
+            ->call('openVoidModal', 'bogus', 1)
+            ->assertHasErrors(['voidTargetType']);
+    }
+
+    public function test_pay_gate_shows_specific_reason_for_each_state(): void
+    {
+        $this->actingAs(User::factory()->create());
+        [$grade, $year] = $this->fixtures();
+        $this->scheduleTuition($grade, $year);
+        $enrollment = $this->enroll($grade, $year);
+        $charge = $enrollment->fees()->firstOrFail();
+
+        $numericReason = __('validation.numeric', ['attribute' => __('payments.amount')]);
+        $txnReason = __('validation.required', ['attribute' => __('payments.transaction_number')]);
+
+        $page = Livewire::test('pages::enrollments.show', ['enrollment' => $enrollment->id])
+            ->call('openPaymentModal')
+            ->assertSee($numericReason, false);
+
+        $page->set('payTotal', '1000')
+            ->assertSee(__('payments.unallocated').': '.Money::format(100000), false)
+            ->assertDontSee($txnReason, false);
+
+        $page->set('payAlloc.'.$charge->grade_fee_id, '1200')
+            ->assertSee(__('payments.errors.total_mismatch'));
+
+        $page->set('payAlloc.'.$charge->grade_fee_id, '1000')
+            ->set('payMethod', 'bank_transfer')
+            ->assertSee($txnReason, false);
+
+        $page->set('payTxn', 'TXN-1')
+            ->assertDontSee($txnReason, false)
+            ->assertDontSee($numericReason, false)
+            ->call('savePayment')
+            ->assertHasNoErrors();
+
+        $this->assertSame(1, Payment::query()->where('enrollment_id', $enrollment->id)->count());
+    }
+
+    public function test_pay_gate_overpayment_needs_confirmation(): void
+    {
+        $this->actingAs(User::factory()->create());
+        [$grade, $year] = $this->fixtures();
+        $this->scheduleTuition($grade, $year);
+        $enrollment = $this->enroll($grade, $year);
+        $charge = $enrollment->fees()->firstOrFail();
+
+        $reason = __('payments.unallocated').': '.Money::format(20000);
+
+        $page = Livewire::test('pages::enrollments.show', ['enrollment' => $enrollment->id])
+            ->call('openPaymentModal')
+            ->set('payTotal', '1200')
+            ->set('payAlloc.'.$charge->grade_fee_id, '1000')
+            ->assertSee($reason, false)
+            ->call('savePayment');
+
+        $page->assertHasErrors(['payTotal']);
+        $this->assertSame(0, Payment::query()->where('enrollment_id', $enrollment->id)->count());
+
+        $page->set('confirmOverpayment', true)
+            ->assertDontSee($reason, false)
+            ->call('savePayment')
+            ->assertHasNoErrors();
+
+        $this->assertSame(2, Payment::query()->where('enrollment_id', $enrollment->id)->count());
+    }
+
+    public function test_switching_method_clears_transaction_number_and_stays_stable(): void
+    {
+        $this->actingAs(User::factory()->create());
+        [$grade, $year] = $this->fixtures();
+        $this->scheduleTuition($grade, $year);
+        $enrollment = $this->enroll($grade, $year);
+        $charge = $enrollment->fees()->firstOrFail();
+
+        $page = Livewire::test('pages::enrollments.show', ['enrollment' => $enrollment->id])
+            ->call('openPaymentModal')
+            ->set('payTotal', '1000')
+            ->set('payAlloc.'.$charge->grade_fee_id, '1000')
+            ->set('payMethod', 'bank_transfer')
+            ->set('payTxn', 'STALE-TXN');
+
+        for ($i = 0; $i < 5; $i++) {
+            $page->set('payMethod', 'cash')->assertSet('payTxn', null);
+            $page->set('payMethod', 'bank_transfer')->assertSet('payTxn', null);
+        }
+
+        $page->assertHasNoErrors()
+            ->assertSee(__('validation.required', ['attribute' => __('payments.transaction_number')]), false);
+
+        $page->set('payTxn', 'FRESH-TXN')
+            ->call('savePayment')
+            ->assertHasNoErrors();
+
+        $this->assertSame('FRESH-TXN', Payment::query()->where('enrollment_id', $enrollment->id)->firstOrFail()->transaction_number);
     }
 
     public function test_discounted_overpayment_stores_minor_units_once(): void

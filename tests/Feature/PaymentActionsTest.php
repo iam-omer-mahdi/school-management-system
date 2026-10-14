@@ -291,18 +291,18 @@ class PaymentActionsTest extends TestCase
         $payment = app(RecordPayment::class)->handle($this->fullPayment($enrollment))['payments']->firstOrFail();
 
         try {
-            app(VoidPayment::class)->handle($payment->id, null);
+            app(VoidPayment::class)->handle($payment->enrollment_id, $payment->id, null);
             $this->fail('Expected ValidationException for missing void reason');
         } catch (ValidationException $e) {
             $this->assertArrayHasKey('void_reason', $e->errors());
         }
 
-        $voided = app(VoidPayment::class)->handle($payment->id, 'Entered twice');
+        $voided = app(VoidPayment::class)->handle($payment->enrollment_id, $payment->id, 'Entered twice');
         $this->assertNotNull($voided->voided_at);
         $this->assertSame('Entered twice', $voided->void_reason);
 
         try {
-            app(VoidPayment::class)->handle($payment->id, 'Again');
+            app(VoidPayment::class)->handle($payment->enrollment_id, $payment->id, 'Again');
             $this->fail('Expected ValidationException for double void');
         } catch (ValidationException $e) {
             $this->assertSame(__('payments.errors.already_voided'), $e->errors()['payment_id'][0]);
@@ -362,16 +362,16 @@ class PaymentActionsTest extends TestCase
         ]);
 
         try {
-            app(VoidPayment::class)->handle($overpayment->id, 'Undo');
+            app(VoidPayment::class)->handle($overpayment->enrollment_id, $overpayment->id, 'Undo');
             $this->fail('Expected ValidationException when voiding refunded overpayment');
         } catch (ValidationException $e) {
             $this->assertSame(__('payments.errors.void_blocked_by_refunds'), $e->errors()['payment_id'][0]);
         }
 
-        app(VoidRefund::class)->handle($refund->id, 'Mistake');
+        app(VoidRefund::class)->handle($refund->enrollment_id, $refund->id, 'Mistake');
         $this->assertNotNull($refund->refresh()->voided_at);
 
-        app(VoidPayment::class)->handle($overpayment->id, 'Undo');
+        app(VoidPayment::class)->handle($overpayment->enrollment_id, $overpayment->id, 'Undo');
         $this->assertNotNull($overpayment->refresh()->voided_at);
     }
 
@@ -396,8 +396,8 @@ class PaymentActionsTest extends TestCase
 
         $this->assertSame(20000, $refund->amount_minor);
 
-        app(VoidRefund::class)->handle($refund->id, 'Mistake');
-        app(VoidPayment::class)->handle($overpayment->id, 'Undo');
+        app(VoidRefund::class)->handle($refund->enrollment_id, $refund->id, 'Mistake');
+        app(VoidPayment::class)->handle($overpayment->enrollment_id, $overpayment->id, 'Undo');
 
         $this->assertNotNull($refund->refresh()->voided_at);
         $this->assertNotNull($overpayment->refresh()->voided_at);

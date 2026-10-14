@@ -136,7 +136,7 @@ class ReceiptPageTest extends TestCase
         $enrollment = $this->paidEnrollment($grade, $year);
         $payment = $enrollment->payments()->firstOrFail();
 
-        app(VoidPayment::class)->handle($payment->id, 'Entered twice');
+        app(VoidPayment::class)->handle($payment->enrollment_id, $payment->id, 'Entered twice');
 
         $this->get($this->receiptUrl($enrollment, (string) $payment->id))
             ->assertOk()
