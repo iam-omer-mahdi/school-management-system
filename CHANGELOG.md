@@ -23,6 +23,7 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
+- Charged enrollments now owe charged − discount − net paid, so a refund followed by reactivation restores the owed amount and payment cap.
 - Security questions replaced; previously stored answers were cleared.
 - CI builds assets with Bun on PHP 8.5 with Larastan checks.
 - Database schema changed: status now lives on enrollments and students have an archive flag; recreate local databases with `php artisan migrate:fresh --seed`.
