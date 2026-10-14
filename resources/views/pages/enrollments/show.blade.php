@@ -14,6 +14,7 @@ use App\Models\Discount;
 use App\Models\Enrollment;
 use App\Models\GradeFee;
 use App\Support\Money;
+use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Locked;
@@ -26,6 +27,7 @@ new #[Layout('layouts::app')] class extends Component
 
     public ?string $statusModalNote = null;
 
+    #[Locked]
     public ?string $statusTargetStatus = null;
 
     public ?string $discountChoice = null;
@@ -52,6 +54,7 @@ new #[Layout('layouts::app')] class extends Component
     public bool $lastTxnReused = false;
 
     /** @var array<int> */
+    #[Locked]
     public array $lastPaymentIds = [];
 
     /** @var array<int, string> */
@@ -69,8 +72,10 @@ new #[Layout('layouts::app')] class extends Component
 
     public ?string $refundNote = null;
 
+    #[Locked]
     public ?int $voidTargetId = null;
 
+    #[Locked]
     public ?string $voidTargetType = null;
 
     public ?string $voidReason = null;
@@ -206,7 +211,8 @@ new #[Layout('layouts::app')] class extends Component
 
     /**
      * Total minus allocated, or null when either side is not a valid
-     * amount. Drives the live Unallocated line and the Save gate.
+     * amount. Drives the live Unallocated line and the overpayment
+     * checkbox. The Pay button itself is gated by payBlockReason.
      */
     #[Computed]
     public function payUnallocated(): ?int
@@ -219,6 +225,46 @@ new #[Layout('layouts::app')] class extends Component
         }
 
         return $total - array_sum($allocs);
+    }
+
+    /**
+     * The single source of truth for the Pay button: null when the
+     * form can be saved, otherwise the specific reason it cannot.
+     * Every input it reads is synced live, so the button and this
+     * text update as the user types or switches method.
+     */
+    #[Computed]
+    public function payBlockReason(): ?string
+    {
+        $total = $this->parsedPayTotal;
+        $allocs = $this->parsedPayAlloc;
+
+        if ($total === null || $total <= 0 || $allocs === null) {
+            return __('validation.numeric', ['attribute' => __('payments.amount')]);
+        }
+
+        $unallocated = $total - array_sum($allocs);
+
+        if ($unallocated < 0) {
+            return __('payments.errors.total_mismatch');
+        }
+
+        if ($unallocated > 0 && ! $this->confirmOverpayment) {
+            return __('payments.unallocated').': '.Money::format($unallocated);
+        }
+
+        if ($this->payMethod === 'bank_transfer' && trim((string) $this->payTxn) === '') {
+            return __('validation.required', ['attribute' => __('payments.transaction_number')]);
+        }
+
+        return null;
+    }
+
+    public function updatedPayMethod(): void
+    {
+        $this->payTxn = null;
+        $this->resetValidation(['transaction_number']);
+        unset($this->txnReuseWarning);
     }
 
     public function openPaymentModal(): void
@@ -292,6 +338,13 @@ new #[Layout('layouts::app')] class extends Component
 
     public function openStatusModal(string $status): void
     {
+        if (EnrollmentStatus::tryFrom($status) === null) {
+            throw ValidationException::withMessages([
+                'status' => __('validation.in', ['attribute' => __('enrollments.status')]),
+            ]);
+        }
+
+        $this->resetValidation();
         $this->statusTargetStatus = $status;
         $this->statusModalNote = null;
         unset($this->missingFees);
@@ -299,9 +352,17 @@ new #[Layout('layouts::app')] class extends Component
 
     public function confirmStatusChange(UpdateEnrollmentStatus $action): void
     {
+        $target = EnrollmentStatus::tryFrom((string) $this->statusTargetStatus);
+
+        if ($target === null) {
+            throw ValidationException::withMessages([
+                'status' => __('validation.in', ['attribute' => __('enrollments.status')]),
+            ]);
+        }
+
         $action->handle(
             $this->enrollmentId,
-            EnrollmentStatus::from((string) $this->statusTargetStatus),
+            $target,
             $this->statusModalNote
         );
 
@@ -371,6 +432,12 @@ new #[Layout('layouts::app')] class extends Component
 
     public function openVoidModal(string $type, int $id): void
     {
+        if ($type !== 'payment' && $type !== 'refund') {
+            throw ValidationException::withMessages([
+                'voidTargetType' => __('validation.in', ['attribute' => __('payments.void')]),
+            ]);
+        }
+
         $this->resetValidation();
         $this->voidTargetType = $type;
         $this->voidTargetId = $id;
@@ -388,11 +455,15 @@ new #[Layout('layouts::app')] class extends Component
     public function confirmVoid(VoidPayment $voidPayment, VoidRefund $voidRefund): void
     {
         if ($this->voidTargetType === 'refund') {
-            $voidRefund->handle((int) $this->voidTargetId, $this->voidReason);
+            $voidRefund->handle($this->enrollmentId, (int) $this->voidTargetId, $this->voidReason);
             session()->flash('status', __('payments.refund_voided'));
-        } else {
-            $voidPayment->handle((int) $this->voidTargetId, $this->voidReason);
+        } elseif ($this->voidTargetType === 'payment') {
+            $voidPayment->handle($this->enrollmentId, (int) $this->voidTargetId, $this->voidReason);
             session()->flash('status', __('payments.payment_voided'));
+        } else {
+            throw ValidationException::withMessages([
+                'voidTargetType' => __('validation.in', ['attribute' => __('payments.void')]),
+            ]);
         }
 
         $this->closeVoidModal();
@@ -714,7 +785,7 @@ new #[Layout('layouts::app')] class extends Component
                 </div>
                 @if($payMethod === 'bank_transfer')
                     <x-ui.field :label="__('payments.transaction_number')" for="pay-txn" required :error="$errors->first('transaction_number')">
-                        <x-ui.input id="pay-txn" type="text" wire:model.blur="payTxn" :error="$errors->first('transaction_number')" autocomplete="off" dir="ltr" required />
+                        <x-ui.input id="pay-txn" type="text" wire:model.live.debounce.500ms="payTxn" :error="$errors->first('transaction_number')" autocomplete="off" dir="ltr" required />
                     </x-ui.field>
                     @if($this->txnReuseWarning)
                         <x-ui.alert type="warning">{{ __('payments.transaction_reused') }}</x-ui.alert>
@@ -724,13 +795,13 @@ new #[Layout('layouts::app')] class extends Component
                     <x-ui.input id="pay-note" type="text" wire:model.blur="payNote" autocomplete="off" />
                 </x-ui.field>
                 <x-ui.field :label="__('payments.amount')" for="pay-total" required :error="$errors->first('payTotal')">
-                    <x-ui.input id="pay-total" type="text" wire:model.blur="payTotal" :error="$errors->first('payTotal')" inputmode="decimal" dir="ltr" autocomplete="off" class="font-mono" required />
+                    <x-ui.input id="pay-total" type="text" wire:model.live.debounce.500ms="payTotal" :error="$errors->first('payTotal')" inputmode="decimal" dir="ltr" autocomplete="off" class="font-mono" required />
                 </x-ui.field>
                 @foreach($enrollment->fees as $charge)
                     @php $feeRemaining = $balance['fees'][$charge->id]['remaining'] ?? 0; @endphp
                     <x-ui.field :label="$charge->gradeFee->feeType->isTuition() ? __('fees.tuition') : $charge->gradeFee->feeType->name" for="pay-alloc-{{ $charge->grade_fee_id }}">
                         <div class="flex items-center gap-3">
-                            <x-ui.input id="pay-alloc-{{ $charge->grade_fee_id }}" type="text" wire:model.blur="payAlloc.{{ $charge->grade_fee_id }}" inputmode="decimal" dir="ltr" autocomplete="off" class="font-mono" :disabled="$feeRemaining <= 0" />
+                            <x-ui.input id="pay-alloc-{{ $charge->grade_fee_id }}" type="text" wire:model.live.debounce.500ms="payAlloc.{{ $charge->grade_fee_id }}" inputmode="decimal" dir="ltr" autocomplete="off" class="font-mono" :disabled="$feeRemaining <= 0" />
                             <span class="shrink-0 text-xs text-gray-500 dark:text-gray-400"><x-ui.money :minor="max(0, $feeRemaining)" /></span>
                         </div>
                     </x-ui.field>
@@ -746,10 +817,13 @@ new #[Layout('layouts::app')] class extends Component
                 @if($this->payUnallocated !== null && $this->payUnallocated > 0)
                     <x-ui.checkbox wire:model.live="confirmOverpayment" :label="__('payments.record_overpayment').' ('. \App\Support\Money::format($this->payUnallocated) .')'" />
                 @endif
+                @if($this->payBlockReason() !== null)
+                    <p class="text-sm text-amber-700 dark:text-amber-400">{{ $this->payBlockReason() }}</p>
+                @endif
             </form>
             <x-slot:footer>
                 <x-ui.button variant="secondary" wire:click="closePaymentModal" :spinner="false">{{ __('common.cancel') }}</x-ui.button>
-                <x-ui.button variant="primary" wire:click="savePayment" loading-target="savePayment" wire:loading.attr="disabled" :disabled="$this->payUnallocated === null || $this->payUnallocated < 0 || ($this->payUnallocated > 0 && ! $confirmOverpayment)">{{ __('common.save') }}</x-ui.button>
+                <x-ui.button variant="primary" wire:click="savePayment" loading-target="savePayment" wire:loading.attr="disabled" :disabled="$this->payBlockReason() !== null">{{ __('common.save') }}</x-ui.button>
             </x-slot:footer>
         </x-ui.modal>
     @endif
@@ -803,9 +877,8 @@ new #[Layout('layouts::app')] class extends Component
         </x-ui.modal>
     @endif
 
-    @if($statusTargetStatus)
+    @if($statusTargetStatus && ($targetStatus = \App\Enums\EnrollmentStatus::tryFrom($statusTargetStatus)))
         @php
-            $targetStatus = \App\Enums\EnrollmentStatus::from($statusTargetStatus);
             $needsPreview = ! $enrollment->status->isCharged() && $targetStatus->isCharged();
         @endphp
         <x-ui.modal :title="__('enrollments.change_status')" close="$set('statusTargetStatus', null)">

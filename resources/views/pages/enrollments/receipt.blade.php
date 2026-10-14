@@ -4,13 +4,16 @@ use App\Models\Enrollment;
 use App\Models\Payment;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
+use Livewire\Attributes\Locked;
 use Livewire\Component;
 
 new #[Layout('layouts::print')] class extends Component
 {
+    #[Locked]
     public int $enrollmentId;
 
     /** @var array<int> */
+    #[Locked]
     public array $paymentIds = [];
 
     public function mount(Enrollment $enrollment): void
