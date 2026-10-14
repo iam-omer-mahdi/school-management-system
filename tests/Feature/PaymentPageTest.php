@@ -327,7 +327,7 @@ class PaymentPageTest extends TestCase
 
         $this->assertSame(1, Refund::query()->where('enrollment_id', $enrollment->id)->count());
 
-        Livewire::test('enrollments.show.payments-panel', ['enrollmentId' => $enrollment->id])
+        Livewire::test('enrollments.show.refund-modal', ['enrollmentId' => $enrollment->id])
             ->assertSee(Money::format(20000))
             ->assertSee(__('payments.refunds'));
     }
@@ -711,9 +711,11 @@ class PaymentPageTest extends TestCase
 
         Livewire::test('enrollments.show.payments-panel', ['enrollmentId' => $enrollment->id])
             ->assertSee(__('payments.closed_without_payment'), false)
-            ->assertSee(Money::format(15000), false)
             ->assertSee(Money::format(25000), false)
             ->assertSee(Money::format(75000), false);
+
+        Livewire::test('enrollments.show.refund-modal', ['enrollmentId' => $enrollment->id])
+            ->assertSee(Money::format(15000), false);
 
         Livewire::test('pages::enrollments.show', ['enrollment' => $enrollment->id])
             ->assertSee(__('payments.received'), false);

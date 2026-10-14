@@ -414,7 +414,9 @@ final class EnrollmentShowRefactorCharacterizationTest extends TestCase
 
         $count = 0;
         $refund->call('saveRefund')->assertHasNoErrors()->assertDispatched('enrollment-changed');
-        $this->assertSame(12, $count, 'saveRefund queries: '.$count);
+        // Includes the refund-history chain (refunds now render inside
+        // refund-modal after the duplicate-section merge).
+        $this->assertSame(15, $count, 'saveRefund queries: '.$count);
 
         $saved = $enrollment->refresh()->payments()->firstOrFail();
         $void = Livewire::test('enrollments.show.void-modal', ['enrollmentId' => $enrollment->id])

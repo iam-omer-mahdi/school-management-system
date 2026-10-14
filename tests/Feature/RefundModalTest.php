@@ -84,6 +84,30 @@ final class RefundModalTest extends TestCase
         $this->assertSame(1, Refund::query()->where('enrollment_id', $enrollment->id)->count());
     }
 
+    public function test_history_shows_saved_refund_with_void_action(): void
+    {
+        $this->actingAs(User::factory()->create());
+        [$grade, $year] = $this->fixtures();
+        $enrollment = $this->endedPaidEnrollment($grade, $year);
+        $charge = $enrollment->fees()->firstOrFail();
+
+        Livewire::test('enrollments.show.refund-modal', ['enrollmentId' => $enrollment->id])
+            ->call('openRefundModal')
+            ->set('form.total', '200')
+            ->set('form.alloc.'.$charge->grade_fee_id, '200')
+            ->set('form.note', 'Partial return')
+            ->call('saveRefund')
+            ->assertHasNoErrors();
+
+        $refund = Refund::query()->where('enrollment_id', $enrollment->id)->firstOrFail();
+
+        Livewire::test('enrollments.show.refund-modal', ['enrollmentId' => $enrollment->id])
+            ->assertSee(Money::format(20000), false)
+            ->assertSee($refund->refunded_on->format('Y-m-d'), false)
+            ->call('requestVoid', 'refund', $refund->id)
+            ->assertDispatched('request-void', type: 'refund', id: $refund->id);
+    }
+
     public function test_cap_and_note_gates(): void
     {
         $this->actingAs(User::factory()->create());

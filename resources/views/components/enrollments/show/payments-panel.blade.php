@@ -30,7 +30,7 @@ new class extends Component
                 'fees.payments',
                 'discount',
                 'payments.enrollmentFee.gradeFee.feeType:id,name,system_key',
-                'refunds.enrollmentFee.gradeFee.feeType:id,name,system_key',
+                'refunds',
             ])
             ->findOrFail($this->enrollmentId);
     }
@@ -144,45 +144,6 @@ new class extends Component
                     <x-ui.button href="{{ route('enrollments.receipt', ['enrollment' => $enrollment->id, 'payments' => implode(',', $selectedHistory)]) }}" variant="secondary" size="sm" :spinner="false">{{ __('payments.print_receipt') }}</x-ui.button>
                 </p>
             @endif
-        @endif
-    </x-ui.card>
-
-    <x-ui.card>
-        <x-slot:header>
-            <h2 class="text-base font-semibold text-gray-900 dark:text-white">{{ __('payments.refunds') }}</h2>
-        </x-slot:header>
-        <p class="flex flex-wrap items-center gap-2 text-sm">
-            <span class="text-gray-500 dark:text-gray-400">{{ __('payments.refundable') }}:</span>
-            <x-ui.money :minor="$balance['refundable']" />
-        </p>
-        @php $refundHistory = $enrollment->refunds->sortByDesc('id'); @endphp
-        @if($refundHistory->isEmpty())
-            <p class="mt-3 text-sm text-gray-600 dark:text-gray-400">{{ __('payments.no_refunds') }}</p>
-        @else
-            <ul class="mt-3 space-y-2 text-sm">
-                @foreach($refundHistory as $refund)
-                    <li wire:key="pp-refund-{{ $refund->id }}" class="flex flex-wrap items-center gap-2 rounded-lg bg-gray-50 px-3 py-2.5 dark:bg-gray-700/40">
-                        <span class="text-gray-700 dark:text-gray-300">
-                            @if($refund->enrollmentFee?->gradeFee?->feeType?->isTuition())
-                                {{ __('fees.tuition') }}
-                            @else
-                                {{ $refund->enrollmentFee?->gradeFee?->feeType?->name }}
-                            @endif
-                        </span>
-                        <x-ui.money :minor="$refund->amount_minor" />
-                        <span class="text-gray-500 dark:text-gray-400">{{ $refund->method === \App\Enums\PaymentMethod::BankTransfer ? __('payments.bank_transfer') : __('payments.cash') }}</span>
-                        @if($refund->transaction_number !== null)
-                            <span class="font-mono text-gray-500 dark:text-gray-400" dir="ltr">{{ $refund->transaction_number }}</span>
-                        @endif
-                        <span class="text-gray-500 dark:text-gray-400">{{ $refund->refunded_on?->format('Y-m-d') }}</span>
-                        @if($refund->isVoided())
-                            <x-ui.badge color="red">{{ __('payments.void') }}: {{ $refund->void_reason }}</x-ui.badge>
-                        @else
-                            <x-ui.button variant="ghost" size="sm" wire:click="requestVoid('refund', {{ $refund->id }})" :spinner="false" class="text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/30">{{ __('payments.void') }}</x-ui.button>
-                        @endif
-                    </li>
-                @endforeach
-            </ul>
         @endif
     </x-ui.card>
 </div>

@@ -4,6 +4,7 @@ use App\Actions\RecordRefund;
 use App\Livewire\Forms\RefundForm;
 use App\Models\Enrollment;
 use App\Support\PaymentCalculation;
+use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Locked;
 use Livewire\Attributes\On;
@@ -32,7 +33,7 @@ new class extends Component
                 'fees.gradeFee.feeType',
                 'fees.payments',
                 'discount',
-                'refunds',
+                'refunds.enrollmentFee.gradeFee.feeType:id,name,system_key',
             ])
             ->findOrFail($this->enrollmentId);
     }
@@ -108,6 +109,17 @@ new class extends Component
         $this->showModal = false;
     }
 
+    public function requestVoid(string $type, int $id): void
+    {
+        if ($type !== 'payment' && $type !== 'refund') {
+            throw ValidationException::withMessages([
+                'voidTargetType' => __('validation.in', ['attribute' => __('payments.void')]),
+            ]);
+        }
+
+        $this->dispatch('request-void', type: $type, id: $id);
+    }
+
     public function saveRefund(RecordRefund $action): void
     {
         $total = $this->form->parsedTotal();
@@ -166,6 +178,35 @@ new class extends Component
             <span class="text-gray-500 dark:text-gray-400">{{ __('payments.refundable') }}:</span>
             <x-ui.money :minor="$balance['refundable']" />
         </p>
+        @php $refundHistory = $enrollment->refunds->sortByDesc('id'); @endphp
+        @if($refundHistory->isEmpty())
+            <p class="mt-3 text-sm text-gray-600 dark:text-gray-400">{{ __('payments.no_refunds') }}</p>
+        @else
+            <ul class="mt-3 space-y-2 text-sm">
+                @foreach($refundHistory as $refund)
+                    <li wire:key="rm-refund-{{ $refund->id }}" class="flex flex-wrap items-center gap-2 rounded-lg bg-gray-50 px-3 py-2.5 dark:bg-gray-700/40">
+                        <span class="text-gray-700 dark:text-gray-300">
+                            @if($refund->enrollmentFee?->gradeFee?->feeType?->isTuition())
+                                {{ __('fees.tuition') }}
+                            @else
+                                {{ $refund->enrollmentFee?->gradeFee?->feeType?->name }}
+                            @endif
+                        </span>
+                        <x-ui.money :minor="$refund->amount_minor" />
+                        <span class="text-gray-500 dark:text-gray-400">{{ $refund->method === \App\Enums\PaymentMethod::BankTransfer ? __('payments.bank_transfer') : __('payments.cash') }}</span>
+                        @if($refund->transaction_number !== null)
+                            <span class="font-mono text-gray-500 dark:text-gray-400" dir="ltr">{{ $refund->transaction_number }}</span>
+                        @endif
+                        <span class="text-gray-500 dark:text-gray-400">{{ $refund->refunded_on?->format('Y-m-d') }}</span>
+                        @if($refund->isVoided())
+                            <x-ui.badge color="red">{{ __('payments.void') }}: {{ $refund->void_reason }}</x-ui.badge>
+                        @else
+                            <x-ui.button variant="ghost" size="sm" wire:click="requestVoid('refund', {{ $refund->id }})" :spinner="false" class="text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/30">{{ __('payments.void') }}</x-ui.button>
+                        @endif
+                    </li>
+                @endforeach
+            </ul>
+        @endif
     </x-ui.card>
 
     @if($showModal)
