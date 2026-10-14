@@ -45,6 +45,12 @@ final class RecordRefund
 
         $transactionNumber = trim((string) ($data['transaction_number'] ?? ''));
 
+        if ($method === PaymentMethod::Cash && $transactionNumber !== '') {
+            throw ValidationException::withMessages([
+                'transaction_number' => __('payments.errors.cash_transaction_not_allowed'),
+            ]);
+        }
+
         if ($method === PaymentMethod::BankTransfer && $transactionNumber === '') {
             throw ValidationException::withMessages([
                 'transaction_number' => __('validation.required', ['attribute' => __('payments.transaction_number')]),

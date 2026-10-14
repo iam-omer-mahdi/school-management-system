@@ -49,5 +49,6 @@ return [
         'no_charges' => 'This enrollment has no charged fees.',
         'nothing_to_pay' => 'There is nothing left to pay on this enrollment.',
         'total_mismatch' => 'The amounts do not add up to the entered total.',
+        'cash_transaction_not_allowed' => 'Transaction numbers are only allowed for bank transfers.',
     ],
 ];
