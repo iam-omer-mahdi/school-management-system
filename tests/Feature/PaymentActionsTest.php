@@ -26,6 +26,7 @@ use App\Models\Payment;
 use App\Models\Refund;
 use App\Models\School;
 use App\Models\Student;
+use App\Support\EnrollmentBalance;
 use App\Support\Money;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Validation\ValidationException;
@@ -718,5 +719,122 @@ class PaymentActionsTest extends TestCase
                 $e->errors()['amount'][0]
             );
         }
+    }
+
+    public function test_reactivated_enrollment_owes_net_paid_after_full_refund(): void
+    {
+        [$grade, $year] = $this->fixtures();
+        $this->tuitionFee($grade, $year, '50');
+        $enrollment = $this->enroll($grade, $year);
+        $fee = $enrollment->fees()->firstOrFail();
+
+        app(RecordPayment::class)->handle($this->payment(
+            $enrollment->id,
+            4000,
+            [['grade_fee_id' => $fee->grade_fee_id, 'amount_minor' => 4000]]
+        ));
+
+        app(UpdateEnrollmentStatus::class)->handle($enrollment, EnrollmentStatus::Left);
+
+        app(RecordRefund::class)->handle($this->refund(
+            $enrollment->id,
+            4000,
+            [['grade_fee_id' => $fee->grade_fee_id, 'amount_minor' => 4000]]
+        ));
+
+        app(UpdateEnrollmentStatus::class)->handle($enrollment, EnrollmentStatus::Active);
+
+        $balance = EnrollmentBalance::forEnrollment($enrollment->refresh()->load([
+            'fees.gradeFee.feeType',
+            'fees.payments',
+            'discount',
+            'refunds',
+        ]));
+
+        $this->assertSame(5000, $balance['owed']);
+
+        app(RecordPayment::class)->handle($this->payment(
+            $enrollment->id,
+            5000,
+            [['grade_fee_id' => $fee->grade_fee_id, 'amount_minor' => 5000]]
+        ));
+
+        $this->assertEquals(9000, Payment::query()->where('enrollment_id', $enrollment->id)->sum('amount_minor'));
+        $this->assertEquals(4000, Refund::query()->where('enrollment_id', $enrollment->id)->sum('amount_minor'));
+    }
+
+    public function test_partial_refund_sets_payment_cap_after_reactivation(): void
+    {
+        [$grade, $year] = $this->fixtures();
+        $this->tuitionFee($grade, $year, '50');
+        $enrollment = $this->enroll($grade, $year);
+        $fee = $enrollment->fees()->firstOrFail();
+
+        app(RecordPayment::class)->handle($this->payment(
+            $enrollment->id,
+            4000,
+            [['grade_fee_id' => $fee->grade_fee_id, 'amount_minor' => 4000]]
+        ));
+
+        app(UpdateEnrollmentStatus::class)->handle($enrollment, EnrollmentStatus::Left);
+
+        app(RecordRefund::class)->handle($this->refund(
+            $enrollment->id,
+            1500,
+            [['grade_fee_id' => $fee->grade_fee_id, 'amount_minor' => 1500]]
+        ));
+
+        app(UpdateEnrollmentStatus::class)->handle($enrollment, EnrollmentStatus::Active);
+
+        try {
+            app(RecordPayment::class)->handle($this->payment(
+                $enrollment->id,
+                2600,
+                [['grade_fee_id' => $fee->grade_fee_id, 'amount_minor' => 2600]]
+            ));
+            $this->fail('Expected ValidationException for payment above the net-paid cap');
+        } catch (ValidationException $e) {
+            $this->assertSame(
+                __('payments.errors.total_exceeds_remaining', ['amount' => Money::format(100)]),
+                $e->errors()['amount'][0]
+            );
+        }
+
+        app(RecordPayment::class)->handle($this->payment(
+            $enrollment->id,
+            2500,
+            [['grade_fee_id' => $fee->grade_fee_id, 'amount_minor' => 2500]]
+        ));
+
+        $this->assertEquals(6500, Payment::query()->where('enrollment_id', $enrollment->id)->sum('amount_minor'));
+    }
+
+    public function test_discount_guard_uses_net_paid_after_refund_and_reactivation(): void
+    {
+        [$grade, $year] = $this->fixtures();
+        $this->tuitionFee($grade, $year, '50');
+        $enrollment = $this->enroll($grade, $year);
+        $fee = $enrollment->fees()->firstOrFail();
+
+        app(RecordPayment::class)->handle($this->payment(
+            $enrollment->id,
+            5000,
+            [['grade_fee_id' => $fee->grade_fee_id, 'amount_minor' => 5000]]
+        ));
+
+        app(UpdateEnrollmentStatus::class)->handle($enrollment, EnrollmentStatus::Left);
+
+        app(RecordRefund::class)->handle($this->refund(
+            $enrollment->id,
+            4500,
+            [['grade_fee_id' => $fee->grade_fee_id, 'amount_minor' => 4500]]
+        ));
+
+        app(UpdateEnrollmentStatus::class)->handle($enrollment, EnrollmentStatus::Active);
+
+        $discount = app(CreateDiscount::class)->handle(['name' => 'Sibling', 'percent' => '80']);
+        $applied = app(ApplyDiscountToEnrollment::class)->handle($enrollment->id, $discount->id);
+
+        $this->assertSame(4000, $applied->amount_minor);
     }
 }

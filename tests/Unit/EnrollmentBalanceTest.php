@@ -9,7 +9,7 @@ use Tests\TestCase;
 
 class EnrollmentBalanceTest extends TestCase
 {
-    public function test_fee_remaining_subtracts_discount_and_paid(): void
+    public function test_fee_remaining_subtracts_discount_and_net_paid(): void
     {
         $this->assertSame(
             ['charged' => 100000, 'discount' => 10000, 'paid' => 30000, 'refunded' => 0, 'remaining' => 60000, 'refundable' => 30000],
@@ -17,12 +17,20 @@ class EnrollmentBalanceTest extends TestCase
         );
     }
 
+    public function test_fee_remaining_uses_net_paid_after_a_refund(): void
+    {
+        $balance = EnrollmentBalance::fee(5000, 0, 4000, 4000);
+
+        $this->assertSame(5000, $balance['remaining']);
+        $this->assertSame(0, $balance['refundable']);
+    }
+
     public function test_fee_refundable_is_paid_minus_refunded(): void
     {
         $balance = EnrollmentBalance::fee(100000, 0, 30000, 5000);
 
         $this->assertSame(25000, $balance['refundable']);
-        $this->assertSame(70000, $balance['remaining']);
+        $this->assertSame(75000, $balance['remaining']);
     }
 
     public function test_fee_refundable_never_goes_negative(): void
@@ -30,10 +38,10 @@ class EnrollmentBalanceTest extends TestCase
         $this->assertSame(0, EnrollmentBalance::fee(100000, 0, 30000, 40000)['refundable']);
     }
 
-    public function test_charged_owed_is_remaining_and_ended_owes_nothing(): void
+    public function test_charged_owed_uses_net_paid_and_ended_owes_nothing(): void
     {
-        $this->assertSame(60000, EnrollmentBalance::owed(100000, 10000, 30000, false));
-        $this->assertSame(0, EnrollmentBalance::owed(100000, 10000, 30000, true));
+        $this->assertSame(5000, EnrollmentBalance::owed(5000, 0, 0, false));
+        $this->assertSame(0, EnrollmentBalance::owed(5000, 0, 0, true));
     }
 
     public function test_net_paid_subtracts_refunds(): void

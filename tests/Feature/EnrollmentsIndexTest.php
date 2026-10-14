@@ -10,6 +10,8 @@ use App\Actions\ArchiveStudent;
 use App\Actions\CreateDiscount;
 use App\Actions\CreateGradeFee;
 use App\Actions\EnrollStudent;
+use App\Actions\RecordPayment;
+use App\Actions\RecordRefund;
 use App\Actions\UpdateEnrollmentStatus;
 use App\Enums\EnrollmentStatus;
 use App\Models\AcademicYear;
@@ -22,6 +24,7 @@ use App\Models\Payment;
 use App\Models\School;
 use App\Models\Student;
 use App\Models\User;
+use App\Support\EnrollmentBalance;
 use App\Support\Money;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -585,6 +588,76 @@ class EnrollmentsIndexTest extends TestCase
 
         $page->set('sort', 'total_desc')
             ->assertSeeInOrder(['Pricey Totals', 'Plain Totals', 'Cheap Totals']);
+    }
+
+    public function test_total_due_sort_matches_net_paid_balance_after_reactivation(): void
+    {
+        $this->actingAs(User::factory()->create());
+
+        $school = School::factory()->create(['code' => 'test', 'name' => 'Test']);
+        $grade = Grade::factory()->create(['school_id' => $school->id, 'number' => 1]);
+        $year = $this->year(2030);
+
+        $gradeFee = app(CreateGradeFee::class)->handle([
+            'grade_id' => $grade->id,
+            'academic_year_id' => $year->id,
+            'fee_type_id' => $this->tuition()->id,
+            'amount' => '50',
+        ])->gradeFee;
+
+        $low = Student::factory()->create(['name' => 'Low Due']);
+        $lowEnrollment = app(EnrollStudent::class)->handle($low->id, $year->id, $grade->id);
+        app(RecordPayment::class)->handle([
+            'enrollment_id' => $lowEnrollment->id,
+            'total_minor' => 2000,
+            'rows' => [['grade_fee_id' => $gradeFee->id, 'amount_minor' => 2000]],
+            'method' => 'cash',
+            'transaction_number' => null,
+            'paid_on' => date('Y-m-d'),
+            'note' => null,
+        ]);
+
+        $middle = Student::factory()->create(['name' => 'Middle Due']);
+        $middleEnrollment = app(EnrollStudent::class)->handle($middle->id, $year->id, $grade->id);
+        $middleCharge = $middleEnrollment->fees()->firstOrFail();
+        app(RecordPayment::class)->handle([
+            'enrollment_id' => $middleEnrollment->id,
+            'total_minor' => 4000,
+            'rows' => [['grade_fee_id' => $middleCharge->grade_fee_id, 'amount_minor' => 4000]],
+            'method' => 'cash',
+            'transaction_number' => null,
+            'paid_on' => date('Y-m-d'),
+            'note' => null,
+        ]);
+        app(UpdateEnrollmentStatus::class)->handle($middleEnrollment, EnrollmentStatus::Left);
+        app(RecordRefund::class)->handle([
+            'enrollment_id' => $middleEnrollment->id,
+            'total_minor' => 3000,
+            'rows' => [['grade_fee_id' => $middleCharge->grade_fee_id, 'amount_minor' => 3000]],
+            'method' => 'cash',
+            'transaction_number' => null,
+            'refunded_on' => date('Y-m-d'),
+            'note' => 'Partial return',
+        ]);
+        app(UpdateEnrollmentStatus::class)->handle($middleEnrollment, EnrollmentStatus::Active);
+
+        $high = Student::factory()->create(['name' => 'High Due']);
+        app(EnrollStudent::class)->handle($high->id, $year->id, $grade->id);
+
+        $relations = ['fees.gradeFee.feeType', 'fees.payments', 'discount', 'refunds'];
+        $this->assertSame(3000, EnrollmentBalance::forEnrollment($lowEnrollment->refresh()->load($relations))['owed']);
+        $this->assertSame(4000, EnrollmentBalance::forEnrollment($middleEnrollment->refresh()->load($relations))['owed']);
+
+        Livewire::test('pages::enrollments.index')
+            ->set('school_id', $school->id)
+            ->set('grade_id', $grade->id)
+            ->set('academic_year_id', $year->id)
+            ->call('applyFilters')
+            ->set('sort', 'total_asc')
+            ->assertSeeInOrder(['Low Due', 'Middle Due', 'High Due'])
+            ->assertSee(Money::format(3000), false)
+            ->assertSee(Money::format(4000), false)
+            ->assertSee(Money::format(5000), false);
     }
 
     public function test_unknown_sort_falls_back_to_newest_first(): void

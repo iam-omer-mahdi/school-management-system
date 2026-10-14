@@ -704,4 +704,49 @@ class PaymentPageTest extends TestCase
             ->assertSee(Money::format(25000), false)
             ->assertSee(Money::format(75000), false);
     }
+
+    public function test_reactivated_enrollment_owes_net_paid_after_full_refund(): void
+    {
+        $this->actingAs(User::factory()->create());
+        [$grade, $year] = $this->fixtures();
+        $tuitionFee = $this->scheduleTuition($grade, $year, '50');
+        $enrollment = $this->enroll($grade, $year);
+
+        Livewire::test('pages::enrollments.show', ['enrollment' => $enrollment->id])
+            ->call('openPaymentModal')
+            ->set('payTotal', '40')
+            ->set('payAlloc.'.$tuitionFee->id, '40')
+            ->call('savePayment')
+            ->assertHasNoErrors();
+
+        app(UpdateEnrollmentStatus::class)->handle($enrollment, EnrollmentStatus::Left);
+
+        $page = Livewire::test('pages::enrollments.show', ['enrollment' => $enrollment->id])
+            ->call('openRefundModal')
+            ->set('refundTotal', '40')
+            ->set('refundAlloc.'.$tuitionFee->id, '40')
+            ->set('refundNote', 'Full return')
+            ->call('saveRefund')
+            ->assertHasNoErrors();
+
+        app(UpdateEnrollmentStatus::class)->handle($enrollment, EnrollmentStatus::Active);
+
+        $page = Livewire::test('pages::enrollments.show', ['enrollment' => $enrollment->id])
+            ->assertSee(__('fees.total_due'), false)
+            ->assertSee(Money::format(5000), false)
+            ->call('openPaymentModal')
+            ->set('payTotal', '51')
+            ->set('payAlloc.'.$tuitionFee->id, '51')
+            ->assertSee(__('payments.errors.amount_exceeds_remaining'));
+
+        $page->call('savePayment')->assertHasErrors(['amount']);
+        $this->assertSame(1, Payment::query()->where('enrollment_id', $enrollment->id)->count());
+
+        $page->set('payTotal', '50')
+            ->set('payAlloc.'.$tuitionFee->id, '50')
+            ->call('savePayment')
+            ->assertHasNoErrors();
+
+        $this->assertSame(2, Payment::query()->where('enrollment_id', $enrollment->id)->count());
+    }
 }
