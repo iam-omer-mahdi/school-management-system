@@ -14,6 +14,13 @@ All notable changes to this project will be documented in this file.
 - Flowbite month pickers for academic-year start and end months.
 - Strict finance seeder: seeds only in local and testing environments.
 
+### Fixed
+
+- Ended enrollments now reject discount and optional-fee removals server-side, and the remove buttons are hidden.
+- Discounts that would make paid exceed charged are rejected; removing a paid charge fails with a clear message instead of a database error.
+- Voided payments have disabled receipt checkboxes, keep per-row printing with the VOID mark, and are excluded from multi-select receipt totals.
+- Switching the payment method clears transaction-number validation errors on both keys.
+
 ### Changed
 
 - Security questions replaced; previously stored answers were cleared.
