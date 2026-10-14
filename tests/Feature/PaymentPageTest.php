@@ -545,6 +545,84 @@ class PaymentPageTest extends TestCase
             ->assertDontSee(__('payments.print_receipt'), false);
     }
 
+    public function test_applying_discount_after_full_payment_is_blocked(): void
+    {
+        $this->actingAs(User::factory()->create());
+        [$grade, $year] = $this->fixtures();
+        $this->scheduleTuition($grade, $year, '2000');
+        $enrollment = $this->enroll($grade, $year);
+        $charge = $enrollment->fees()->firstOrFail();
+
+        app(RecordPayment::class)->handle([
+            'enrollment_id' => $enrollment->id,
+            'total_minor' => 200000,
+            'rows' => [['grade_fee_id' => $charge->grade_fee_id, 'amount_minor' => 200000]],
+            'overpayment_minor' => 0,
+            'overpayment_confirmed' => false,
+            'method' => 'cash',
+            'transaction_number' => null,
+            'paid_on' => date('Y-m-d'),
+            'note' => null,
+        ]);
+
+        $discount = app(CreateDiscount::class)->handle(['name' => 'Sibling', 'percent' => '10']);
+
+        Livewire::test('pages::enrollments.show', ['enrollment' => $enrollment->id])
+            ->set('discountChoice', (string) $discount->id)
+            ->call('applyDiscount')
+            ->assertHasErrors(['discount_id'])
+            ->assertSee(__('fees.errors.discount_exceeds_paid'), false);
+
+        $this->assertSame(0, $enrollment->refresh()->discount()->count());
+    }
+
+    public function test_removing_optional_fee_with_payments_is_blocked(): void
+    {
+        $this->actingAs(User::factory()->create());
+        [$grade, $year] = $this->fixtures();
+        $this->scheduleTuition($grade, $year);
+
+        $books = FeeType::factory()->create(['name' => 'Books', 'is_mandatory' => false]);
+        $booksFee = app(CreateGradeFee::class)->handle([
+            'grade_id' => $grade->id,
+            'academic_year_id' => $year->id,
+            'fee_type_id' => $books->id,
+            'amount' => '150',
+        ])->gradeFee;
+
+        $enrollment = $this->enroll($grade, $year);
+        app(AddOptionalFeeToEnrollment::class)->handle($enrollment->id, $booksFee->id);
+
+        app(RecordPayment::class)->handle([
+            'enrollment_id' => $enrollment->id,
+            'total_minor' => 15000,
+            'rows' => [['grade_fee_id' => $booksFee->id, 'amount_minor' => 15000]],
+            'overpayment_minor' => 0,
+            'overpayment_confirmed' => false,
+            'method' => 'cash',
+            'transaction_number' => null,
+            'paid_on' => date('Y-m-d'),
+            'note' => null,
+        ]);
+
+        Livewire::test('pages::enrollments.show', ['enrollment' => $enrollment->id])
+            ->call('removeOptional', $booksFee->id)
+            ->assertHasErrors(['grade_fee_id']);
+
+        $this->assertSame(2, $enrollment->refresh()->fees()->count());
+
+        // Voiding keeps the payment history, so the charge stays
+        // locked: removal is still rejected with a clear message.
+        $payment = $enrollment->payments()->firstOrFail();
+        app(VoidPayment::class)->handle($enrollment->id, $payment->id, 'Entered twice');
+
+        Livewire::test('pages::enrollments.show', ['enrollment' => $enrollment->id])
+            ->call('removeOptional', $booksFee->id)
+            ->assertHasErrors(['grade_fee_id']);
+
+        $this->assertSame(2, $enrollment->refresh()->fees()->count());
+    }
+
     public function test_gate_keystroke_stays_within_query_bound(): void
     {
         $this->actingAs(User::factory()->create());

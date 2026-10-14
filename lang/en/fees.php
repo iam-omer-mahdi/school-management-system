@@ -74,6 +74,8 @@ return [
         'discount_missing' => 'No discount is set for this enrollment.',
         'grade_not_found' => 'Grade not found.',
         'enrollment_ended' => 'No fees or discounts can be added to an ended enrollment.',
+        'discount_exceeds_paid' => 'This discount would make the paid amount exceed the charged amount. Void or refund payments first.',
+        'charge_has_payments' => 'This charge has payments and cannot be removed.',
         'percent_invalid' => 'Enter a percentage between 1 and 100 (up to two decimals).',
     ],
 ];

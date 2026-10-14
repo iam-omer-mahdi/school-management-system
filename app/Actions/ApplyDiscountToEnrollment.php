@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace App\Actions;
 
+use App\Enums\PaymentKind;
 use App\Models\Discount;
 use App\Models\Enrollment;
 use App\Models\EnrollmentDiscount;
 use App\Models\EnrollmentFee;
+use App\Models\Payment;
 use App\Support\Money;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
@@ -45,6 +47,29 @@ final class ApplyDiscountToEnrollment
         }
 
         $amountMinor = Money::percentOf($tuitionMinor, $discount->percent_bp);
+
+        $tuitionCharged = (int) EnrollmentFee::query()
+            ->where('enrollment_fees.enrollment_id', $enrollment->id)
+            ->join('grade_fees', 'grade_fees.id', '=', 'enrollment_fees.grade_fee_id')
+            ->join('fee_types', 'fee_types.id', '=', 'grade_fees.fee_type_id')
+            ->where('fee_types.system_key', 'tuition')
+            ->sum('enrollment_fees.amount_minor');
+
+        $tuitionPaid = (int) Payment::query()
+            ->where('payments.enrollment_id', $enrollment->id)
+            ->where('payments.kind', PaymentKind::Fee)
+            ->whereNull('payments.voided_at')
+            ->join('enrollment_fees', 'enrollment_fees.id', '=', 'payments.enrollment_fee_id')
+            ->join('grade_fees', 'grade_fees.id', '=', 'enrollment_fees.grade_fee_id')
+            ->join('fee_types', 'fee_types.id', '=', 'grade_fees.fee_type_id')
+            ->where('fee_types.system_key', 'tuition')
+            ->sum('payments.amount_minor');
+
+        if ($tuitionPaid + $amountMinor > $tuitionCharged) {
+            throw ValidationException::withMessages([
+                'discount_id' => __('fees.errors.discount_exceeds_paid'),
+            ]);
+        }
 
         return DB::transaction(function () use ($enrollment, $discount, $amountMinor): EnrollmentDiscount {
             try {

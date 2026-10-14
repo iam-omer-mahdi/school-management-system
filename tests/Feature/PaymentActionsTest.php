@@ -403,7 +403,7 @@ class PaymentActionsTest extends TestCase
         $this->assertNotNull($overpayment->refresh()->voided_at);
     }
 
-    public function test_discount_interaction_with_payments(): void
+    public function test_discount_blocked_when_paid_would_exceed_charged(): void
     {
         [$grade, $year] = $this->fixtures();
         $this->tuitionFee($grade, $year);
@@ -423,10 +423,16 @@ class PaymentActionsTest extends TestCase
         ]);
 
         $discount = app(CreateDiscount::class)->handle(['name' => 'Sibling', 'percent' => '10']);
-        app(ApplyDiscountToEnrollment::class)->handle($enrollment->id, $discount->id);
+
+        try {
+            app(ApplyDiscountToEnrollment::class)->handle($enrollment->id, $discount->id);
+            $this->fail('Expected ValidationException for discount over paid tuition');
+        } catch (ValidationException $e) {
+            $this->assertSame(__('fees.errors.discount_exceeds_paid'), $e->errors()['discount_id'][0]);
+        }
 
         $this->assertEquals(100000, Payment::query()->where('enrollment_id', $enrollment->id)->sum('amount_minor'));
-        $this->assertSame(10000, EnrollmentDiscount::where('enrollment_id', $enrollment->id)->firstOrFail()->amount_minor);
+        $this->assertSame(0, EnrollmentDiscount::where('enrollment_id', $enrollment->id)->count());
     }
 
     public function test_mismatched_overpayment_is_rejected_and_stores_nothing(): void

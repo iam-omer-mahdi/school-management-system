@@ -216,7 +216,7 @@ class EnrollmentShowTest extends TestCase
         $this->assertSame(0, EnrollmentDiscount::where('enrollment_id', $enrollment->id)->count());
     }
 
-    public function test_ended_enrollment_hides_adds_but_allows_removals(): void
+    public function test_ended_enrollment_hides_adds_and_rejects_removals(): void
     {
         $this->actingAs(User::factory()->create());
         [$grade, $year] = $this->fixtures();
@@ -245,13 +245,13 @@ class EnrollmentShowTest extends TestCase
             ->assertDontSee(__('fees.select_discount'));
 
         $page->call('removeOptional', $booksFee->id)
-            ->assertHasNoErrors();
+            ->assertHasErrors(['grade_fee_id']);
 
         $page->call('removeDiscount')
-            ->assertHasNoErrors();
+            ->assertHasErrors(['discount_id']);
 
-        $this->assertSame(1, $enrollment->refresh()->fees()->count());
-        $this->assertSame(0, $enrollment->refresh()->discount()->count());
+        $this->assertSame(2, $enrollment->refresh()->fees()->count());
+        $this->assertSame(1, $enrollment->refresh()->discount()->count());
     }
 
     public function test_ended_enrollment_rejects_direct_add_calls(): void
