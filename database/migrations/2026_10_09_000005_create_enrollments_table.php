@@ -23,6 +23,7 @@ return new class extends Migration
             $table->unique(['student_id', 'academic_year_id']);
             $table->index('status');
             $table->index(['academic_year_id', 'grade_id']);
+            $table->index(['academic_year_id', 'status'], 'enr_year_status_idx');
         });
     }
 

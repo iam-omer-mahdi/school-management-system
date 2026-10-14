@@ -1,7 +1,9 @@
 import 'flowbite';
 import { initFlowbite } from 'flowbite';
 import Datepicker from 'flowbite-datepicker/Datepicker';
+import ApexCharts from 'apexcharts';
 
+window.ApexCharts = ApexCharts;
 window.initFlowbite = initFlowbite;
 
 function componentForElement(el) {
