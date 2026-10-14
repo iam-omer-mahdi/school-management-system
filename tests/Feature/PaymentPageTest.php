@@ -749,4 +749,47 @@ class PaymentPageTest extends TestCase
 
         $this->assertSame(2, Payment::query()->where('enrollment_id', $enrollment->id)->count());
     }
+
+    public function test_cash_payment_with_transaction_number_is_rejected_through_modal(): void
+    {
+        $this->actingAs(User::factory()->create());
+        [$grade, $year] = $this->fixtures();
+        $tuitionFee = $this->scheduleTuition($grade, $year);
+        $enrollment = $this->enroll($grade, $year);
+
+        Livewire::test('pages::enrollments.show', ['enrollment' => $enrollment->id])
+            ->call('openPaymentModal')
+            ->set('payTotal', '100')
+            ->set('payAlloc.'.$tuitionFee->id, '100')
+            ->set('payTxn', 'CASH-TXN')
+            ->call('savePayment')
+            ->assertHasErrors(['transaction_number'])
+            ->assertSee(__('payments.errors.cash_transaction_not_allowed'), false);
+
+        $this->assertSame(0, Payment::query()->where('enrollment_id', $enrollment->id)->count());
+    }
+
+    public function test_cash_refund_with_transaction_number_is_rejected_through_modal(): void
+    {
+        $this->actingAs(User::factory()->create());
+        [$grade, $year] = $this->fixtures();
+        $tuitionFee = $this->scheduleTuition($grade, $year);
+        $enrollment = $this->enroll($grade, $year);
+        $charge = $enrollment->fees()->firstOrFail();
+        $this->pay($enrollment, 10000, [['grade_fee_id' => $charge->grade_fee_id, 'amount_minor' => 10000]]);
+
+        app(UpdateEnrollmentStatus::class)->handle($enrollment, EnrollmentStatus::Left);
+
+        Livewire::test('pages::enrollments.show', ['enrollment' => $enrollment->id])
+            ->call('openRefundModal')
+            ->set('refundTotal', '100')
+            ->set('refundAlloc.'.$tuitionFee->id, '100')
+            ->set('refundNote', 'Cash return')
+            ->set('refundTxn', 'CASH-TXN')
+            ->call('saveRefund')
+            ->assertHasErrors(['transaction_number'])
+            ->assertSee(__('payments.errors.cash_transaction_not_allowed'), false);
+
+        $this->assertSame(0, Refund::query()->where('enrollment_id', $enrollment->id)->count());
+    }
 }

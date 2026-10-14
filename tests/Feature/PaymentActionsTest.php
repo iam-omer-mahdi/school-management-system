@@ -837,4 +837,58 @@ class PaymentActionsTest extends TestCase
 
         $this->assertSame(4000, $applied->amount_minor);
     }
+
+    public function test_cash_payment_with_transaction_number_is_rejected(): void
+    {
+        [$grade, $year] = $this->fixtures();
+        $this->tuitionFee($grade, $year);
+        $enrollment = $this->enroll($grade, $year);
+        $fee = $enrollment->fees()->firstOrFail();
+
+        try {
+            app(RecordPayment::class)->handle($this->payment(
+                $enrollment->id,
+                10000,
+                [['grade_fee_id' => $fee->grade_fee_id, 'amount_minor' => 10000]],
+                method: 'cash',
+                transactionNumber: 'CASH-TXN',
+            ));
+            $this->fail('Expected ValidationException for a cash transaction number');
+        } catch (ValidationException $e) {
+            $this->assertSame(__('payments.errors.cash_transaction_not_allowed'), $e->errors()['transaction_number'][0]);
+        }
+
+        $this->assertSame(0, Payment::query()->where('enrollment_id', $enrollment->id)->count());
+    }
+
+    public function test_cash_refund_with_transaction_number_is_rejected(): void
+    {
+        [$grade, $year] = $this->fixtures();
+        $this->tuitionFee($grade, $year);
+        $enrollment = $this->enroll($grade, $year);
+        $fee = $enrollment->fees()->firstOrFail();
+
+        app(RecordPayment::class)->handle($this->payment(
+            $enrollment->id,
+            10000,
+            [['grade_fee_id' => $fee->grade_fee_id, 'amount_minor' => 10000]]
+        ));
+
+        app(UpdateEnrollmentStatus::class)->handle($enrollment, EnrollmentStatus::Left);
+
+        try {
+            app(RecordRefund::class)->handle($this->refund(
+                $enrollment->id,
+                10000,
+                [['grade_fee_id' => $fee->grade_fee_id, 'amount_minor' => 10000]],
+                method: 'cash',
+                transactionNumber: 'CASH-TXN',
+            ));
+            $this->fail('Expected ValidationException for a cash refund transaction number');
+        } catch (ValidationException $e) {
+            $this->assertSame(__('payments.errors.cash_transaction_not_allowed'), $e->errors()['transaction_number'][0]);
+        }
+
+        $this->assertSame(0, Refund::query()->where('enrollment_id', $enrollment->id)->count());
+    }
 }
