@@ -3,6 +3,7 @@ $links = [
     ['route' => 'dashboard', 'match' => 'dashboard', 'label' => __('common.dashboard'), 'icon' => 'home'],
     ['route' => 'students.index', 'match' => 'students.*', 'label' => __('common.students'), 'icon' => 'users'],
     ['route' => 'enrollments.index', 'match' => 'enrollments.*', 'label' => __('enrollments.title'), 'icon' => 'clipboard'],
+    ['route' => 'reports.index', 'match' => 'reports.*', 'label' => __('reports.reports'), 'icon' => 'document-text'],
     ['route' => 'academic-years.index', 'match' => 'academic-years.*', 'label' => __('common.academic_years'), 'icon' => 'calendar'],
     ['route' => 'schools.index', 'match' => 'schools.*', 'label' => __('common.schools'), 'icon' => 'cap'],
     ['route' => 'settings', 'match' => 'settings', 'label' => __('common.settings'), 'icon' => 'cog'],
