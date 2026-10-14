@@ -891,4 +891,81 @@ class PaymentActionsTest extends TestCase
 
         $this->assertSame(0, Refund::query()->where('enrollment_id', $enrollment->id)->count());
     }
+
+    public function test_payment_rejects_impossible_and_future_dates(): void
+    {
+        [$grade, $year] = $this->fixtures();
+        $this->tuitionFee($grade, $year);
+        $enrollment = $this->enroll($grade, $year);
+        $fee = $enrollment->fees()->firstOrFail();
+        $rows = [['grade_fee_id' => $fee->grade_fee_id, 'amount_minor' => 10000]];
+
+        $payload = $this->payment($enrollment->id, 10000, $rows);
+
+        try {
+            app(RecordPayment::class)->handle(array_merge($payload, ['paid_on' => '2026-02-30']));
+            $this->fail('Expected ValidationException for an impossible payment date');
+        } catch (ValidationException $e) {
+            $this->assertSame(
+                __('validation.date', ['attribute' => __('payments.paid_on')]),
+                $e->errors()['paid_on'][0]
+            );
+        }
+
+        try {
+            app(RecordPayment::class)->handle(array_merge($payload, ['paid_on' => '2999-01-01']));
+            $this->fail('Expected ValidationException for a future payment date');
+        } catch (ValidationException $e) {
+            $this->assertSame(
+                __('validation.before_or_equal', ['attribute' => __('payments.paid_on'), 'date' => date('Y-m-d')]),
+                $e->errors()['paid_on'][0]
+            );
+        }
+
+        $this->assertSame(0, Payment::query()->where('enrollment_id', $enrollment->id)->count());
+    }
+
+    public function test_refund_rejects_impossible_and_future_dates(): void
+    {
+        [$grade, $year] = $this->fixtures();
+        $this->tuitionFee($grade, $year);
+        $enrollment = $this->enroll($grade, $year);
+        $fee = $enrollment->fees()->firstOrFail();
+
+        app(RecordPayment::class)->handle($this->payment(
+            $enrollment->id,
+            10000,
+            [['grade_fee_id' => $fee->grade_fee_id, 'amount_minor' => 10000]]
+        ));
+
+        app(UpdateEnrollmentStatus::class)->handle($enrollment, EnrollmentStatus::Left);
+
+        $payload = $this->refund(
+            $enrollment->id,
+            10000,
+            [['grade_fee_id' => $fee->grade_fee_id, 'amount_minor' => 10000]]
+        );
+
+        try {
+            app(RecordRefund::class)->handle(array_merge($payload, ['refunded_on' => '2026-02-30']));
+            $this->fail('Expected ValidationException for an impossible refund date');
+        } catch (ValidationException $e) {
+            $this->assertSame(
+                __('validation.date', ['attribute' => __('payments.refunded_on')]),
+                $e->errors()['refunded_on'][0]
+            );
+        }
+
+        try {
+            app(RecordRefund::class)->handle(array_merge($payload, ['refunded_on' => '2999-01-01']));
+            $this->fail('Expected ValidationException for a future refund date');
+        } catch (ValidationException $e) {
+            $this->assertSame(
+                __('validation.before_or_equal', ['attribute' => __('payments.refunded_on'), 'date' => date('Y-m-d')]),
+                $e->errors()['refunded_on'][0]
+            );
+        }
+
+        $this->assertSame(0, Refund::query()->where('enrollment_id', $enrollment->id)->count());
+    }
 }

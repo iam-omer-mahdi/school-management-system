@@ -792,4 +792,57 @@ class PaymentPageTest extends TestCase
 
         $this->assertSame(0, Refund::query()->where('enrollment_id', $enrollment->id)->count());
     }
+
+    public function test_payment_rejects_impossible_and_future_dates_through_modal(): void
+    {
+        $this->actingAs(User::factory()->create());
+        [$grade, $year] = $this->fixtures();
+        $tuitionFee = $this->scheduleTuition($grade, $year);
+        $enrollment = $this->enroll($grade, $year);
+
+        $page = Livewire::test('pages::enrollments.show', ['enrollment' => $enrollment->id])
+            ->call('openPaymentModal')
+            ->set('payTotal', '100')
+            ->set('payAlloc.'.$tuitionFee->id, '100')
+            ->set('payDate', '2026-02-30')
+            ->call('savePayment')
+            ->assertHasErrors(['paid_on'])
+            ->assertSee(__('validation.date', ['attribute' => __('payments.paid_on')]), false);
+
+        $page->set('payDate', '2999-01-01')
+            ->call('savePayment')
+            ->assertHasErrors(['paid_on'])
+            ->assertSee(__('validation.before_or_equal', ['attribute' => __('payments.paid_on'), 'date' => date('Y-m-d')]), false);
+
+        $this->assertSame(0, Payment::query()->where('enrollment_id', $enrollment->id)->count());
+    }
+
+    public function test_refund_rejects_impossible_and_future_dates_through_modal(): void
+    {
+        $this->actingAs(User::factory()->create());
+        [$grade, $year] = $this->fixtures();
+        $tuitionFee = $this->scheduleTuition($grade, $year);
+        $enrollment = $this->enroll($grade, $year);
+        $charge = $enrollment->fees()->firstOrFail();
+        $this->pay($enrollment, 10000, [['grade_fee_id' => $charge->grade_fee_id, 'amount_minor' => 10000]]);
+
+        app(UpdateEnrollmentStatus::class)->handle($enrollment, EnrollmentStatus::Left);
+
+        $page = Livewire::test('pages::enrollments.show', ['enrollment' => $enrollment->id])
+            ->call('openRefundModal')
+            ->set('refundTotal', '100')
+            ->set('refundAlloc.'.$tuitionFee->id, '100')
+            ->set('refundNote', 'Dated return')
+            ->set('refundDate', '2026-02-30')
+            ->call('saveRefund')
+            ->assertHasErrors(['refunded_on'])
+            ->assertSee(__('validation.date', ['attribute' => __('payments.refunded_on')]), false);
+
+        $page->set('refundDate', '2999-01-01')
+            ->call('saveRefund')
+            ->assertHasErrors(['refunded_on'])
+            ->assertSee(__('validation.before_or_equal', ['attribute' => __('payments.refunded_on'), 'date' => date('Y-m-d')]), false);
+
+        $this->assertSame(0, Refund::query()->where('enrollment_id', $enrollment->id)->count());
+    }
 }
