@@ -263,7 +263,7 @@ new #[Layout('layouts::app')] class extends Component
     public function updatedPayMethod(): void
     {
         $this->payTxn = null;
-        $this->resetValidation(['transaction_number']);
+        $this->resetValidation(['payTxn', 'transaction_number']);
         unset($this->txnReuseWarning);
     }
 

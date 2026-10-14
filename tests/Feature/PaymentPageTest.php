@@ -450,6 +450,38 @@ class PaymentPageTest extends TestCase
         $this->assertSame(2, Payment::query()->where('enrollment_id', $enrollment->id)->count());
     }
 
+    public function test_method_switch_clears_stale_transaction_error(): void
+    {
+        $this->actingAs(User::factory()->create());
+        [$grade, $year] = $this->fixtures();
+        $this->scheduleTuition($grade, $year);
+        $enrollment = $this->enroll($grade, $year);
+        $charge = $enrollment->fees()->firstOrFail();
+
+        $txnReason = __('validation.required', ['attribute' => __('payments.transaction_number')]);
+
+        $page = Livewire::test('pages::enrollments.show', ['enrollment' => $enrollment->id])
+            ->call('openPaymentModal')
+            ->set('payTotal', '1000')
+            ->set('payAlloc.'.$charge->grade_fee_id, '1000')
+            ->set('payMethod', 'bank_transfer')
+            ->call('savePayment')
+            ->assertHasErrors(['transaction_number']);
+
+        $page->set('payMethod', 'cash')
+            ->assertHasNoErrors();
+
+        $page->set('payMethod', 'bank_transfer')
+            ->assertHasNoErrors()
+            ->assertSee($txnReason, false);
+
+        $page->set('payTxn', 'FRESH-TXN')
+            ->call('savePayment')
+            ->assertHasNoErrors();
+
+        $this->assertSame('FRESH-TXN', Payment::query()->where('enrollment_id', $enrollment->id)->firstOrFail()->transaction_number);
+    }
+
     public function test_switching_method_clears_transaction_number_and_stays_stable(): void
     {
         $this->actingAs(User::factory()->create());
