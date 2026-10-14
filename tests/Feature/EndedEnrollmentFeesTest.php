@@ -217,8 +217,11 @@ class EndedEnrollmentFeesTest extends TestCase
 
         Livewire::test('pages::enrollments.show', ['enrollment' => $enrollment->id])
             ->assertDontSee(__('fees.remove_discount'), false)
-            ->assertDontSee(__('common.delete'), false)
-            ->call('removeDiscount')
+            ->assertDontSee(__('common.delete'), false);
+
+        $page = Livewire::test('enrollments.show.charges-panel', ['enrollmentId' => $enrollment->id]);
+
+        $page->call('removeDiscount')
             ->assertHasErrors(['discount_id'])
             ->call('removeOptional', $gradeFee->id)
             ->assertHasErrors(['grade_fee_id']);

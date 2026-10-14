@@ -141,7 +141,7 @@ class EnrollmentShowTest extends TestCase
         $student = Student::factory()->create();
         $enrollment = app(EnrollStudent::class)->handle($student->id, $year->id, $grade->id);
 
-        Livewire::test('pages::enrollments.show', ['enrollment' => $enrollment->id])
+        Livewire::test('enrollments.show.status-panel', ['enrollmentId' => $enrollment->id])
             ->call('openStatusModal', 'suspended')
             ->assertSee(__('enrollments.change_status'))
             ->call('confirmStatusChange')
@@ -168,18 +168,23 @@ class EnrollmentShowTest extends TestCase
         $student = Student::factory()->create();
         $enrollment = app(EnrollStudent::class)->handle($student->id, $year->id, $grade->id);
 
-        $page = Livewire::test('pages::enrollments.show', ['enrollment' => $enrollment->id])
+        $page = Livewire::test('enrollments.show.charges-panel', ['enrollmentId' => $enrollment->id])
             ->set('optionalChoice', (string) $booksFee->id)
             ->call('addOptional')
             ->assertHasNoErrors();
 
         $this->assertSame(2, $enrollment->refresh()->fees()->count());
-        $page->assertSee(Money::format(115000));
+
+        Livewire::test('pages::enrollments.show', ['enrollment' => $enrollment->id])
+            ->assertSee(Money::format(115000));
 
         $page->call('removeOptional', $booksFee->id)
             ->assertHasNoErrors();
 
         $this->assertSame(1, $enrollment->refresh()->fees()->count());
+
+        Livewire::test('pages::enrollments.show', ['enrollment' => $enrollment->id])
+            ->assertSee(Money::format(100000));
     }
 
     public function test_discount_apply_replace_and_remove_through_page(): void
@@ -193,7 +198,7 @@ class EnrollmentShowTest extends TestCase
 
         $sibling = app(CreateDiscount::class)->handle(['name' => 'Sibling', 'percent' => '10']);
 
-        $page = Livewire::test('pages::enrollments.show', ['enrollment' => $enrollment->id])
+        $page = Livewire::test('enrollments.show.charges-panel', ['enrollmentId' => $enrollment->id])
             ->set('discountChoice', (string) $sibling->id)
             ->assertSee(Money::format(10000))
             ->assertSee(Money::format(90000))
@@ -239,10 +244,12 @@ class EnrollmentShowTest extends TestCase
 
         app(UpdateEnrollmentStatus::class)->handle($enrollment, EnrollmentStatus::Left);
 
-        $page = Livewire::test('pages::enrollments.show', ['enrollment' => $enrollment->id])
+        Livewire::test('pages::enrollments.show', ['enrollment' => $enrollment->id])
             ->assertSee(__('fees.errors.enrollment_ended'))
             ->assertDontSee(__('fees.add_optional_fee'))
             ->assertDontSee(__('fees.select_discount'));
+
+        $page = Livewire::test('enrollments.show.charges-panel', ['enrollmentId' => $enrollment->id]);
 
         $page->call('removeOptional', $booksFee->id)
             ->assertHasErrors(['grade_fee_id']);

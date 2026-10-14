@@ -105,18 +105,18 @@ class PaymentPageTest extends TestCase
         $enrollment = $this->enroll($grade, $year);
         app(AddOptionalFeeToEnrollment::class)->handle($enrollment->id, $booksFee->id);
 
-        $page = Livewire::test('pages::enrollments.show', ['enrollment' => $enrollment->id])
+        $page = Livewire::test('enrollments.show.add-payment-modal', ['enrollmentId' => $enrollment->id])
             ->call('openPaymentModal')
-            ->set('payTotal', '650')
-            ->set('payAlloc.'.$tuitionFee->id, '500')
-            ->set('payAlloc.'.$booksFee->id, '150')
+            ->set('form.total', '650')
+            ->set('form.alloc.'.$tuitionFee->id, '500')
+            ->set('form.alloc.'.$booksFee->id, '150')
             ->assertSee(__('payments.unallocated'))
             ->call('savePayment')
             ->assertHasNoErrors();
 
         $this->assertSame(2, Payment::query()->where('enrollment_id', $enrollment->id)->count());
-        $page->assertSee(Money::format(65000))
-            ->assertSee(Money::format(50000));
+        $page->assertSee(__('payments.print_receipt'), false)
+            ->assertDispatched('enrollment-changed');
     }
 
     public function test_save_blocked_until_allocated_equals_total(): void
@@ -127,10 +127,10 @@ class PaymentPageTest extends TestCase
         $enrollment = $this->enroll($grade, $year);
         $charge = $enrollment->fees()->firstOrFail();
 
-        Livewire::test('pages::enrollments.show', ['enrollment' => $enrollment->id])
+        Livewire::test('enrollments.show.add-payment-modal', ['enrollmentId' => $enrollment->id])
             ->call('openPaymentModal')
-            ->set('payTotal', '1000')
-            ->set('payAlloc.'.$charge->grade_fee_id, '400')
+            ->set('form.total', '1000')
+            ->set('form.alloc.'.$charge->grade_fee_id, '400')
             ->call('savePayment')
             ->assertHasErrors(['amount']);
 
@@ -145,10 +145,10 @@ class PaymentPageTest extends TestCase
         $enrollment = $this->enroll($grade, $year);
         $charge = $enrollment->fees()->firstOrFail();
 
-        $page = Livewire::test('pages::enrollments.show', ['enrollment' => $enrollment->id])
+        $page = Livewire::test('enrollments.show.add-payment-modal', ['enrollmentId' => $enrollment->id])
             ->call('openPaymentModal')
-            ->set('payTotal', '1200')
-            ->set('payAlloc.'.$charge->grade_fee_id, '1200')
+            ->set('form.total', '1200')
+            ->set('form.alloc.'.$charge->grade_fee_id, '1200')
             ->assertSee(__('payments.errors.amount_exceeds_remaining'));
 
         $page->call('savePayment')->assertHasErrors(['amount']);
@@ -167,17 +167,17 @@ class PaymentPageTest extends TestCase
         $discount = app(CreateDiscount::class)->handle(['name' => 'Sibling', 'percent' => '10']);
         app(ApplyDiscountToEnrollment::class)->handle($enrollment->id, $discount->id);
 
-        $page = Livewire::test('pages::enrollments.show', ['enrollment' => $enrollment->id])
+        $page = Livewire::test('enrollments.show.add-payment-modal', ['enrollmentId' => $enrollment->id])
             ->call('openPaymentModal')
-            ->set('payTotal', '2000')
-            ->set('payAlloc.'.$charge->grade_fee_id, '2000')
+            ->set('form.total', '2000')
+            ->set('form.alloc.'.$charge->grade_fee_id, '2000')
             ->assertSee(__('payments.errors.amount_exceeds_remaining'));
 
         $page->call('savePayment')->assertHasErrors(['amount']);
         $this->assertSame(0, Payment::query()->where('enrollment_id', $enrollment->id)->count());
 
-        $page->set('payTotal', '1800')
-            ->set('payAlloc.'.$charge->grade_fee_id, '1800')
+        $page->set('form.total', '1800')
+            ->set('form.alloc.'.$charge->grade_fee_id, '1800')
             ->call('savePayment')
             ->assertHasNoErrors();
 
@@ -197,13 +197,13 @@ class PaymentPageTest extends TestCase
         $second = $this->enroll($grade, $year);
         $secondCharge = $second->fees()->firstOrFail();
 
-        Livewire::test('pages::enrollments.show', ['enrollment' => $second->id])
+        Livewire::test('enrollments.show.add-payment-modal', ['enrollmentId' => $second->id])
             ->call('openPaymentModal')
-            ->set('payMethod', 'bank_transfer')
-            ->set('payTxn', 'SHARED-TXN')
+            ->set('form.method', 'bank_transfer')
+            ->set('form.txn', 'SHARED-TXN')
             ->assertSee(__('payments.transaction_reused'))
-            ->set('payTotal', '100')
-            ->set('payAlloc.'.$secondCharge->grade_fee_id, '100')
+            ->set('form.total', '100')
+            ->set('form.alloc.'.$secondCharge->grade_fee_id, '100')
             ->call('savePayment')
             ->assertHasNoErrors();
 
@@ -221,18 +221,21 @@ class PaymentPageTest extends TestCase
 
         $payment = $enrollment->refresh()->payments()->firstOrFail();
 
-        $page = Livewire::test('pages::enrollments.show', ['enrollment' => $enrollment->id])
-            ->call('openVoidModal', 'payment', $payment->id)
+        $page = Livewire::test('enrollments.show.void-modal', ['enrollmentId' => $enrollment->id])
+            ->dispatch('request-void', type: 'payment', id: $payment->id)
             ->call('confirmVoid');
 
         $page->assertHasErrors(['void_reason']);
 
-        $page->set('voidReason', 'Entered twice')
+        $page->set('reason', 'Entered twice')
             ->call('confirmVoid')
-            ->assertHasNoErrors();
+            ->assertHasNoErrors()
+            ->assertDispatched('enrollment-changed');
 
         $this->assertNotNull($payment->refresh()->voided_at);
-        $page->assertSee($payment->reference())
+
+        Livewire::test('enrollments.show.payments-panel', ['enrollmentId' => $enrollment->id])
+            ->assertSee($payment->reference())
             ->assertSee(__('payments.void'));
     }
 
@@ -243,7 +246,7 @@ class PaymentPageTest extends TestCase
 
         // No charges yet: the button is replaced by the reason.
         $noCharges = $this->enroll($grade, $year);
-        Livewire::test('pages::enrollments.show', ['enrollment' => $noCharges->id])
+        Livewire::test('enrollments.show.add-payment-modal', ['enrollmentId' => $noCharges->id])
             ->assertSee(__('payments.errors.no_charges'))
             ->assertSee(__('payments.add_payment'), false)
             ->assertSee('disabled="disabled"', false)
@@ -255,7 +258,7 @@ class PaymentPageTest extends TestCase
         $paidCharge = $paid->fees()->firstOrFail();
         $this->pay($paid, 100000, [['grade_fee_id' => $paidCharge->grade_fee_id, 'amount_minor' => 100000]]);
 
-        Livewire::test('pages::enrollments.show', ['enrollment' => $paid->id])
+        Livewire::test('enrollments.show.add-payment-modal', ['enrollmentId' => $paid->id])
             ->assertSee(__('payments.errors.nothing_to_pay'))
             ->assertSee(__('payments.add_payment'), false)
             ->assertSee('disabled="disabled"', false)
@@ -273,10 +276,12 @@ class PaymentPageTest extends TestCase
 
         app(UpdateEnrollmentStatus::class)->handle($enrollment, EnrollmentStatus::Left);
 
-        Livewire::test('pages::enrollments.show', ['enrollment' => $enrollment->id])
+        Livewire::test('enrollments.show.add-payment-modal', ['enrollmentId' => $enrollment->id])
             ->assertSee(__('payments.errors.ended_no_payments'))
             ->assertDontSee(__('payments.add_payment'), false)
-            ->assertDontSee('wire:click="openPaymentModal"', false)
+            ->assertDontSee('wire:click="openPaymentModal"', false);
+
+        Livewire::test('enrollments.show.payments-panel', ['enrollmentId' => $enrollment->id])
             ->assertSee(__('payments.closed_without_payment'))
             ->assertSee(Money::format(70000))
             ->assertSee(Money::format(30000));
@@ -291,7 +296,7 @@ class PaymentPageTest extends TestCase
         $charge = $enrollment->fees()->firstOrFail();
         $this->pay($enrollment, 30000, [['grade_fee_id' => $charge->grade_fee_id, 'amount_minor' => 30000]]);
 
-        Livewire::test('pages::enrollments.show', ['enrollment' => $enrollment->id])
+        Livewire::test('enrollments.show.status-panel', ['enrollmentId' => $enrollment->id])
             ->call('openStatusModal', 'left')
             ->assertSee(__('payments.will_no_longer_be_owed', ['amount' => Money::format(70000)]))
             ->call('confirmStatusChange')
@@ -311,16 +316,19 @@ class PaymentPageTest extends TestCase
 
         app(UpdateEnrollmentStatus::class)->handle($enrollment, EnrollmentStatus::Left);
 
-        $page = Livewire::test('pages::enrollments.show', ['enrollment' => $enrollment->id])
+        Livewire::test('enrollments.show.refund-modal', ['enrollmentId' => $enrollment->id])
             ->call('openRefundModal')
-            ->set('refundTotal', '200')
-            ->set('refundAlloc.'.$charge->grade_fee_id, '200')
-            ->set('refundNote', 'Partial return')
+            ->set('form.total', '200')
+            ->set('form.alloc.'.$charge->grade_fee_id, '200')
+            ->set('form.note', 'Partial return')
             ->call('saveRefund')
-            ->assertHasNoErrors();
+            ->assertHasNoErrors()
+            ->assertDispatched('enrollment-changed');
 
         $this->assertSame(1, Refund::query()->where('enrollment_id', $enrollment->id)->count());
-        $page->assertSee(Money::format(20000))
+
+        Livewire::test('enrollments.show.payments-panel', ['enrollmentId' => $enrollment->id])
+            ->assertSee(Money::format(20000))
             ->assertSee(__('payments.refunds'));
     }
 
@@ -333,13 +341,13 @@ class PaymentPageTest extends TestCase
         $charge = $enrollment->fees()->firstOrFail();
         $this->pay($enrollment, 40000, [['grade_fee_id' => $charge->grade_fee_id, 'amount_minor' => 40000]]);
 
-        $page = Livewire::test('pages::enrollments.show', ['enrollment' => $enrollment->id])
+        $page = Livewire::test('enrollments.show.refund-modal', ['enrollmentId' => $enrollment->id])
             ->assertDontSee('wire:click="openRefundModal"', false);
 
         $page->call('openRefundModal')
-            ->set('refundTotal', '100')
-            ->set('refundAlloc.'.$charge->grade_fee_id, '100')
-            ->set('refundNote', 'Too early')
+            ->set('form.total', '100')
+            ->set('form.alloc.'.$charge->grade_fee_id, '100')
+            ->set('form.note', 'Too early')
             ->call('saveRefund')
             ->assertHasErrors(['amount']);
 
@@ -357,19 +365,19 @@ class PaymentPageTest extends TestCase
 
         app(UpdateEnrollmentStatus::class)->handle($enrollment, EnrollmentStatus::Left);
 
-        $page = Livewire::test('pages::enrollments.show', ['enrollment' => $enrollment->id])
+        $page = Livewire::test('enrollments.show.refund-modal', ['enrollmentId' => $enrollment->id])
             ->call('openRefundModal')
-            ->set('refundTotal', '500')
-            ->set('refundAlloc.'.$charge->grade_fee_id, '500')
-            ->set('refundNote', 'Too much')
+            ->set('form.total', '500')
+            ->set('form.alloc.'.$charge->grade_fee_id, '500')
+            ->set('form.note', 'Too much')
             ->assertSee(__('payments.errors.refund_amount_exceeds_refundable'));
 
         $page->call('saveRefund')->assertHasErrors(['amount']);
         $this->assertSame(0, Refund::query()->where('enrollment_id', $enrollment->id)->count());
 
-        $page->set('refundTotal', '100')
-            ->set('refundAlloc.'.$charge->grade_fee_id, '100')
-            ->set('refundNote', '')
+        $page->set('form.total', '100')
+            ->set('form.alloc.'.$charge->grade_fee_id, '100')
+            ->set('form.note', '')
             ->assertSee(__('validation.required', ['attribute' => __('fees.note')]), false);
 
         $page->call('saveRefund')->assertHasErrors(['note']);
@@ -386,10 +394,10 @@ class PaymentPageTest extends TestCase
         $enrollment = $this->enroll($grade, $year);
         $charge = $enrollment->fees()->firstOrFail();
 
-        $page = Livewire::test('pages::enrollments.show', ['enrollment' => $enrollment->id])
+        $page = Livewire::test('enrollments.show.add-payment-modal', ['enrollmentId' => $enrollment->id])
             ->call('openPaymentModal')
-            ->set('payTotal', '1000')
-            ->set('payAlloc.'.$charge->grade_fee_id, '100')
+            ->set('form.total', '1000')
+            ->set('form.alloc.'.$charge->grade_fee_id, '100')
             ->call('savePayment');
 
         $page->assertHasErrors();
@@ -413,9 +421,9 @@ class PaymentPageTest extends TestCase
 
         $foreign = $second->refresh()->payments()->firstOrFail();
 
-        Livewire::test('pages::enrollments.show', ['enrollment' => $first->id])
-            ->call('openVoidModal', 'payment', $foreign->id)
-            ->set('voidReason', 'Sneaky')
+        Livewire::test('enrollments.show.void-modal', ['enrollmentId' => $first->id])
+            ->dispatch('request-void', type: 'payment', id: $foreign->id)
+            ->set('reason', 'Sneaky')
             ->call('confirmVoid')
             ->assertHasErrors(['payment_id']);
 
@@ -429,14 +437,14 @@ class PaymentPageTest extends TestCase
         $this->scheduleTuition($grade, $year);
         $enrollment = $this->enroll($grade, $year);
 
-        Livewire::test('pages::enrollments.show', ['enrollment' => $enrollment->id])
+        Livewire::test('enrollments.show.status-panel', ['enrollmentId' => $enrollment->id])
             ->call('openStatusModal', 'bogus')
             ->assertHasErrors(['status']);
 
         $this->assertSame(EnrollmentStatus::Active, $enrollment->refresh()->status);
 
-        Livewire::test('pages::enrollments.show', ['enrollment' => $enrollment->id])
-            ->call('openVoidModal', 'bogus', 1)
+        Livewire::test('enrollments.show.void-modal', ['enrollmentId' => $enrollment->id])
+            ->dispatch('request-void', type: 'bogus', id: 1)
             ->assertHasErrors(['voidTargetType']);
     }
 
@@ -451,25 +459,25 @@ class PaymentPageTest extends TestCase
         $numericReason = __('validation.numeric', ['attribute' => __('payments.amount')]);
         $txnReason = __('validation.required', ['attribute' => __('payments.transaction_number')]);
 
-        $page = Livewire::test('pages::enrollments.show', ['enrollment' => $enrollment->id])
+        $page = Livewire::test('enrollments.show.add-payment-modal', ['enrollmentId' => $enrollment->id])
             ->call('openPaymentModal')
             ->assertSee($numericReason, false);
 
-        $page->set('payTotal', '1000')
+        $page->set('form.total', '1000')
             ->assertSee(__('payments.unallocated'), false)
             ->assertSee(Money::format(100000), false)
             ->assertDontSee($txnReason, false);
 
-        $page->set('payTotal', '1200')
-            ->set('payAlloc.'.$charge->grade_fee_id, '1200')
+        $page->set('form.total', '1200')
+            ->set('form.alloc.'.$charge->grade_fee_id, '1200')
             ->assertSee(__('payments.errors.amount_exceeds_remaining'));
 
-        $page->set('payTotal', '1000')
-            ->set('payAlloc.'.$charge->grade_fee_id, '1000')
-            ->set('payMethod', 'bank_transfer')
+        $page->set('form.total', '1000')
+            ->set('form.alloc.'.$charge->grade_fee_id, '1000')
+            ->set('form.method', 'bank_transfer')
             ->assertSee($txnReason, false);
 
-        $page->set('payTxn', 'TXN-1')
+        $page->set('form.txn', 'TXN-1')
             ->assertDontSee($txnReason, false)
             ->assertDontSee($numericReason, false)
             ->call('savePayment')
@@ -488,22 +496,22 @@ class PaymentPageTest extends TestCase
 
         $txnReason = __('validation.required', ['attribute' => __('payments.transaction_number')]);
 
-        $page = Livewire::test('pages::enrollments.show', ['enrollment' => $enrollment->id])
+        $page = Livewire::test('enrollments.show.add-payment-modal', ['enrollmentId' => $enrollment->id])
             ->call('openPaymentModal')
-            ->set('payTotal', '1000')
-            ->set('payAlloc.'.$charge->grade_fee_id, '1000')
-            ->set('payMethod', 'bank_transfer')
+            ->set('form.total', '1000')
+            ->set('form.alloc.'.$charge->grade_fee_id, '1000')
+            ->set('form.method', 'bank_transfer')
             ->call('savePayment')
             ->assertHasErrors(['transaction_number']);
 
-        $page->set('payMethod', 'cash')
+        $page->set('form.method', 'cash')
             ->assertHasNoErrors();
 
-        $page->set('payMethod', 'bank_transfer')
+        $page->set('form.method', 'bank_transfer')
             ->assertHasNoErrors()
             ->assertSee($txnReason, false);
 
-        $page->set('payTxn', 'FRESH-TXN')
+        $page->set('form.txn', 'FRESH-TXN')
             ->call('savePayment')
             ->assertHasNoErrors();
 
@@ -518,22 +526,22 @@ class PaymentPageTest extends TestCase
         $enrollment = $this->enroll($grade, $year);
         $charge = $enrollment->fees()->firstOrFail();
 
-        $page = Livewire::test('pages::enrollments.show', ['enrollment' => $enrollment->id])
+        $page = Livewire::test('enrollments.show.add-payment-modal', ['enrollmentId' => $enrollment->id])
             ->call('openPaymentModal')
-            ->set('payTotal', '1000')
-            ->set('payAlloc.'.$charge->grade_fee_id, '1000')
-            ->set('payMethod', 'bank_transfer')
-            ->set('payTxn', 'STALE-TXN');
+            ->set('form.total', '1000')
+            ->set('form.alloc.'.$charge->grade_fee_id, '1000')
+            ->set('form.method', 'bank_transfer')
+            ->set('form.txn', 'STALE-TXN');
 
         for ($i = 0; $i < 5; $i++) {
-            $page->set('payMethod', 'cash')->assertSet('payTxn', null);
-            $page->set('payMethod', 'bank_transfer')->assertSet('payTxn', null);
+            $page->set('form.method', 'cash')->assertSet('form.txn', null);
+            $page->set('form.method', 'bank_transfer')->assertSet('form.txn', null);
         }
 
         $page->assertHasNoErrors()
             ->assertSee(__('validation.required', ['attribute' => __('payments.transaction_number')]), false);
 
-        $page->set('payTxn', 'FRESH-TXN')
+        $page->set('form.txn', 'FRESH-TXN')
             ->call('savePayment')
             ->assertHasNoErrors();
 
@@ -554,7 +562,7 @@ class PaymentPageTest extends TestCase
 
         $receiptUrl = route('enrollments.receipt', ['enrollment' => $enrollment->id, 'payments' => (string) $payment->id]);
 
-        $page = Livewire::test('pages::enrollments.show', ['enrollment' => $enrollment->id])
+        $page = Livewire::test('enrollments.show.payments-panel', ['enrollmentId' => $enrollment->id])
             ->assertSee('value="'.$payment->id.'" disabled', false)
             ->assertSee($receiptUrl, false);
 
@@ -573,7 +581,7 @@ class PaymentPageTest extends TestCase
 
         $discount = app(CreateDiscount::class)->handle(['name' => 'Sibling', 'percent' => '10']);
 
-        Livewire::test('pages::enrollments.show', ['enrollment' => $enrollment->id])
+        Livewire::test('enrollments.show.charges-panel', ['enrollmentId' => $enrollment->id])
             ->set('discountChoice', (string) $discount->id)
             ->call('applyDiscount')
             ->assertHasErrors(['discount_id'])
@@ -594,7 +602,7 @@ class PaymentPageTest extends TestCase
 
         $this->pay($enrollment, 15000, [['grade_fee_id' => $booksFee->id, 'amount_minor' => 15000]]);
 
-        Livewire::test('pages::enrollments.show', ['enrollment' => $enrollment->id])
+        Livewire::test('enrollments.show.charges-panel', ['enrollmentId' => $enrollment->id])
             ->call('removeOptional', $booksFee->id)
             ->assertHasErrors(['grade_fee_id']);
 
@@ -604,7 +612,7 @@ class PaymentPageTest extends TestCase
         $payment = $enrollment->refresh()->payments()->firstOrFail();
         app(VoidPayment::class)->handle($enrollment->id, $payment->id, 'Entered twice');
 
-        Livewire::test('pages::enrollments.show', ['enrollment' => $enrollment->id])
+        Livewire::test('enrollments.show.charges-panel', ['enrollmentId' => $enrollment->id])
             ->call('removeOptional', $booksFee->id)
             ->assertHasErrors(['grade_fee_id']);
 
@@ -618,7 +626,7 @@ class PaymentPageTest extends TestCase
         $this->scheduleTuition($grade, $year);
         $enrollment = $this->enroll($grade, $year);
 
-        $page = Livewire::test('pages::enrollments.show', ['enrollment' => $enrollment->id])
+        $page = Livewire::test('enrollments.show.add-payment-modal', ['enrollmentId' => $enrollment->id])
             ->call('openPaymentModal');
 
         $count = 0;
@@ -626,11 +634,11 @@ class PaymentPageTest extends TestCase
             $count++;
         });
 
-        $page->set('payTotal', '100')
-            ->set('payMethod', 'bank_transfer');
+        $page->set('form.total', '100')
+            ->set('form.method', 'bank_transfer');
 
         $count = 0;
-        $page->set('payTxn', 'TXN-1');
+        $page->set('form.txn', 'TXN-1');
 
         $this->assertLessThan(20, $count);
     }
@@ -645,11 +653,11 @@ class PaymentPageTest extends TestCase
         $enrollment = $this->enroll($grade, $year);
         app(AddOptionalFeeToEnrollment::class)->handle($enrollment->id, $booksFee->id);
 
-        Livewire::test('pages::enrollments.show', ['enrollment' => $enrollment->id])
+        Livewire::test('enrollments.show.add-payment-modal', ['enrollmentId' => $enrollment->id])
             ->call('openPaymentModal')
-            ->set('payTotal', '6,250.50')
-            ->set('payAlloc.'.$tuitionFee->id, '5000')
-            ->set('payAlloc.'.$booksFee->id, '1,250.50')
+            ->set('form.total', '6,250.50')
+            ->set('form.alloc.'.$tuitionFee->id, '5000')
+            ->set('form.alloc.'.$booksFee->id, '1,250.50')
             ->call('savePayment')
             ->assertHasNoErrors();
 
@@ -668,10 +676,10 @@ class PaymentPageTest extends TestCase
         $enrollment = $this->enroll($grade, $year);
         app(UpdateEnrollmentStatus::class)->handle($enrollment, EnrollmentStatus::Left);
 
-        Livewire::test('pages::enrollments.show', ['enrollment' => $enrollment->id])
+        Livewire::test('enrollments.show.add-payment-modal', ['enrollmentId' => $enrollment->id])
             ->call('openPaymentModal')
-            ->set('payTotal', '100')
-            ->set('payAlloc.'.$tuitionFee->id, '100')
+            ->set('form.total', '100')
+            ->set('form.alloc.'.$tuitionFee->id, '100')
             ->call('savePayment')
             ->assertHasErrors();
 
@@ -689,20 +697,26 @@ class PaymentPageTest extends TestCase
 
         app(UpdateEnrollmentStatus::class)->handle($enrollment, EnrollmentStatus::Left);
 
-        $page = Livewire::test('pages::enrollments.show', ['enrollment' => $enrollment->id])
+        Livewire::test('enrollments.show.payments-panel', ['enrollmentId' => $enrollment->id])
             ->assertSee(Money::format(40000), false);
 
-        $page->call('openRefundModal')
-            ->set('refundTotal', '150')
-            ->set('refundAlloc.'.$charge->grade_fee_id, '150')
-            ->set('refundNote', 'Partial return')
+        Livewire::test('enrollments.show.refund-modal', ['enrollmentId' => $enrollment->id])
+            ->call('openRefundModal')
+            ->set('form.total', '150')
+            ->set('form.alloc.'.$charge->grade_fee_id, '150')
+            ->set('form.note', 'Partial return')
             ->call('saveRefund')
             ->assertHasNoErrors()
-            ->assertSee(__('payments.received'), false)
+            ->assertDispatched('enrollment-changed');
+
+        Livewire::test('enrollments.show.payments-panel', ['enrollmentId' => $enrollment->id])
             ->assertSee(__('payments.closed_without_payment'), false)
             ->assertSee(Money::format(15000), false)
             ->assertSee(Money::format(25000), false)
             ->assertSee(Money::format(75000), false);
+
+        Livewire::test('pages::enrollments.show', ['enrollment' => $enrollment->id])
+            ->assertSee(__('payments.received'), false);
     }
 
     public function test_reactivated_enrollment_owes_net_paid_after_full_refund(): void
@@ -712,20 +726,20 @@ class PaymentPageTest extends TestCase
         $tuitionFee = $this->scheduleTuition($grade, $year, '50');
         $enrollment = $this->enroll($grade, $year);
 
-        Livewire::test('pages::enrollments.show', ['enrollment' => $enrollment->id])
+        Livewire::test('enrollments.show.add-payment-modal', ['enrollmentId' => $enrollment->id])
             ->call('openPaymentModal')
-            ->set('payTotal', '40')
-            ->set('payAlloc.'.$tuitionFee->id, '40')
+            ->set('form.total', '40')
+            ->set('form.alloc.'.$tuitionFee->id, '40')
             ->call('savePayment')
             ->assertHasNoErrors();
 
         app(UpdateEnrollmentStatus::class)->handle($enrollment, EnrollmentStatus::Left);
 
-        $page = Livewire::test('pages::enrollments.show', ['enrollment' => $enrollment->id])
+        Livewire::test('enrollments.show.refund-modal', ['enrollmentId' => $enrollment->id])
             ->call('openRefundModal')
-            ->set('refundTotal', '40')
-            ->set('refundAlloc.'.$tuitionFee->id, '40')
-            ->set('refundNote', 'Full return')
+            ->set('form.total', '40')
+            ->set('form.alloc.'.$tuitionFee->id, '40')
+            ->set('form.note', 'Full return')
             ->call('saveRefund')
             ->assertHasNoErrors();
 
@@ -733,17 +747,19 @@ class PaymentPageTest extends TestCase
 
         $page = Livewire::test('pages::enrollments.show', ['enrollment' => $enrollment->id])
             ->assertSee(__('fees.total_due'), false)
-            ->assertSee(Money::format(5000), false)
+            ->assertSee(Money::format(5000), false);
+
+        $page = Livewire::test('enrollments.show.add-payment-modal', ['enrollmentId' => $enrollment->id])
             ->call('openPaymentModal')
-            ->set('payTotal', '51')
-            ->set('payAlloc.'.$tuitionFee->id, '51')
+            ->set('form.total', '51')
+            ->set('form.alloc.'.$tuitionFee->id, '51')
             ->assertSee(__('payments.errors.amount_exceeds_remaining'));
 
         $page->call('savePayment')->assertHasErrors(['amount']);
         $this->assertSame(1, Payment::query()->where('enrollment_id', $enrollment->id)->count());
 
-        $page->set('payTotal', '50')
-            ->set('payAlloc.'.$tuitionFee->id, '50')
+        $page->set('form.total', '50')
+            ->set('form.alloc.'.$tuitionFee->id, '50')
             ->call('savePayment')
             ->assertHasNoErrors();
 
@@ -757,11 +773,11 @@ class PaymentPageTest extends TestCase
         $tuitionFee = $this->scheduleTuition($grade, $year);
         $enrollment = $this->enroll($grade, $year);
 
-        Livewire::test('pages::enrollments.show', ['enrollment' => $enrollment->id])
+        Livewire::test('enrollments.show.add-payment-modal', ['enrollmentId' => $enrollment->id])
             ->call('openPaymentModal')
-            ->set('payTotal', '100')
-            ->set('payAlloc.'.$tuitionFee->id, '100')
-            ->set('payTxn', 'CASH-TXN')
+            ->set('form.total', '100')
+            ->set('form.alloc.'.$tuitionFee->id, '100')
+            ->set('form.txn', 'CASH-TXN')
             ->call('savePayment')
             ->assertHasErrors(['transaction_number'])
             ->assertSee(__('payments.errors.cash_transaction_not_allowed'), false);
@@ -780,12 +796,12 @@ class PaymentPageTest extends TestCase
 
         app(UpdateEnrollmentStatus::class)->handle($enrollment, EnrollmentStatus::Left);
 
-        Livewire::test('pages::enrollments.show', ['enrollment' => $enrollment->id])
+        Livewire::test('enrollments.show.refund-modal', ['enrollmentId' => $enrollment->id])
             ->call('openRefundModal')
-            ->set('refundTotal', '100')
-            ->set('refundAlloc.'.$tuitionFee->id, '100')
-            ->set('refundNote', 'Cash return')
-            ->set('refundTxn', 'CASH-TXN')
+            ->set('form.total', '100')
+            ->set('form.alloc.'.$tuitionFee->id, '100')
+            ->set('form.note', 'Cash return')
+            ->set('form.txn', 'CASH-TXN')
             ->call('saveRefund')
             ->assertHasErrors(['transaction_number'])
             ->assertSee(__('payments.errors.cash_transaction_not_allowed'), false);
@@ -800,16 +816,16 @@ class PaymentPageTest extends TestCase
         $tuitionFee = $this->scheduleTuition($grade, $year);
         $enrollment = $this->enroll($grade, $year);
 
-        $page = Livewire::test('pages::enrollments.show', ['enrollment' => $enrollment->id])
+        $page = Livewire::test('enrollments.show.add-payment-modal', ['enrollmentId' => $enrollment->id])
             ->call('openPaymentModal')
-            ->set('payTotal', '100')
-            ->set('payAlloc.'.$tuitionFee->id, '100')
-            ->set('payDate', '2026-02-30')
+            ->set('form.total', '100')
+            ->set('form.alloc.'.$tuitionFee->id, '100')
+            ->set('form.date', '2026-02-30')
             ->call('savePayment')
             ->assertHasErrors(['paid_on'])
             ->assertSee(__('validation.date', ['attribute' => __('payments.paid_on')]), false);
 
-        $page->set('payDate', '2999-01-01')
+        $page->set('form.date', '2999-01-01')
             ->call('savePayment')
             ->assertHasErrors(['paid_on'])
             ->assertSee(__('validation.before_or_equal', ['attribute' => __('payments.paid_on'), 'date' => date('Y-m-d')]), false);
@@ -828,17 +844,17 @@ class PaymentPageTest extends TestCase
 
         app(UpdateEnrollmentStatus::class)->handle($enrollment, EnrollmentStatus::Left);
 
-        $page = Livewire::test('pages::enrollments.show', ['enrollment' => $enrollment->id])
+        $page = Livewire::test('enrollments.show.refund-modal', ['enrollmentId' => $enrollment->id])
             ->call('openRefundModal')
-            ->set('refundTotal', '100')
-            ->set('refundAlloc.'.$tuitionFee->id, '100')
-            ->set('refundNote', 'Dated return')
-            ->set('refundDate', '2026-02-30')
+            ->set('form.total', '100')
+            ->set('form.alloc.'.$tuitionFee->id, '100')
+            ->set('form.note', 'Dated return')
+            ->set('form.date', '2026-02-30')
             ->call('saveRefund')
             ->assertHasErrors(['refunded_on'])
             ->assertSee(__('validation.date', ['attribute' => __('payments.refunded_on')]), false);
 
-        $page->set('refundDate', '2999-01-01')
+        $page->set('form.date', '2999-01-01')
             ->call('saveRefund')
             ->assertHasErrors(['refunded_on'])
             ->assertSee(__('validation.before_or_equal', ['attribute' => __('payments.refunded_on'), 'date' => date('Y-m-d')]), false);
