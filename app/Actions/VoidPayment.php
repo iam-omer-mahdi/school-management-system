@@ -14,14 +14,16 @@ final class VoidPayment
 {
     /**
      * Void one payment with a required reason. The row stays visible
-     * and is excluded from every total. Voiding an overpayment row is
-     * blocked while non-voided refunds against it would exceed the
-     * remaining overpayment. Allowed on ended enrollments and
-     * archived students: voiding is a correction, never new money.
+     * and is excluded from every total. The payment must belong to
+     * the given enrollment: ids from another enrollment are rejected.
+     * Voiding an overpayment row is blocked while non-voided refunds
+     * against it would exceed the remaining overpayment. Allowed on
+     * ended enrollments and archived students: voiding is a
+     * correction, never new money.
      *
      * @throws ValidationException
      */
-    public function handle(int $paymentId, ?string $reason): Payment
+    public function handle(int $enrollmentId, int $paymentId, ?string $reason): Payment
     {
         $reason = trim((string) $reason);
 
@@ -37,10 +39,10 @@ final class VoidPayment
             ]);
         }
 
-        return DB::transaction(function () use ($paymentId, $reason): Payment {
+        return DB::transaction(function () use ($enrollmentId, $paymentId, $reason): Payment {
             $payment = Payment::query()->whereKey($paymentId)->lockForUpdate()->first();
 
-            if ($payment === null) {
+            if ($payment === null || (int) $payment->enrollment_id !== (int) $enrollmentId) {
                 throw ValidationException::withMessages([
                     'payment_id' => __('validation.exists', ['attribute' => __('payments.payment')]),
                 ]);
@@ -58,11 +60,13 @@ final class VoidPayment
                     ->where('kind', PaymentKind::Overpayment)
                     ->whereNull('voided_at')
                     ->where('id', '!=', $payment->id)
+                    ->lockForUpdate()
                     ->sum('amount_minor');
 
                 $refunded = Refund::query()
                     ->where('enrollment_id', $payment->enrollment_id)
                     ->whereNull('voided_at')
+                    ->lockForUpdate()
                     ->sum('amount_minor');
 
                 if ((int) $refunded > (int) $otherOverpaid) {

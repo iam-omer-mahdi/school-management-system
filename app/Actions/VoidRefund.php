@@ -13,12 +13,14 @@ final class VoidRefund
     /**
      * Void one refund with a required reason. The row stays visible
      * and is excluded from every total, which restores the overpaid
-     * amount it had consumed. Allowed on ended enrollments and
-     * archived students: voiding is a correction, never new money.
+     * amount it had consumed. The refund must belong to the given
+     * enrollment: ids from another enrollment are rejected. Allowed
+     * on ended enrollments and archived students: voiding is a
+     * correction, never new money.
      *
      * @throws ValidationException
      */
-    public function handle(int $refundId, ?string $reason): Refund
+    public function handle(int $enrollmentId, int $refundId, ?string $reason): Refund
     {
         $reason = trim((string) $reason);
 
@@ -34,10 +36,10 @@ final class VoidRefund
             ]);
         }
 
-        return DB::transaction(function () use ($refundId, $reason): Refund {
+        return DB::transaction(function () use ($enrollmentId, $refundId, $reason): Refund {
             $refund = Refund::query()->whereKey($refundId)->lockForUpdate()->first();
 
-            if ($refund === null) {
+            if ($refund === null || (int) $refund->enrollment_id !== (int) $enrollmentId) {
                 throw ValidationException::withMessages([
                     'refund_id' => __('validation.exists', ['attribute' => __('payments.refund')]),
                 ]);
