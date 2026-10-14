@@ -6,6 +6,9 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+- Enrollments section with a gated list (school, grade and year, then apply) and per-enrollment pages.
+- Payments against enrollment fees with split submissions, printable receipts, voids with reasons and a single balance definition.
+- Overpayments with partial refunds; ended enrollments owe nothing while keeping charges and payment history.
 - Administrator password reset via `php artisan user:reset-password {email}`.
 - Flowbite month pickers for academic-year start and end months.
 - Strict finance seeder: seeds only in local and testing environments.
