@@ -687,7 +687,8 @@ new #[Layout('layouts::app')] class extends Component
         @endif
         @php
             $history = $enrollment->payments->sortByDesc('id');
-            $selectedHistory = collect($selectedReceiptIds)->map(fn ($id) => (int) $id)->all();
+            $voidedHistoryIds = $history->filter(fn ($payment) => $payment->isVoided())->map(fn ($payment) => $payment->id)->all();
+            $selectedHistory = collect($selectedReceiptIds)->map(fn ($id) => (int) $id)->reject(fn ($id) => in_array($id, $voidedHistoryIds, true))->values()->all();
         @endphp
         @if($history->isEmpty())
             <p class="mt-3 text-sm text-gray-600 dark:text-gray-400">{{ __('payments.no_payments') }}</p>
@@ -695,7 +696,7 @@ new #[Layout('layouts::app')] class extends Component
             <ul class="mt-3 space-y-2 text-sm">
                 @foreach($history as $payment)
                     <li wire:key="payment-{{ $payment->id }}" class="flex flex-wrap items-center gap-2 rounded-lg bg-gray-50 px-3 py-2.5 dark:bg-gray-700/40">
-                        <input type="checkbox" wire:model.live="selectedReceiptIds" value="{{ $payment->id }}" aria-label="{{ $payment->reference() }}" class="h-4 w-4 shrink-0 rounded-sm border-gray-300 bg-gray-100 text-indigo-600 focus:ring-2 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-700" />
+                        <input type="checkbox" wire:model.live="selectedReceiptIds" value="{{ $payment->id }}" @disabled($payment->isVoided()) aria-label="{{ $payment->reference() }}" class="h-4 w-4 shrink-0 rounded-sm border-gray-300 bg-gray-100 text-indigo-600 focus:ring-2 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-700" />
                         <span class="font-mono text-gray-700 dark:text-gray-300" dir="ltr">{{ $payment->reference() }}</span>
                         <span class="text-gray-700 dark:text-gray-300">
                             @if($payment->isOverpayment())
@@ -708,10 +709,10 @@ new #[Layout('layouts::app')] class extends Component
                         </span>
                         <x-ui.money :minor="$payment->amount_minor" />
                         <span class="text-gray-500 dark:text-gray-400">{{ $payment->method === \App\Enums\PaymentMethod::BankTransfer ? __('payments.bank_transfer') : __('payments.cash') }}</span>
+                        <x-ui.button href="{{ route('enrollments.receipt', ['enrollment' => $enrollment->id, 'payments' => (string) $payment->id]) }}" variant="ghost" size="sm" :spinner="false">{{ __('payments.print') }}</x-ui.button>
                         @if($payment->isVoided())
                             <x-ui.badge color="red">{{ __('payments.void') }}: {{ $payment->void_reason }}</x-ui.badge>
                         @else
-                            <x-ui.button href="{{ route('enrollments.receipt', ['enrollment' => $enrollment->id, 'payments' => (string) $payment->id]) }}" variant="ghost" size="sm" :spinner="false">{{ __('payments.print') }}</x-ui.button>
                             <x-ui.button variant="ghost" size="sm" wire:click="openVoidModal('payment', {{ $payment->id }})" loading-target="confirmVoid" wire:loading.attr="disabled" :spinner="false" class="text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/30">{{ __('payments.void') }}</x-ui.button>
                         @endif
                     </li>

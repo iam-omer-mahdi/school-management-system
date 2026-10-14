@@ -147,6 +147,37 @@ class ReceiptPageTest extends TestCase
             ->assertSee('Entered twice');
     }
 
+    public function test_multi_select_total_excludes_voided_rows(): void
+    {
+        $this->actingAs(User::factory()->create());
+        [$grade, $year] = $this->fixtures();
+        $enrollment = $this->paidEnrollment($grade, $year);
+
+        $charge = $enrollment->fees()->firstOrFail();
+        app(RecordPayment::class)->handle([
+            'enrollment_id' => $enrollment->id,
+            'total_minor' => 10000,
+            'rows' => [['grade_fee_id' => $charge->grade_fee_id, 'amount_minor' => 10000]],
+            'overpayment_minor' => 0,
+            'overpayment_confirmed' => false,
+            'method' => 'cash',
+            'transaction_number' => null,
+            'paid_on' => date('Y-m-d'),
+            'note' => null,
+        ]);
+
+        $voided = $enrollment->payments()->orderBy('id')->firstOrFail();
+        app(VoidPayment::class)->handle($enrollment->id, $voided->id, 'Entered twice');
+
+        $ids = Payment::query()->where('enrollment_id', $enrollment->id)->pluck('id')->implode(',');
+
+        $this->get($this->receiptUrl($enrollment, $ids))
+            ->assertOk()
+            ->assertSee(__('payments.void'))
+            ->assertSee(Money::format(10000), false)
+            ->assertDontSee(Money::format(50000), false);
+    }
+
     public function test_rejects_ids_from_other_enrollments(): void
     {
         $this->actingAs(User::factory()->create());

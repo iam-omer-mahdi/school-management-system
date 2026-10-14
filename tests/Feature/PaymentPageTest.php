@@ -512,6 +512,39 @@ class PaymentPageTest extends TestCase
         $this->assertSame('FRESH-TXN', Payment::query()->where('enrollment_id', $enrollment->id)->firstOrFail()->transaction_number);
     }
 
+    public function test_voided_payment_checkbox_is_disabled_but_printable(): void
+    {
+        $this->actingAs(User::factory()->create());
+        [$grade, $year] = $this->fixtures();
+        $this->scheduleTuition($grade, $year);
+        $enrollment = $this->enroll($grade, $year);
+        $charge = $enrollment->fees()->firstOrFail();
+
+        app(RecordPayment::class)->handle([
+            'enrollment_id' => $enrollment->id,
+            'total_minor' => 40000,
+            'rows' => [['grade_fee_id' => $charge->grade_fee_id, 'amount_minor' => 40000]],
+            'overpayment_minor' => 0,
+            'overpayment_confirmed' => false,
+            'method' => 'cash',
+            'transaction_number' => null,
+            'paid_on' => date('Y-m-d'),
+            'note' => null,
+        ]);
+
+        $payment = $enrollment->payments()->firstOrFail();
+        app(VoidPayment::class)->handle($enrollment->id, $payment->id, 'Entered twice');
+
+        $receiptUrl = route('enrollments.receipt', ['enrollment' => $enrollment->id, 'payments' => (string) $payment->id]);
+
+        $page = Livewire::test('pages::enrollments.show', ['enrollment' => $enrollment->id])
+            ->assertSee('value="'.$payment->id.'" disabled', false)
+            ->assertSee($receiptUrl, false);
+
+        $page->set('selectedReceiptIds', [(string) $payment->id])
+            ->assertDontSee(__('payments.print_receipt'), false);
+    }
+
     public function test_gate_keystroke_stays_within_query_bound(): void
     {
         $this->actingAs(User::factory()->create());
