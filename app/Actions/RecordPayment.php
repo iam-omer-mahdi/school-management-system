@@ -78,6 +78,12 @@ final class RecordPayment
             ]);
         }
 
+        if (! checkdate((int) substr($paidOn, 5, 2), (int) substr($paidOn, 8, 2), (int) substr($paidOn, 0, 4))) {
+            throw ValidationException::withMessages([
+                'paid_on' => __('validation.date', ['attribute' => __('payments.paid_on')]),
+            ]);
+        }
+
         if ($paidOn > date('Y-m-d')) {
             throw ValidationException::withMessages([
                 'paid_on' => __('validation.before_or_equal', ['attribute' => __('payments.paid_on'), 'date' => date('Y-m-d')]),

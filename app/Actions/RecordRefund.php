@@ -71,6 +71,12 @@ final class RecordRefund
             ]);
         }
 
+        if (! checkdate((int) substr($refundedOn, 5, 2), (int) substr($refundedOn, 8, 2), (int) substr($refundedOn, 0, 4))) {
+            throw ValidationException::withMessages([
+                'refunded_on' => __('validation.date', ['attribute' => __('payments.refunded_on')]),
+            ]);
+        }
+
         if ($refundedOn > date('Y-m-d')) {
             throw ValidationException::withMessages([
                 'refunded_on' => __('validation.before_or_equal', ['attribute' => __('payments.refunded_on'), 'date' => date('Y-m-d')]),
