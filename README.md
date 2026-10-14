@@ -49,7 +49,7 @@ Available now (Phase 1: Foundation):
 - Students can be archived (shown as inactive): hidden from the default list, blocked from new enrollments, fully viewable with history
 - Search by name, student number or phone, Active/Inactive/All filter and pagination
 - Enrollments section: gated list (school, grade and year, then apply) with live search, status and sorting, per-status counts and paginated totals
-- Enrollment page: status changes, charges with per-fee paid/remaining, tuition discounts, payments with receipts, overpayment refunds and void history
+- Enrollment page: status changes, charges with per-fee paid/refunded/remaining, tuition discounts, payments with receipts, refunds of paid fees on ended enrollments, and void history
 
 **Fees and discounts**
 - Fee types (mandatory or optional) with a shared name normalizer; tuition is built in and protected
@@ -260,7 +260,7 @@ The product is delivered phase by phase. Scope for later phases is a plan, not a
 | --- | --- | --- |
 | 1. Foundation | Authentication and account security, schools and grades, academic years, students, enrollment, English/Arabic with RTL, light/dark themes, UI component library | Done |
 | 2. Fees and discounts | Fee structures per school, grade and academic year; installment plans; discount types and rules (sibling, scholarship, staff); per-student fee assignment | In progress |
-| 3. Payments | Recording payments, receipts, per-fee and enrollment balances, overpayments with refunds, voids | In progress |
+| 3. Payments | Recording payments, receipts, per-fee and enrollment balances, refunds of paid fees for ended enrollments, voids | In progress |
 | 4. Reports | Collection, outstanding balances and enrollment reports; filters by school, grade and year; export to PDF and Excel. Reports show all enrollments by default, with an active-only toggle and a breakdown by status, including balances owed by students who left | Planned |
 | 5. Wider school management | Additional modules such as attendance, staff and academic records, to be defined once the finance core is complete | To be scoped |
 

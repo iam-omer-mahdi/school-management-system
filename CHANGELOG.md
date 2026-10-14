@@ -8,8 +8,8 @@ All notable changes to this project will be documented in this file.
 
 - Enrollments section with a gated list (school, grade and year, then apply) and per-enrollment pages.
 - Payments against enrollment fees with split submissions, printable receipts, voids with reasons and a single balance definition.
-- Overpayments with partial refunds; ended enrollments owe nothing while keeping charges and payment history.
-- Payment hardening: minor-unit-only action contract with server-recomputed overpayment, live Pay gate with block reasons, enrollment-scoped voids, locked page ids and validated status changes.
+- Refunds of paid fees on ended enrollments; refunds never change charges or per-fee paid, only refunded, net paid, cash received and closed-without-payment.
+- Payment hardening: minor-unit-only action contract with server-recomputed remaining and refundable caps, live Pay gate with block reasons, enrollment-scoped voids, locked page ids and validated status changes.
 - Administrator password reset via `php artisan user:reset-password {email}`.
 - Flowbite month pickers for academic-year start and end months.
 - Strict finance seeder: seeds only in local and testing environments.
