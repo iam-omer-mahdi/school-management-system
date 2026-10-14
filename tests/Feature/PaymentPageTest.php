@@ -25,6 +25,7 @@ use App\Models\Student;
 use App\Models\User;
 use App\Support\Money;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Livewire\Livewire;
 use Tests\TestCase;
@@ -477,6 +478,117 @@ class PaymentPageTest extends TestCase
             ->assertHasNoErrors();
 
         $this->assertSame('FRESH-TXN', Payment::query()->where('enrollment_id', $enrollment->id)->firstOrFail()->transaction_number);
+    }
+
+    public function test_gate_keystroke_stays_within_query_bound(): void
+    {
+        $this->actingAs(User::factory()->create());
+        [$grade, $year] = $this->fixtures();
+        $this->scheduleTuition($grade, $year);
+        $enrollment = $this->enroll($grade, $year);
+
+        $page = Livewire::test('pages::enrollments.show', ['enrollment' => $enrollment->id])
+            ->call('openPaymentModal');
+
+        $count = 0;
+        DB::listen(function () use (&$count): void {
+            $count++;
+        });
+
+        $page->set('payTotal', '100')
+            ->set('payMethod', 'bank_transfer');
+
+        $count = 0;
+        $page->set('payTxn', 'TXN-1');
+
+        $this->assertLessThan(20, $count);
+    }
+
+    public function test_cash_split_and_decimal_amounts_through_modal(): void
+    {
+        $this->actingAs(User::factory()->create());
+        [$grade, $year] = $this->fixtures();
+        $tuitionFee = $this->scheduleTuition($grade, $year, '5000');
+
+        $books = FeeType::factory()->create(['name' => 'Books', 'is_mandatory' => false]);
+        $booksFee = app(CreateGradeFee::class)->handle([
+            'grade_id' => $grade->id,
+            'academic_year_id' => $year->id,
+            'fee_type_id' => $books->id,
+            'amount' => '1,250.50',
+        ])->gradeFee;
+
+        $enrollment = $this->enroll($grade, $year);
+        app(AddOptionalFeeToEnrollment::class)->handle($enrollment->id, $booksFee->id);
+
+        Livewire::test('pages::enrollments.show', ['enrollment' => $enrollment->id])
+            ->call('openPaymentModal')
+            ->set('payTotal', '6,250.50')
+            ->set('payAlloc.'.$tuitionFee->id, '5000')
+            ->set('payAlloc.'.$booksFee->id, '1,250.50')
+            ->call('savePayment')
+            ->assertHasNoErrors();
+
+        $rows = Payment::query()->where('enrollment_id', $enrollment->id)->orderBy('id')->get();
+        $this->assertCount(2, $rows);
+        $this->assertSame(Money::fromDecimal('5000'), (int) $rows[0]->amount_minor);
+        $this->assertSame(Money::fromDecimal('1250.50'), (int) $rows[1]->amount_minor);
+        $this->assertEquals(Money::fromDecimal('6250.50'), $rows->sum('amount_minor'));
+    }
+
+    public function test_ended_enrollment_save_blocked_through_direct_component_call(): void
+    {
+        $this->actingAs(User::factory()->create());
+        [$grade, $year] = $this->fixtures();
+        $tuitionFee = $this->scheduleTuition($grade, $year);
+        $enrollment = $this->enroll($grade, $year);
+        app(UpdateEnrollmentStatus::class)->handle($enrollment, EnrollmentStatus::Left);
+
+        Livewire::test('pages::enrollments.show', ['enrollment' => $enrollment->id])
+            ->call('openPaymentModal')
+            ->set('payTotal', '100')
+            ->set('payAlloc.'.$tuitionFee->id, '100')
+            ->call('savePayment')
+            ->assertHasErrors();
+
+        $this->assertSame(0, Payment::query()->where('enrollment_id', $enrollment->id)->count());
+    }
+
+    public function test_displayed_totals_stay_fresh_after_void_and_refund(): void
+    {
+        $this->actingAs(User::factory()->create());
+        [$grade, $year] = $this->fixtures();
+        $tuitionFee = $this->scheduleTuition($grade, $year);
+        $enrollment = $this->enroll($grade, $year);
+
+        $payment = app(RecordPayment::class)->handle([
+            'enrollment_id' => $enrollment->id,
+            'total_minor' => 120000,
+            'rows' => [['grade_fee_id' => $tuitionFee->id, 'amount_minor' => 100000]],
+            'overpayment_minor' => 20000,
+            'overpayment_confirmed' => true,
+            'method' => 'cash',
+            'transaction_number' => null,
+            'paid_on' => date('Y-m-d'),
+            'note' => null,
+        ])['payments'];
+
+        $page = Livewire::test('pages::enrollments.show', ['enrollment' => $enrollment->id])
+            ->assertSee(Money::format(100000), false)
+            ->assertSee(Money::format(20000), false);
+
+        $page->call('openVoidModal', 'payment', $payment->firstWhere('kind', PaymentKind::Fee)->id)
+            ->set('voidReason', 'Entered twice')
+            ->call('confirmVoid')
+            ->assertHasNoErrors()
+            ->assertSee(Money::format(100000), false);
+
+        $page->call('openRefundModal')
+            ->set('refundAmount', '50')
+            ->set('refundNote', 'Partial return')
+            ->call('saveRefund')
+            ->assertHasNoErrors()
+            ->assertSee(Money::format(15000), false);
     }
 
     public function test_discounted_overpayment_stores_minor_units_once(): void
