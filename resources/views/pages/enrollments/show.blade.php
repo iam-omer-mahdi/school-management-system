@@ -92,7 +92,7 @@ new #[Layout('layouts::app')] class extends Component
                 'fees.gradeFee.feeType',
                 'fees.payments',
                 'discount',
-                'payments.enrollmentFee.feeType',
+                'payments.enrollmentFee.gradeFee.feeType:id,name,system_key',
                 'payments',
                 'refunds',
             ])
@@ -234,7 +234,7 @@ new #[Layout('layouts::app')] class extends Component
                 continue;
             }
 
-            $rows[] = ['enrollment_fee_id' => (int) $feeId, 'amount' => (string) $value];
+            $rows[] = ['grade_fee_id' => (int) $feeId, 'amount' => (string) $value];
         }
 
         $unallocated = $this->payUnallocated;
@@ -704,9 +704,9 @@ new #[Layout('layouts::app')] class extends Component
                 </x-ui.field>
                 @foreach($enrollment->fees as $charge)
                     @php $feeRemaining = $balance['fees'][$charge->id]['remaining'] ?? 0; @endphp
-                    <x-ui.field :label="$charge->gradeFee->feeType->isTuition() ? __('fees.tuition') : $charge->gradeFee->feeType->name" for="pay-alloc-{{ $charge->id }}">
+                    <x-ui.field :label="$charge->gradeFee->feeType->isTuition() ? __('fees.tuition') : $charge->gradeFee->feeType->name" for="pay-alloc-{{ $charge->grade_fee_id }}">
                         <div class="flex items-center gap-3">
-                            <x-ui.input id="pay-alloc-{{ $charge->id }}" type="text" wire:model.blur="payAlloc.{{ $charge->id }}" inputmode="decimal" dir="ltr" autocomplete="off" class="font-mono" :disabled="$feeRemaining <= 0" />
+                            <x-ui.input id="pay-alloc-{{ $charge->grade_fee_id }}" type="text" wire:model.blur="payAlloc.{{ $charge->grade_fee_id }}" inputmode="decimal" dir="ltr" autocomplete="off" class="font-mono" :disabled="$feeRemaining <= 0" />
                             <span class="shrink-0 text-xs text-gray-500 dark:text-gray-400"><x-ui.money :minor="max(0, $feeRemaining)" /></span>
                         </div>
                     </x-ui.field>

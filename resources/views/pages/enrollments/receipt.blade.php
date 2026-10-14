@@ -27,7 +27,7 @@ new #[Layout('layouts::print')] class extends Component
 
         $rows = Payment::query()
             ->whereIn('id', $ids->all())
-            ->with('enrollmentFee.feeType:id,name,system_key')
+            ->with('enrollmentFee.gradeFee.feeType:id,name,system_key')
             ->orderBy('id')
             ->get();
 
@@ -57,7 +57,7 @@ new #[Layout('layouts::print')] class extends Component
     {
         return Payment::query()
             ->whereIn('id', $this->paymentIds)
-            ->with('enrollmentFee.feeType:id,name,system_key')
+            ->with('enrollmentFee.gradeFee.feeType:id,name,system_key')
             ->orderBy('id')
             ->get();
     }

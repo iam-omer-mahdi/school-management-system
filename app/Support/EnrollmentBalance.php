@@ -6,6 +6,7 @@ namespace App\Support;
 
 use App\Enums\PaymentKind;
 use App\Models\Enrollment;
+use App\Models\EnrollmentDiscount;
 use App\Models\EnrollmentFee;
 use Illuminate\Database\Eloquent\Collection;
 
@@ -80,7 +81,8 @@ final class EnrollmentBalance
     public static function forEnrollment(Enrollment $enrollment): array
     {
         $ended = $enrollment->isEnded();
-        $discountMinor = $enrollment->discount?->amount_minor ?? 0;
+        $discount = $enrollment->getRelationValue('discount');
+        $discountMinor = $discount instanceof EnrollmentDiscount ? (int) $discount->amount_minor : 0;
 
         $charged = 0;
         $paid = 0;

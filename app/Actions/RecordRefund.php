@@ -26,7 +26,7 @@ final class RecordRefund
      * students. Rows are locked so concurrent submits cannot
      * over-refund.
      *
-     * @param  array{enrollment_id: int, amount: string, method: string, transaction_number?: string|null, refunded_on: string, note?: string|null}  $data
+     * @param  array{enrollment_id: int, amount?: string, method?: string, transaction_number?: string|null, refunded_on?: string, note?: string|null}  $data
      *
      * @throws ValidationException
      */
