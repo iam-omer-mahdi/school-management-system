@@ -15,9 +15,9 @@ use Illuminate\Database\Eloquent\Collection;
  * charge snapshots, the discount snapshot and non-voided rows.
  *
  * Identities (all in integer minor units):
- * - fee remaining = charged - discount - paid
+ * - fee remaining = charged - discount - net paid
  * - fee refundable = paid - refunded (never negative)
- * - owed = 0 when ended, else charged - discount - paid
+ * - owed = 0 when ended, else charged - discount - net paid
  * - net paid = paid - refunded
  * - closed_without_payment = charged - discount - net paid when ended, else 0
  * - cash_received = paid - refunded
@@ -36,23 +36,25 @@ final class EnrollmentBalance
      */
     public static function fee(int $chargedMinor, int $discountMinor, int $paidMinor, int $refundedMinor): array
     {
+        $netPaid = self::netPaid($paidMinor, $refundedMinor);
+
         return [
             'charged' => $chargedMinor,
             'discount' => $discountMinor,
             'paid' => $paidMinor,
             'refunded' => $refundedMinor,
-            'remaining' => $chargedMinor - $discountMinor - $paidMinor,
-            'refundable' => max(0, $paidMinor - $refundedMinor),
+            'remaining' => $chargedMinor - $discountMinor - $netPaid,
+            'refundable' => max(0, $netPaid),
         ];
     }
 
-    public static function owed(int $chargedMinor, int $discountMinor, int $paidMinor, bool $ended): int
+    public static function owed(int $chargedMinor, int $discountMinor, int $netPaidMinor, bool $ended): int
     {
         if ($ended) {
             return 0;
         }
 
-        return $chargedMinor - $discountMinor - $paidMinor;
+        return $chargedMinor - $discountMinor - $netPaidMinor;
     }
 
     public static function netPaid(int $paidMinor, int $refundedMinor): int
@@ -144,7 +146,7 @@ final class EnrollmentBalance
             'refunded' => $refunded,
             'net_paid' => $netPaid,
             'refundable' => max(0, $netPaid),
-            'owed' => self::owed($charged, $discountMinor, $paid, $ended),
+            'owed' => self::owed($charged, $discountMinor, $netPaid, $ended),
             'closed_without_payment' => self::closedWithoutPayment($charged, $discountMinor, $netPaid, $ended),
             'cash_received' => $netPaid,
             'fees' => $fees,

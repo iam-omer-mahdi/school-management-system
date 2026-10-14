@@ -9,6 +9,7 @@ use App\Models\Enrollment;
 use App\Models\EnrollmentDiscount;
 use App\Models\EnrollmentFee;
 use App\Models\Payment;
+use App\Models\Refund;
 use App\Support\Money;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
@@ -63,7 +64,16 @@ final class ApplyDiscountToEnrollment
             ->where('fee_types.system_key', 'tuition')
             ->sum('payments.amount_minor');
 
-        if ($tuitionPaid + $amountMinor > $tuitionCharged) {
+        $tuitionRefunded = (int) Refund::query()
+            ->where('refunds.enrollment_id', $enrollment->id)
+            ->whereNull('refunds.voided_at')
+            ->join('enrollment_fees', 'enrollment_fees.id', '=', 'refunds.enrollment_fee_id')
+            ->join('grade_fees', 'grade_fees.id', '=', 'enrollment_fees.grade_fee_id')
+            ->join('fee_types', 'fee_types.id', '=', 'grade_fees.fee_type_id')
+            ->where('fee_types.system_key', 'tuition')
+            ->sum('refunds.amount_minor');
+
+        if ($tuitionPaid - $tuitionRefunded + $amountMinor > $tuitionCharged) {
             throw ValidationException::withMessages([
                 'discount_id' => __('fees.errors.discount_exceeds_paid'),
             ]);

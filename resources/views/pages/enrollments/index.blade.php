@@ -125,7 +125,8 @@ new #[Layout('layouts::app')] class extends Component
                 ->withSum('fees as fees_total', 'amount_minor')
                 ->withSum('discount as discount_total', 'amount_minor')
                 ->withSum(['payments as paid_total' => fn ($payments) => $payments->whereNull('voided_at')], 'amount_minor')
-                ->orderByRaw("CASE WHEN status IN ('active', 'suspended') THEN COALESCE(fees_total, 0) - COALESCE(discount_total, 0) - COALESCE(paid_total, 0) ELSE 0 END ".($this->sort === 'total_asc' ? 'asc' : 'desc')),
+                ->withSum(['refunds as refunded_total' => fn ($refunds) => $refunds->whereNull('voided_at')], 'amount_minor')
+                ->orderByRaw("CASE WHEN status IN ('active', 'suspended') THEN COALESCE(fees_total, 0) - COALESCE(discount_total, 0) - (COALESCE(paid_total, 0) - COALESCE(refunded_total, 0)) ELSE 0 END ".($this->sort === 'total_asc' ? 'asc' : 'desc')),
             default => $query->orderByDesc('id'),
         };
 

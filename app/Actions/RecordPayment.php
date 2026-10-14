@@ -8,6 +8,7 @@ use App\Enums\PaymentMethod;
 use App\Models\Enrollment;
 use App\Models\EnrollmentFee;
 use App\Models\Payment;
+use App\Models\Refund;
 use App\Support\Money;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
@@ -28,8 +29,8 @@ final class RecordPayment
      * amount: all caps are recomputed here.
      *
      * Lock order: the enrollment row first, then its fee rows, so
-     * concurrent submits re-read the same paid sums and cannot
-     * overpay. Returns the created rows with a flag telling the UI
+     * concurrent submits re-read the same paid and refunded sums and
+     * cannot overpay. Returns the created rows with a flag telling the UI
      * whether the transaction number already exists on another
      * enrollment (warning only, never a block: reuse inside one
      * enrollment is expected for split submissions).
@@ -165,6 +166,14 @@ final class RecordPayment
                 ->lockForUpdate()
                 ->pluck('paid_total', 'enrollment_fee_id');
 
+            $refundedByFee = Refund::query()
+                ->where('enrollment_id', $enrollment->id)
+                ->whereNull('voided_at')
+                ->selectRaw('enrollment_fee_id, COALESCE(SUM(amount_minor), 0) as refunded_total')
+                ->groupBy('enrollment_fee_id')
+                ->lockForUpdate()
+                ->pluck('refunded_total', 'enrollment_fee_id');
+
             $discountLeft = $discountMinor;
             $remainingByFee = [];
             $chargesByGradeFee = [];
@@ -179,7 +188,8 @@ final class RecordPayment
                 }
 
                 $paidMinor = (int) ($paidByFee[$charge->id] ?? 0);
-                $remaining = (int) $charge->amount_minor - $feeDiscount - $paidMinor;
+                $refundedMinor = (int) ($refundedByFee[$charge->id] ?? 0);
+                $remaining = (int) $charge->amount_minor - $feeDiscount - ($paidMinor - $refundedMinor);
 
                 $remainingByFee[$charge->id] = $remaining;
                 $chargesByGradeFee[(int) $charge->grade_fee_id] = $charge;
