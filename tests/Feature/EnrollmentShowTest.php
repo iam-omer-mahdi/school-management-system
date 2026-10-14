@@ -89,8 +89,9 @@ class EnrollmentShowTest extends TestCase
             ->assertSee(__('enrollments.status_active'))
             ->assertSee(__('fees.total_due'))
             ->assertSee(Money::format(100000))
-            ->assertSee(__('enrollments.payments'))
-            ->assertSee(__('enrollments.payments_placeholder'))
+            ->assertSee(__('payments.payment'))
+            ->assertSee(__('payments.no_payments'))
+            ->assertSee(__('payments.refunds'))
             ->assertSee(route('enrollments.index'));
     }
 

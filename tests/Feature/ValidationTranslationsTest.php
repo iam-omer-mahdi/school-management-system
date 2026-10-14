@@ -79,7 +79,7 @@ class ValidationTranslationsTest extends TestCase
 
     public function test_translation_keys_match_between_locales(): void
     {
-        foreach (['validation.php', 'auth.php', 'passwords.php', 'pagination.php', 'fees.php', 'students.php', 'enrollments.php'] as $file) {
+        foreach (['validation.php', 'auth.php', 'passwords.php', 'pagination.php', 'fees.php', 'students.php', 'enrollments.php', 'payments.php'] as $file) {
             $this->assertLangParity($file);
         }
 
