@@ -25,7 +25,7 @@ All notable changes to this project will be documented in this file.
 
 - Charged enrollments now owe charged − discount − net paid, so a refund followed by reactivation restores the owed amount and payment cap.
 - Enrollment show page refactored from one 1,104-line Livewire component into a slim parent (`pages/enrollments/show`, header + summary) with six nested components (`status-panel`, `charges-panel`, `add-payment-modal`, `refund-modal`, `payments-panel`, `void-modal`), a `PaymentForm`/`RefundForm` pair and a pure `PaymentCalculation` helper. No behavior, UI or wording changes.
-- Enrollment show query budget (measured, MySQL): page load 16 → 51 (exact ceiling in suite; constant regardless of fee/payment/refund volume, no N+1); payment-total keystroke 14 → 7 (only the modal's graph runs); saves: payment 15, refund 12, void-confirm 3, status change 12–14; every sibling refresh re-runs its own graph exactly once.
+- Enrollment show query budget (measured, MySQL): page load 16 → 51 (exact ceiling in suite; constant regardless of fee/payment/refund volume, no N+1); payment-total keystroke 14 → 7 (only the modal's graph runs); saves: payment 15, refund 15, void-confirm 3, status change 12–14; every sibling refresh re-runs its own graph exactly once. The single refunds section lives in refund-modal (refundable + trigger + history).
 - Security questions replaced; previously stored answers were cleared.
 - CI builds assets with Bun on PHP 8.5 with Larastan checks.
 - Database schema changed: status now lives on enrollments and students have an archive flag; recreate local databases with `php artisan migrate:fresh --seed`.
