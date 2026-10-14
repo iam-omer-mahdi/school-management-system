@@ -5,11 +5,14 @@ declare(strict_types=1);
 namespace Tests\Feature;
 
 use App\Actions\AddOptionalFeeToEnrollment;
+use App\Actions\ApplyDiscountToEnrollment;
+use App\Actions\CreateDiscount;
 use App\Actions\CreateGradeFee;
 use App\Actions\EnrollStudent;
 use App\Actions\RecordPayment;
 use App\Actions\UpdateEnrollmentStatus;
 use App\Enums\EnrollmentStatus;
+use App\Enums\PaymentKind;
 use App\Models\AcademicYear;
 use App\Models\Enrollment;
 use App\Models\FeeType;
@@ -307,5 +310,38 @@ class PaymentPageTest extends TestCase
         }
 
         $this->assertSame('غير مخصص', __('payments.unallocated'));
+    }
+
+    public function test_discounted_overpayment_stores_minor_units_once(): void
+    {
+        $this->actingAs(User::factory()->create());
+        [$grade, $year] = $this->fixtures();
+        $tuitionFee = $this->scheduleTuition($grade, $year, '200000');
+        $enrollment = $this->enroll($grade, $year);
+
+        $discount = app(CreateDiscount::class)->handle(['name' => 'Sibling', 'percent' => '10']);
+        app(ApplyDiscountToEnrollment::class)->handle($enrollment->id, $discount->id);
+
+        Livewire::test('pages::enrollments.show', ['enrollment' => $enrollment->id])
+            ->call('openPaymentModal')
+            ->set('payTotal', '200000')
+            ->set('payAlloc.'.$tuitionFee->id, '180000')
+            ->set('confirmOverpayment', true)
+            ->call('savePayment')
+            ->assertHasNoErrors();
+
+        $rows = Payment::query()->where('enrollment_id', $enrollment->id)->orderBy('id')->get();
+        $this->assertCount(2, $rows);
+
+        $this->assertTrue($rows[0]->kind === PaymentKind::Fee);
+        $this->assertSame(Money::fromDecimal('180000'), (int) $rows[0]->amount_minor);
+
+        $this->assertTrue($rows[1]->kind === PaymentKind::Overpayment);
+        $this->assertSame(Money::fromDecimal('20000'), (int) $rows[1]->amount_minor);
+
+        $this->assertEquals(
+            Money::fromDecimal('200000'),
+            $rows->sum('amount_minor')
+        );
     }
 }
