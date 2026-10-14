@@ -425,8 +425,9 @@ class EnrollmentsIndexTest extends TestCase
             'amount' => '1000',
         ])->gradeFee;
 
-        // Bulk-insert the performance rows: factories still define the
-        // values, but one insert per table keeps this guard fast.
+        // Bulk-insert the performance rows. Student factories define
+        // the personal values; finance rows use fixed valid values,
+        // with one insert per table to keep this guard fast.
         $now = now();
         $students = Student::factory()->count(500)->make();
         Student::query()->insert($students->map(fn (Student $student): array => [
