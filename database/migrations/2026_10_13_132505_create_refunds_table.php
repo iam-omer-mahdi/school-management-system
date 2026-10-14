@@ -13,7 +13,7 @@ return new class extends Migration
         Schema::create('refunds', function (Blueprint $table): void {
             $table->id();
             $table->unsignedBigInteger('enrollment_id');
-            $table->string('kind', 16);
+            $table->unsignedBigInteger('enrollment_fee_id');
             $table->unsignedBigInteger('amount_minor');
             $table->string('method', 16);
             $table->string('transaction_number', 100)->nullable();
@@ -24,6 +24,7 @@ return new class extends Migration
             $table->timestamps();
 
             $table->foreign('enrollment_id', 'ref_enrollment_fk')->references('id')->on('enrollments')->restrictOnDelete();
+            $table->foreign('enrollment_fee_id', 'ref_enrollment_fee_fk')->references('id')->on('enrollment_fees')->restrictOnDelete();
             $table->index('enrollment_id', 'ref_enrollment_idx');
         });
     }

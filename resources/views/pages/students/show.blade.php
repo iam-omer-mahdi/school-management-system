@@ -74,11 +74,9 @@ new #[Layout('layouts::app')] class extends Component
                 'grade:id,school_id,number',
                 'grade.school:id,code,name',
                 'fees.gradeFee.feeType',
-                'fees.payments' => fn ($payments) => $payments->whereNull('voided_at')->select(['id', 'enrollment_id', 'enrollment_fee_id', 'amount_minor', 'kind', 'voided_at']),
-                'fees.payments' => fn ($payments) => $payments->whereNull('voided_at')->select(['id', 'enrollment_id', 'enrollment_fee_id', 'amount_minor', 'kind', 'voided_at']),
+                'fees.payments' => fn ($payments) => $payments->whereNull('voided_at')->select(['id', 'enrollment_id', 'enrollment_fee_id', 'amount_minor', 'voided_at']),
                 'discount',
-                'payments' => fn ($payments) => $payments->whereNull('voided_at')->select(['id', 'enrollment_id', 'enrollment_fee_id', 'amount_minor', 'kind', 'voided_at']),
-                'refunds' => fn ($refunds) => $refunds->whereNull('voided_at')->select(['id', 'enrollment_id', 'amount_minor']),
+                'refunds' => fn ($refunds) => $refunds->whereNull('voided_at')->select(['id', 'enrollment_id', 'enrollment_fee_id', 'amount_minor', 'voided_at']),
             ])
             ->orderByDesc('id')
             ->paginate(5);
@@ -389,19 +387,8 @@ new #[Layout('layouts::app')] class extends Component
             <ul class="space-y-4 text-sm">
                 @foreach($this->enrollments as $enrollment)
                     @php
-                        $tuitionMinor = null;
-                        $otherMinor = 0;
-                        foreach ($enrollment->fees as $charge) {
-                            if ($charge->gradeFee->feeType->isTuition()) {
-                                $tuitionMinor = ($tuitionMinor ?? 0) + $charge->amount_minor;
-                            } else {
-                                $otherMinor += $charge->amount_minor;
-                            }
-                        }
-                        $appliedDiscount = $enrollment->discount;
-                        $netMinor = $tuitionMinor !== null ? $tuitionMinor - ($appliedDiscount?->amount_minor ?? 0) : null;
-                        $totalMinor = $netMinor !== null ? $netMinor + $otherMinor : null;
                         $balance = \App\Support\EnrollmentBalance::forEnrollment($enrollment);
+                        $hasTuition = collect($balance['fees'])->contains(fn (array $fee): bool => $fee['is_tuition']);
                         $isOpen = $this->expandedEnrollment === $enrollment->id;
                     @endphp
                     <li wire:key="enrollment-{{ $enrollment->id }}" class="rounded-xl border border-gray-200 bg-gray-50 dark:border-gray-600 dark:bg-gray-700/40">
@@ -420,7 +407,7 @@ new #[Layout('layouts::app')] class extends Component
                                     <x-ui.badge :status="$enrollment->status->value" />
                                 </span>
                                 <span class="mt-1 block text-xs text-gray-500 dark:text-gray-400">
-                                    @if($totalMinor !== null)<x-ui.money :minor="$balance['owed']" /> · {{ __('fees.total_due') }} · <x-ui.money :minor="$balance['paid']" /> · {{ __('payments.paid') }}@else{{ __('fees.errors.fees_not_set') }}@endif
+                                    @if($hasTuition)<x-ui.money :minor="$balance['owed']" /> · {{ __('fees.total_due') }} · <x-ui.money :minor="$balance['paid']" /> · {{ __('payments.paid') }}@else{{ __('fees.errors.fees_not_set') }}@endif
                                 </span>
                             </span>
                             <svg class="h-5 w-5 shrink-0 text-gray-500 transition-transform dark:text-gray-400 @if($isOpen) rotate-180 @endif" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg>

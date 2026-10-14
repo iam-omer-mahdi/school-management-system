@@ -12,10 +12,10 @@ final class VoidRefund
 {
     /**
      * Void one refund with a required reason. The row stays visible
-     * and is excluded from every total, which restores the overpaid
-     * amount it had consumed. The refund must belong to the given
-     * enrollment: ids from another enrollment are rejected. Allowed
-     * on ended enrollments and archived students: voiding is a
+     * and is excluded from every total, which restores the refundable
+     * balance of the fee it had consumed. The refund must belong to
+     * the given enrollment: ids from another enrollment are rejected.
+     * Allowed on ended enrollments and archived students: voiding is a
      * correction, never new money.
      *
      * @throws ValidationException

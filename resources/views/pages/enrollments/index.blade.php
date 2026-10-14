@@ -113,10 +113,9 @@ new #[Layout('layouts::app')] class extends Component
                 'fees:id,enrollment_id,grade_fee_id,amount_minor',
                 'fees.gradeFee:id,fee_type_id',
                 'fees.gradeFee.feeType:id,system_key',
-                'fees.payments' => fn ($payments) => $payments->whereNull('voided_at')->select(['id', 'enrollment_id', 'enrollment_fee_id', 'amount_minor', 'kind', 'voided_at']),
+                'fees.payments' => fn ($payments) => $payments->whereNull('voided_at')->select(['id', 'enrollment_id', 'enrollment_fee_id', 'amount_minor', 'voided_at']),
                 'discount:enrollment_id,amount_minor',
-                'payments' => fn ($payments) => $payments->whereNull('voided_at')->select(['id', 'enrollment_id', 'enrollment_fee_id', 'amount_minor', 'kind', 'voided_at']),
-                'refunds' => fn ($refunds) => $refunds->whereNull('voided_at')->select(['id', 'enrollment_id', 'amount_minor']),
+                'refunds' => fn ($refunds) => $refunds->whereNull('voided_at')->select(['id', 'enrollment_id', 'enrollment_fee_id', 'amount_minor', 'voided_at']),
             ]);
 
         match ($this->sort) {
@@ -125,7 +124,7 @@ new #[Layout('layouts::app')] class extends Component
             'total_asc', 'total_desc' => $query
                 ->withSum('fees as fees_total', 'amount_minor')
                 ->withSum('discount as discount_total', 'amount_minor')
-                ->withSum(['payments as paid_total' => fn ($payments) => $payments->whereNull('voided_at')->where('kind', 'fee')], 'amount_minor')
+                ->withSum(['payments as paid_total' => fn ($payments) => $payments->whereNull('voided_at')], 'amount_minor')
                 ->orderByRaw("CASE WHEN status IN ('active', 'suspended') THEN COALESCE(fees_total, 0) - COALESCE(discount_total, 0) - COALESCE(paid_total, 0) ELSE 0 END ".($this->sort === 'total_asc' ? 'asc' : 'desc')),
             default => $query->orderByDesc('id'),
         };

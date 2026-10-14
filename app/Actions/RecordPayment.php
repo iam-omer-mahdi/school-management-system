@@ -4,13 +4,11 @@ declare(strict_types=1);
 
 namespace App\Actions;
 
-use App\Enums\PaymentKind;
 use App\Enums\PaymentMethod;
 use App\Models\Enrollment;
 use App\Models\EnrollmentFee;
-use App\Models\GradeFee;
 use App\Models\Payment;
-use App\Support\EnrollmentBalance;
+use App\Support\Money;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -18,17 +16,16 @@ use Illuminate\Validation\ValidationException;
 final class RecordPayment
 {
     /**
-     * Record one payment submission as one row per fee with a non-zero
-     * amount, plus an optional overpayment row, all inside one
+     * Record one payment submission as one row per fee, all inside one
      * transaction. Every row shares method, transaction number and
-     * date. Fee rows can never exceed their fee's remaining balance;
-     * overpayment rows have no cap but need a charged enrollment.
+     * date. The entered total is allocated across charged fees and
+     * must equal the sum of the per-fee amounts exactly. Each fee can never receive more than
+     * its remaining balance, and the total can never exceed the sum
+     * of every fee's remaining balance.
      *
      * Money contract: minor units only. The caller parses user input
-     * once; this action never parses decimals. The overpayment is
-     * recomputed here as entered total minus fee allocations and the
-     * save is rejected when a passed overpayment differs or its
-     * confirmation flag is missing. Never trust a client amount.
+     * once; this action never parses decimals. Never trust a client
+     * amount: all caps are recomputed here.
      *
      * Lock order: the enrollment row first, then its fee rows, so
      * concurrent submits re-read the same paid sums and cannot
@@ -37,7 +34,7 @@ final class RecordPayment
      * enrollment (warning only, never a block: reuse inside one
      * enrollment is expected for split submissions).
      *
-     * @param  array{enrollment_id: int, total_minor?: int, rows?: array<int, array{grade_fee_id?: int, amount_minor?: int}>, overpayment_minor?: int, overpayment_confirmed?: bool, method?: string, transaction_number?: string|null, paid_on?: string, note?: string|null}  $data
+     * @param  array{enrollment_id: int, total_minor?: int, rows?: array<int, array{grade_fee_id?: int, amount_minor?: int}>, method?: string, transaction_number?: string|null, paid_on?: string, note?: string|null}  $data
      * @return array{payments: Collection<int, Payment>, transaction_reused: bool}
      *
      * @throws ValidationException
@@ -97,7 +94,8 @@ final class RecordPayment
         }
 
         $rows = $data['rows'] ?? [];
-        $amounts = [];
+        $allocated = [];
+        $firstIndex = [];
 
         foreach (array_values($rows) as $index => $row) {
             $feeId = $row['grade_fee_id'] ?? null;
@@ -116,32 +114,17 @@ final class RecordPayment
                 ]);
             }
 
-            $amounts[] = ['grade_fee_id' => $feeId, 'amount_minor' => $minor];
+            $allocated[$feeId] = ($allocated[$feeId] ?? 0) + $minor;
+            $firstIndex[$feeId] ??= $index;
         }
 
-        $expected = $total - array_sum(array_column($amounts, 'amount_minor'));
-
-        if ($expected < 0) {
+        if (array_sum($allocated) !== $total) {
             throw ValidationException::withMessages([
                 'amount' => __('payments.errors.total_mismatch'),
             ]);
         }
 
-        $overpayment = $data['overpayment_minor'] ?? 0;
-
-        if ($overpayment < 0 || $overpayment !== $expected) {
-            throw ValidationException::withMessages([
-                'amount' => __('payments.errors.total_mismatch'),
-            ]);
-        }
-
-        if ($expected > 0 && ($data['overpayment_confirmed'] ?? false) !== true) {
-            throw ValidationException::withMessages([
-                'amount' => __('payments.errors.overpayment_confirmation_required'),
-            ]);
-        }
-
-        return DB::transaction(function () use ($data, $amounts, $expected, $method, $transactionNumber, $paidOn, $note): array {
+        return DB::transaction(function () use ($data, $allocated, $firstIndex, $total, $method, $transactionNumber, $paidOn, $note): array {
             $enrollment = Enrollment::query()
                 ->whereKey($data['enrollment_id'])
                 ->lockForUpdate()
@@ -159,37 +142,61 @@ final class RecordPayment
                 ]);
             }
 
-            $feeIds = array_column($amounts, 'grade_fee_id');
+            /** @var Collection<int, EnrollmentFee> $charges */
+            $charges = EnrollmentFee::query()
+                ->where('enrollment_id', $enrollment->id)
+                ->with('gradeFee.feeType:id,system_key')
+                ->lockForUpdate()
+                ->get();
 
-            $gradeFees = $feeIds === []
-                ? new Collection
-                : GradeFee::query()
-                    ->whereIn('id', $feeIds)
-                    ->with('feeType:id,system_key')
-                    ->lockForUpdate()
-                    ->get();
+            if ($charges->isEmpty()) {
+                throw ValidationException::withMessages([
+                    'amount' => __('payments.errors.no_charges'),
+                ]);
+            }
 
-            $discountMinor = $enrollment->discount()->lockForUpdate()->value('amount_minor') ?? 0;
+            $discountMinor = (int) ($enrollment->discount()->lockForUpdate()->value('amount_minor') ?? 0);
 
-            /** @var Collection<int, Payment> $created */
-            $created = new Collection;
+            $paidByFee = Payment::query()
+                ->where('enrollment_id', $enrollment->id)
+                ->whereNull('voided_at')
+                ->selectRaw('enrollment_fee_id, COALESCE(SUM(amount_minor), 0) as paid_total')
+                ->groupBy('enrollment_fee_id')
+                ->lockForUpdate()
+                ->pluck('paid_total', 'enrollment_fee_id');
 
-            foreach ($amounts as $index => $allocation) {
-                $gradeFee = $gradeFees->firstWhere('id', $allocation['grade_fee_id']);
+            $discountLeft = $discountMinor;
+            $remainingByFee = [];
+            $chargesByGradeFee = [];
+            $sumRemaining = 0;
 
-                if ($gradeFee === null
-                    || (int) $gradeFee->grade_id !== (int) $enrollment->grade_id
-                    || (int) $gradeFee->academic_year_id !== (int) $enrollment->academic_year_id) {
-                    throw ValidationException::withMessages([
-                        "rows.{$index}.amount" => __('fees.errors.grade_mismatch'),
-                    ]);
+            foreach ($charges as $charge) {
+                $feeDiscount = 0;
+
+                if ($charge->gradeFee->feeType->isTuition() && $discountLeft > 0) {
+                    $feeDiscount = min($discountLeft, (int) $charge->amount_minor);
+                    $discountLeft -= $feeDiscount;
                 }
 
-                $charge = EnrollmentFee::query()
-                    ->where('enrollment_id', $enrollment->id)
-                    ->where('grade_fee_id', $gradeFee->id)
-                    ->lockForUpdate()
-                    ->first();
+                $paidMinor = (int) ($paidByFee[$charge->id] ?? 0);
+                $remaining = (int) $charge->amount_minor - $feeDiscount - $paidMinor;
+
+                $remainingByFee[$charge->id] = $remaining;
+                $chargesByGradeFee[(int) $charge->grade_fee_id] = $charge;
+                $sumRemaining += max(0, $remaining);
+            }
+
+            if ($total > $sumRemaining) {
+                throw ValidationException::withMessages([
+                    'amount' => __('payments.errors.total_exceeds_remaining', [
+                        'amount' => Money::format($total - $sumRemaining),
+                    ]),
+                ]);
+            }
+
+            foreach ($allocated as $gradeFeeId => $amount) {
+                $index = $firstIndex[$gradeFeeId];
+                $charge = $chargesByGradeFee[$gradeFeeId] ?? null;
 
                 if ($charge === null) {
                     throw ValidationException::withMessages([
@@ -197,45 +204,28 @@ final class RecordPayment
                     ]);
                 }
 
-                $feeDiscount = $gradeFee->feeType->isTuition() ? (int) $discountMinor : 0;
-
-                $paidMinor = Payment::query()
-                    ->where('enrollment_fee_id', $charge->id)
-                    ->where('kind', PaymentKind::Fee)
-                    ->whereNull('voided_at')
-                    ->sum('amount_minor');
-
-                $remaining = EnrollmentBalance::fee((int) $charge->amount_minor, $feeDiscount, (int) $paidMinor)['remaining'];
-
-                if ($allocation['amount_minor'] > $remaining) {
+                if ($amount > $remainingByFee[$charge->id]) {
                     throw ValidationException::withMessages([
                         "rows.{$index}.amount" => __('payments.errors.amount_exceeds_remaining'),
                     ]);
                 }
-
-                $created->push($this->store(
-                    $enrollment->id,
-                    $charge->id,
-                    PaymentKind::Fee,
-                    $allocation['amount_minor'],
-                    $method,
-                    $transactionNumber,
-                    $paidOn,
-                    $note
-                ));
             }
 
-            if ($expected > 0) {
-                $created->push($this->store(
-                    $enrollment->id,
-                    null,
-                    PaymentKind::Overpayment,
-                    $expected,
-                    $method,
-                    $transactionNumber,
-                    $paidOn,
-                    $note
-                ));
+            /** @var Collection<int, Payment> $created */
+            $created = new Collection;
+
+            foreach ($allocated as $gradeFeeId => $amount) {
+                $charge = $chargesByGradeFee[$gradeFeeId];
+
+                $created->push(Payment::query()->create([
+                    'enrollment_id' => $enrollment->id,
+                    'enrollment_fee_id' => $charge->id,
+                    'amount_minor' => $amount,
+                    'method' => $method,
+                    'transaction_number' => $transactionNumber === '' ? null : $transactionNumber,
+                    'paid_on' => $paidOn,
+                    'note' => $note === '' ? null : $note,
+                ]));
             }
 
             $transactionReused = $transactionNumber !== '' && Payment::query()
@@ -246,27 +236,5 @@ final class RecordPayment
 
             return ['payments' => $created, 'transaction_reused' => $transactionReused];
         });
-    }
-
-    private function store(
-        int $enrollmentId,
-        ?int $enrollmentFeeId,
-        PaymentKind $kind,
-        int $amountMinor,
-        PaymentMethod $method,
-        string $transactionNumber,
-        string $paidOn,
-        string $note
-    ): Payment {
-        return Payment::query()->create([
-            'enrollment_id' => $enrollmentId,
-            'enrollment_fee_id' => $enrollmentFeeId,
-            'amount_minor' => $amountMinor,
-            'kind' => $kind,
-            'method' => $method,
-            'transaction_number' => $transactionNumber === '' ? null : $transactionNumber,
-            'paid_on' => $paidOn,
-            'note' => $note === '' ? null : $note,
-        ]);
     }
 }

@@ -4,33 +4,36 @@ declare(strict_types=1);
 
 namespace App\Actions;
 
-use App\Enums\PaymentKind;
 use App\Enums\PaymentMethod;
-use App\Enums\RefundKind;
 use App\Models\Enrollment;
+use App\Models\EnrollmentFee;
 use App\Models\Payment;
 use App\Models\Refund;
-use App\Support\EnrollmentBalance;
 use App\Support\Money;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
-use InvalidArgumentException;
 
 final class RecordRefund
 {
     /**
-     * Refund part or all of the outstanding overpayment. Only the
-     * overpayment kind exists for now; the kind column stays so Step 4
-     * can add fee-money refunds. A refund never changes per-fee
-     * paid/remaining. Allowed on ended enrollments and archived
-     * students. Rows are locked so concurrent submits cannot
-     * over-refund.
+     * Refund money already paid against the fees of an ended
+     * enrollment. Charged enrollments cannot be refunded. The entered
+     * total is allocated across fees and must equal the sum of the
+     * per-fee amounts exactly; each fee can only be refunded up to its
+     * refundable balance (paid minus already refunded). A refund never
+     * changes charges or per-fee paid. Rows are locked so concurrent
+     * submits cannot over-refund.
      *
-     * @param  array{enrollment_id: int, amount?: string, method?: string, transaction_number?: string|null, refunded_on?: string, note?: string|null}  $data
+     * Money contract: minor units only. The caller parses user input
+     * once; this action never parses decimals.
+     *
+     * @param  array{enrollment_id: int, total_minor?: int, rows?: array<int, array{grade_fee_id?: int, amount_minor?: int}>, method?: string, transaction_number?: string|null, refunded_on?: string, note?: string|null}  $data
+     * @return Collection<int, Refund>
      *
      * @throws ValidationException
      */
-    public function handle(array $data): Refund
+    public function handle(array $data): Collection
     {
         $method = PaymentMethod::tryFrom((string) ($data['method'] ?? ''));
 
@@ -82,21 +85,46 @@ final class RecordRefund
             ]);
         }
 
-        try {
-            $amountMinor = Money::fromDecimal((string) ($data['amount'] ?? ''));
-        } catch (InvalidArgumentException) {
+        $total = $data['total_minor'] ?? null;
+
+        if (! is_int($total) || $total <= 0) {
             throw ValidationException::withMessages([
                 'amount' => __('validation.numeric', ['attribute' => __('payments.amount')]),
             ]);
         }
 
-        if ($amountMinor <= 0) {
+        $rows = $data['rows'] ?? [];
+        $allocated = [];
+        $firstIndex = [];
+
+        foreach (array_values($rows) as $index => $row) {
+            $feeId = $row['grade_fee_id'] ?? null;
+
+            if (! is_int($feeId) || $feeId <= 0) {
+                throw ValidationException::withMessages([
+                    "rows.{$index}.amount" => __('fees.errors.grade_mismatch'),
+                ]);
+            }
+
+            $minor = $row['amount_minor'] ?? null;
+
+            if (! is_int($minor) || $minor <= 0) {
+                throw ValidationException::withMessages([
+                    "rows.{$index}.amount" => __('validation.numeric', ['attribute' => __('payments.amount')]),
+                ]);
+            }
+
+            $allocated[$feeId] = ($allocated[$feeId] ?? 0) + $minor;
+            $firstIndex[$feeId] ??= $index;
+        }
+
+        if (array_sum($allocated) !== $total) {
             throw ValidationException::withMessages([
-                'amount' => __('validation.numeric', ['attribute' => __('payments.amount')]),
+                'amount' => __('payments.errors.total_mismatch'),
             ]);
         }
 
-        return DB::transaction(function () use ($data, $amountMinor, $method, $transactionNumber, $refundedOn, $note): Refund {
+        return DB::transaction(function () use ($data, $allocated, $firstIndex, $total, $method, $transactionNumber, $refundedOn, $note): Collection {
             $enrollment = Enrollment::query()
                 ->whereKey($data['enrollment_id'])
                 ->lockForUpdate()
@@ -108,36 +136,97 @@ final class RecordRefund
                 ]);
             }
 
-            $overpaid = Payment::query()
-                ->where('enrollment_id', $enrollment->id)
-                ->where('kind', PaymentKind::Overpayment)
-                ->whereNull('voided_at')
-                ->lockForUpdate()
-                ->sum('amount_minor');
-
-            $refunded = Refund::query()
-                ->where('enrollment_id', $enrollment->id)
-                ->whereNull('voided_at')
-                ->lockForUpdate()
-                ->sum('amount_minor');
-
-            $outstanding = EnrollmentBalance::overpaidOutstanding((int) $overpaid, (int) $refunded);
-
-            if ($amountMinor > $outstanding) {
+            if (! $enrollment->isEnded()) {
                 throw ValidationException::withMessages([
-                    'amount' => __('payments.errors.refund_exceeds_outstanding'),
+                    'amount' => __('payments.errors.refund_charged_only'),
                 ]);
             }
 
-            return Refund::query()->create([
-                'enrollment_id' => $enrollment->id,
-                'kind' => RefundKind::Overpayment,
-                'amount_minor' => $amountMinor,
-                'method' => $method,
-                'transaction_number' => $transactionNumber === '' ? null : $transactionNumber,
-                'refunded_on' => $refundedOn,
-                'note' => $note,
-            ]);
+            /** @var Collection<int, EnrollmentFee> $charges */
+            $charges = EnrollmentFee::query()
+                ->where('enrollment_id', $enrollment->id)
+                ->lockForUpdate()
+                ->get();
+
+            if ($charges->isEmpty()) {
+                throw ValidationException::withMessages([
+                    'amount' => __('payments.errors.no_charges'),
+                ]);
+            }
+
+            $paidByFee = Payment::query()
+                ->where('enrollment_id', $enrollment->id)
+                ->whereNull('voided_at')
+                ->selectRaw('enrollment_fee_id, COALESCE(SUM(amount_minor), 0) as paid_total')
+                ->groupBy('enrollment_fee_id')
+                ->lockForUpdate()
+                ->pluck('paid_total', 'enrollment_fee_id');
+
+            $refundedByFee = Refund::query()
+                ->where('enrollment_id', $enrollment->id)
+                ->whereNull('voided_at')
+                ->selectRaw('enrollment_fee_id, COALESCE(SUM(amount_minor), 0) as refunded_total')
+                ->groupBy('enrollment_fee_id')
+                ->lockForUpdate()
+                ->pluck('refunded_total', 'enrollment_fee_id');
+
+            $refundableByFee = [];
+            $chargesByGradeFee = [];
+            $sumRefundable = 0;
+
+            foreach ($charges as $charge) {
+                $paidMinor = (int) ($paidByFee[$charge->id] ?? 0);
+                $refundedMinor = (int) ($refundedByFee[$charge->id] ?? 0);
+                $refundable = max(0, $paidMinor - $refundedMinor);
+
+                $refundableByFee[$charge->id] = $refundable;
+                $chargesByGradeFee[(int) $charge->grade_fee_id] = $charge;
+                $sumRefundable += $refundable;
+            }
+
+            if ($total > $sumRefundable) {
+                throw ValidationException::withMessages([
+                    'amount' => __('payments.errors.refund_exceeds_refundable', [
+                        'amount' => Money::format($total - $sumRefundable),
+                    ]),
+                ]);
+            }
+
+            foreach ($allocated as $gradeFeeId => $amount) {
+                $index = $firstIndex[$gradeFeeId];
+                $charge = $chargesByGradeFee[$gradeFeeId] ?? null;
+
+                if ($charge === null) {
+                    throw ValidationException::withMessages([
+                        "rows.{$index}.amount" => __('fees.errors.charge_not_found'),
+                    ]);
+                }
+
+                if ($amount > $refundableByFee[$charge->id]) {
+                    throw ValidationException::withMessages([
+                        "rows.{$index}.amount" => __('payments.errors.refund_amount_exceeds_refundable'),
+                    ]);
+                }
+            }
+
+            /** @var Collection<int, Refund> $created */
+            $created = new Collection;
+
+            foreach ($allocated as $gradeFeeId => $amount) {
+                $charge = $chargesByGradeFee[$gradeFeeId];
+
+                $created->push(Refund::query()->create([
+                    'enrollment_id' => $enrollment->id,
+                    'enrollment_fee_id' => $charge->id,
+                    'amount_minor' => $amount,
+                    'method' => $method,
+                    'transaction_number' => $transactionNumber === '' ? null : $transactionNumber,
+                    'refunded_on' => $refundedOn,
+                    'note' => $note,
+                ]));
+            }
+
+            return $created;
         });
     }
 }

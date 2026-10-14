@@ -13,20 +13,19 @@ use App\Actions\RecordPayment;
 use App\Actions\UpdateEnrollmentStatus;
 use App\Actions\VoidPayment;
 use App\Enums\EnrollmentStatus;
-use App\Enums\PaymentKind;
 use App\Models\AcademicYear;
 use App\Models\Enrollment;
 use App\Models\FeeType;
 use App\Models\Grade;
 use App\Models\GradeFee;
 use App\Models\Payment;
+use App\Models\Refund;
 use App\Models\School;
 use App\Models\Student;
 use App\Models\User;
 use App\Support\Money;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Validation\ValidationException;
 use Livewire\Livewire;
 use Tests\TestCase;
 
@@ -61,6 +60,18 @@ class PaymentPageTest extends TestCase
         ])->gradeFee;
     }
 
+    private function optionalFee(Grade $grade, AcademicYear $year, string $amount = '150'): GradeFee
+    {
+        $type = FeeType::factory()->create(['name' => 'Books', 'is_mandatory' => false]);
+
+        return app(CreateGradeFee::class)->handle([
+            'grade_id' => $grade->id,
+            'academic_year_id' => $year->id,
+            'fee_type_id' => $type->id,
+            'amount' => $amount,
+        ])->gradeFee;
+    }
+
     private function enroll(Grade $grade, AcademicYear $year): Enrollment
     {
         $student = Student::factory()->create();
@@ -68,30 +79,37 @@ class PaymentPageTest extends TestCase
         return app(EnrollStudent::class)->handle($student->id, $year->id, $grade->id);
     }
 
+    /**
+     * @param  array<int, array{grade_fee_id: int, amount_minor: int}>  $rows
+     */
+    private function pay(Enrollment $enrollment, int $totalMinor, array $rows, string $method = 'cash', ?string $transactionNumber = null): void
+    {
+        app(RecordPayment::class)->handle([
+            'enrollment_id' => $enrollment->id,
+            'total_minor' => $totalMinor,
+            'rows' => $rows,
+            'method' => $method,
+            'transaction_number' => $transactionNumber,
+            'paid_on' => date('Y-m-d'),
+            'note' => null,
+        ]);
+    }
+
     public function test_split_payment_through_modal_updates_totals(): void
     {
         $this->actingAs(User::factory()->create());
         [$grade, $year] = $this->fixtures();
         $tuitionFee = $this->scheduleTuition($grade, $year);
-
-        $books = FeeType::factory()->create(['name' => 'Books', 'is_mandatory' => false]);
-        $booksFee = app(CreateGradeFee::class)->handle([
-            'grade_id' => $grade->id,
-            'academic_year_id' => $year->id,
-            'fee_type_id' => $books->id,
-            'amount' => '150',
-        ])->gradeFee;
+        $booksFee = $this->optionalFee($grade, $year);
 
         $enrollment = $this->enroll($grade, $year);
         app(AddOptionalFeeToEnrollment::class)->handle($enrollment->id, $booksFee->id);
-        $tuitionCharge = $enrollment->fees()->where('grade_fee_id', $tuitionFee->id)->firstOrFail();
-        $booksCharge = $enrollment->fees()->where('grade_fee_id', $booksFee->id)->firstOrFail();
 
         $page = Livewire::test('pages::enrollments.show', ['enrollment' => $enrollment->id])
             ->call('openPaymentModal')
             ->set('payTotal', '650')
-            ->set('payAlloc.'.$tuitionCharge->grade_fee_id, '500')
-            ->set('payAlloc.'.$booksCharge->grade_fee_id, '150')
+            ->set('payAlloc.'.$tuitionFee->id, '500')
+            ->set('payAlloc.'.$booksFee->id, '150')
             ->assertSee(__('payments.unallocated'))
             ->call('savePayment')
             ->assertHasNoErrors();
@@ -109,17 +127,17 @@ class PaymentPageTest extends TestCase
         $enrollment = $this->enroll($grade, $year);
         $charge = $enrollment->fees()->firstOrFail();
 
-        $page = Livewire::test('pages::enrollments.show', ['enrollment' => $enrollment->id])
+        Livewire::test('pages::enrollments.show', ['enrollment' => $enrollment->id])
             ->call('openPaymentModal')
             ->set('payTotal', '1000')
             ->set('payAlloc.'.$charge->grade_fee_id, '400')
-            ->call('savePayment');
+            ->call('savePayment')
+            ->assertHasErrors(['amount']);
 
-        $page->assertHasErrors(['payTotal']);
         $this->assertSame(0, Payment::query()->where('enrollment_id', $enrollment->id)->count());
     }
 
-    public function test_overpayment_offered_and_recorded_on_confirm(): void
+    public function test_paying_above_remaining_is_blocked_and_saves_nothing(): void
     {
         $this->actingAs(User::factory()->create());
         [$grade, $year] = $this->fixtures();
@@ -130,19 +148,40 @@ class PaymentPageTest extends TestCase
         $page = Livewire::test('pages::enrollments.show', ['enrollment' => $enrollment->id])
             ->call('openPaymentModal')
             ->set('payTotal', '1200')
-            ->set('payAlloc.'.$charge->grade_fee_id, '1000')
-            ->assertSee(__('payments.record_overpayment'))
-            ->call('savePayment');
+            ->set('payAlloc.'.$charge->grade_fee_id, '1200')
+            ->assertSee(__('payments.errors.amount_exceeds_remaining'));
 
-        // Unconfirmed overpayment keeps Save disabled server-side too.
-        $page->assertHasErrors(['payTotal']);
+        $page->call('savePayment')->assertHasErrors(['amount']);
 
-        $page->set('confirmOverpayment', true)
+        $this->assertSame(0, Payment::query()->where('enrollment_id', $enrollment->id)->count());
+    }
+
+    public function test_discounted_enrollment_gate_blocks_paying_beyond_the_owed_amount(): void
+    {
+        $this->actingAs(User::factory()->create());
+        [$grade, $year] = $this->fixtures();
+        $this->scheduleTuition($grade, $year, '2000');
+        $enrollment = $this->enroll($grade, $year);
+        $charge = $enrollment->fees()->firstOrFail();
+
+        $discount = app(CreateDiscount::class)->handle(['name' => 'Sibling', 'percent' => '10']);
+        app(ApplyDiscountToEnrollment::class)->handle($enrollment->id, $discount->id);
+
+        $page = Livewire::test('pages::enrollments.show', ['enrollment' => $enrollment->id])
+            ->call('openPaymentModal')
+            ->set('payTotal', '2000')
+            ->set('payAlloc.'.$charge->grade_fee_id, '2000')
+            ->assertSee(__('payments.errors.amount_exceeds_remaining'));
+
+        $page->call('savePayment')->assertHasErrors(['amount']);
+        $this->assertSame(0, Payment::query()->where('enrollment_id', $enrollment->id)->count());
+
+        $page->set('payTotal', '1800')
+            ->set('payAlloc.'.$charge->grade_fee_id, '1800')
             ->call('savePayment')
             ->assertHasNoErrors();
 
-        $this->assertSame(1, Payment::query()->where('enrollment_id', $enrollment->id)->where('kind', 'overpayment')->count());
-        $page->assertSee(__('payments.overpaid'));
+        $this->assertEquals(180000, Payment::query()->where('enrollment_id', $enrollment->id)->sum('amount_minor'));
     }
 
     public function test_transaction_reuse_warns_without_blocking(): void
@@ -153,22 +192,12 @@ class PaymentPageTest extends TestCase
 
         $first = $this->enroll($grade, $year);
         $firstCharge = $first->fees()->firstOrFail();
-        app(RecordPayment::class)->handle([
-            'enrollment_id' => $first->id,
-            'total_minor' => 10000,
-            'rows' => [['grade_fee_id' => $firstCharge->grade_fee_id, 'amount_minor' => 10000]],
-            'overpayment_minor' => 0,
-            'overpayment_confirmed' => false,
-            'method' => 'bank_transfer',
-            'transaction_number' => 'SHARED-TXN',
-            'paid_on' => date('Y-m-d'),
-            'note' => null,
-        ]);
+        $this->pay($first, 10000, [['grade_fee_id' => $firstCharge->grade_fee_id, 'amount_minor' => 10000]], 'bank_transfer', 'SHARED-TXN');
 
         $second = $this->enroll($grade, $year);
         $secondCharge = $second->fees()->firstOrFail();
 
-        $page = Livewire::test('pages::enrollments.show', ['enrollment' => $second->id])
+        Livewire::test('pages::enrollments.show', ['enrollment' => $second->id])
             ->call('openPaymentModal')
             ->set('payMethod', 'bank_transfer')
             ->set('payTxn', 'SHARED-TXN')
@@ -188,18 +217,9 @@ class PaymentPageTest extends TestCase
         $this->scheduleTuition($grade, $year);
         $enrollment = $this->enroll($grade, $year);
         $charge = $enrollment->fees()->firstOrFail();
+        $this->pay($enrollment, 20000, [['grade_fee_id' => $charge->grade_fee_id, 'amount_minor' => 20000]]);
 
-        $payment = app(RecordPayment::class)->handle([
-            'enrollment_id' => $enrollment->id,
-            'total_minor' => 20000,
-            'rows' => [['grade_fee_id' => $charge->grade_fee_id, 'amount_minor' => 20000]],
-            'overpayment_minor' => 0,
-            'overpayment_confirmed' => false,
-            'method' => 'cash',
-            'transaction_number' => null,
-            'paid_on' => date('Y-m-d'),
-            'note' => null,
-        ])['payments']->firstOrFail();
+        $payment = $enrollment->refresh()->payments()->firstOrFail();
 
         $page = Livewire::test('pages::enrollments.show', ['enrollment' => $enrollment->id])
             ->call('openVoidModal', 'payment', $payment->id)
@@ -216,6 +236,32 @@ class PaymentPageTest extends TestCase
             ->assertSee(__('payments.void'));
     }
 
+    public function test_pay_button_shows_specific_reason_for_each_state(): void
+    {
+        $this->actingAs(User::factory()->create());
+        [$grade, $year] = $this->fixtures();
+
+        // No charges yet: the button is replaced by the reason.
+        $noCharges = $this->enroll($grade, $year);
+        Livewire::test('pages::enrollments.show', ['enrollment' => $noCharges->id])
+            ->assertSee(__('payments.errors.no_charges'))
+            ->assertSee(__('payments.add_payment'), false)
+            ->assertSee('disabled="disabled"', false)
+            ->assertDontSee('wire:click="openPaymentModal"', false);
+
+        // Fully paid: nothing left to pay.
+        $this->scheduleTuition($grade, $year);
+        $paid = $this->enroll($grade, $year);
+        $paidCharge = $paid->fees()->firstOrFail();
+        $this->pay($paid, 100000, [['grade_fee_id' => $paidCharge->grade_fee_id, 'amount_minor' => 100000]]);
+
+        Livewire::test('pages::enrollments.show', ['enrollment' => $paid->id])
+            ->assertSee(__('payments.errors.nothing_to_pay'))
+            ->assertSee(__('payments.add_payment'), false)
+            ->assertSee('disabled="disabled"', false)
+            ->assertDontSee('wire:click="openPaymentModal"', false);
+    }
+
     public function test_ended_enrollment_hides_add_but_shows_closed_figures(): void
     {
         $this->actingAs(User::factory()->create());
@@ -223,24 +269,14 @@ class PaymentPageTest extends TestCase
         $this->scheduleTuition($grade, $year);
         $enrollment = $this->enroll($grade, $year);
         $charge = $enrollment->fees()->firstOrFail();
-
-        app(RecordPayment::class)->handle([
-            'enrollment_id' => $enrollment->id,
-            'total_minor' => 30000,
-            'rows' => [['grade_fee_id' => $charge->grade_fee_id, 'amount_minor' => 30000]],
-            'overpayment_minor' => 0,
-            'overpayment_confirmed' => false,
-            'method' => 'cash',
-            'transaction_number' => null,
-            'paid_on' => date('Y-m-d'),
-            'note' => null,
-        ]);
+        $this->pay($enrollment, 30000, [['grade_fee_id' => $charge->grade_fee_id, 'amount_minor' => 30000]]);
 
         app(UpdateEnrollmentStatus::class)->handle($enrollment, EnrollmentStatus::Left);
 
         Livewire::test('pages::enrollments.show', ['enrollment' => $enrollment->id])
             ->assertSee(__('payments.errors.ended_no_payments'))
-            ->assertDontSee(__('payments.add_payment'))
+            ->assertDontSee(__('payments.add_payment'), false)
+            ->assertDontSee('wire:click="openPaymentModal"', false)
             ->assertSee(__('payments.closed_without_payment'))
             ->assertSee(Money::format(70000))
             ->assertSee(Money::format(30000));
@@ -253,18 +289,7 @@ class PaymentPageTest extends TestCase
         $this->scheduleTuition($grade, $year);
         $enrollment = $this->enroll($grade, $year);
         $charge = $enrollment->fees()->firstOrFail();
-
-        app(RecordPayment::class)->handle([
-            'enrollment_id' => $enrollment->id,
-            'total_minor' => 30000,
-            'rows' => [['grade_fee_id' => $charge->grade_fee_id, 'amount_minor' => 30000]],
-            'overpayment_minor' => 0,
-            'overpayment_confirmed' => false,
-            'method' => 'cash',
-            'transaction_number' => null,
-            'paid_on' => date('Y-m-d'),
-            'note' => null,
-        ]);
+        $this->pay($enrollment, 30000, [['grade_fee_id' => $charge->grade_fee_id, 'amount_minor' => 30000]]);
 
         Livewire::test('pages::enrollments.show', ['enrollment' => $enrollment->id])
             ->call('openStatusModal', 'left')
@@ -281,28 +306,74 @@ class PaymentPageTest extends TestCase
         [$grade, $year] = $this->fixtures();
         $this->scheduleTuition($grade, $year);
         $enrollment = $this->enroll($grade, $year);
+        $charge = $enrollment->fees()->firstOrFail();
+        $this->pay($enrollment, 50000, [['grade_fee_id' => $charge->grade_fee_id, 'amount_minor' => 50000]]);
 
-        app(RecordPayment::class)->handle([
-            'enrollment_id' => $enrollment->id,
-            'total_minor' => 50000,
-            'rows' => [],
-            'overpayment_minor' => 50000,
-            'overpayment_confirmed' => true,
-            'method' => 'cash',
-            'transaction_number' => null,
-            'paid_on' => date('Y-m-d'),
-            'note' => null,
-        ]);
+        app(UpdateEnrollmentStatus::class)->handle($enrollment, EnrollmentStatus::Left);
 
         $page = Livewire::test('pages::enrollments.show', ['enrollment' => $enrollment->id])
             ->call('openRefundModal')
-            ->set('refundAmount', '200')
+            ->set('refundTotal', '200')
+            ->set('refundAlloc.'.$charge->grade_fee_id, '200')
             ->set('refundNote', 'Partial return')
             ->call('saveRefund')
             ->assertHasNoErrors();
 
+        $this->assertSame(1, Refund::query()->where('enrollment_id', $enrollment->id)->count());
         $page->assertSee(Money::format(20000))
             ->assertSee(__('payments.refunds'));
+    }
+
+    public function test_refund_button_hidden_and_direct_save_blocked_on_charged_enrollment(): void
+    {
+        $this->actingAs(User::factory()->create());
+        [$grade, $year] = $this->fixtures();
+        $this->scheduleTuition($grade, $year);
+        $enrollment = $this->enroll($grade, $year);
+        $charge = $enrollment->fees()->firstOrFail();
+        $this->pay($enrollment, 40000, [['grade_fee_id' => $charge->grade_fee_id, 'amount_minor' => 40000]]);
+
+        $page = Livewire::test('pages::enrollments.show', ['enrollment' => $enrollment->id])
+            ->assertDontSee('wire:click="openRefundModal"', false);
+
+        $page->call('openRefundModal')
+            ->set('refundTotal', '100')
+            ->set('refundAlloc.'.$charge->grade_fee_id, '100')
+            ->set('refundNote', 'Too early')
+            ->call('saveRefund')
+            ->assertHasErrors(['amount']);
+
+        $this->assertSame(0, Refund::query()->where('enrollment_id', $enrollment->id)->count());
+    }
+
+    public function test_refund_gate_caps_at_refundable_and_requires_note(): void
+    {
+        $this->actingAs(User::factory()->create());
+        [$grade, $year] = $this->fixtures();
+        $this->scheduleTuition($grade, $year);
+        $enrollment = $this->enroll($grade, $year);
+        $charge = $enrollment->fees()->firstOrFail();
+        $this->pay($enrollment, 40000, [['grade_fee_id' => $charge->grade_fee_id, 'amount_minor' => 40000]]);
+
+        app(UpdateEnrollmentStatus::class)->handle($enrollment, EnrollmentStatus::Left);
+
+        $page = Livewire::test('pages::enrollments.show', ['enrollment' => $enrollment->id])
+            ->call('openRefundModal')
+            ->set('refundTotal', '500')
+            ->set('refundAlloc.'.$charge->grade_fee_id, '500')
+            ->set('refundNote', 'Too much')
+            ->assertSee(__('payments.errors.refund_amount_exceeds_refundable'));
+
+        $page->call('saveRefund')->assertHasErrors(['amount']);
+        $this->assertSame(0, Refund::query()->where('enrollment_id', $enrollment->id)->count());
+
+        $page->set('refundTotal', '100')
+            ->set('refundAlloc.'.$charge->grade_fee_id, '100')
+            ->set('refundNote', '')
+            ->assertSee(__('validation.required', ['attribute' => __('fees.note')]), false);
+
+        $page->call('saveRefund')->assertHasErrors(['note']);
+        $this->assertSame(0, Refund::query()->where('enrollment_id', $enrollment->id)->count());
     }
 
     public function test_payment_errors_are_arabic(): void
@@ -321,7 +392,7 @@ class PaymentPageTest extends TestCase
             ->set('payAlloc.'.$charge->grade_fee_id, '100')
             ->call('savePayment');
 
-        $page->assertHasErrors(['payTotal']);
+        $page->assertHasErrors();
 
         foreach ($page->errors()->all() as $message) {
             $this->assertMatchesRegularExpression('/\p{Arabic}/u', $message);
@@ -338,20 +409,9 @@ class PaymentPageTest extends TestCase
 
         $first = $this->enroll($grade, $year);
         $second = $this->enroll($grade, $year);
+        $this->pay($second, 10000, [['grade_fee_id' => $tuitionFee->id, 'amount_minor' => 10000]]);
 
-        $make = fn (Enrollment $e): Payment => app(RecordPayment::class)->handle([
-            'enrollment_id' => $e->id,
-            'total_minor' => 10000,
-            'rows' => [['grade_fee_id' => $tuitionFee->id, 'amount_minor' => 10000]],
-            'overpayment_minor' => 0,
-            'overpayment_confirmed' => false,
-            'method' => 'cash',
-            'transaction_number' => null,
-            'paid_on' => date('Y-m-d'),
-            'note' => null,
-        ])['payments']->firstOrFail();
-
-        $foreign = $make($second);
+        $foreign = $second->refresh()->payments()->firstOrFail();
 
         Livewire::test('pages::enrollments.show', ['enrollment' => $first->id])
             ->call('openVoidModal', 'payment', $foreign->id)
@@ -360,13 +420,6 @@ class PaymentPageTest extends TestCase
             ->assertHasErrors(['payment_id']);
 
         $this->assertNull($foreign->refresh()->voided_at);
-
-        try {
-            app(VoidPayment::class)->handle($first->id, $foreign->id, 'Sneaky');
-            $this->fail('Expected ValidationException for cross-enrollment void');
-        } catch (ValidationException $e) {
-            $this->assertArrayHasKey('payment_id', $e->errors());
-        }
     }
 
     public function test_tampered_status_and_void_type_are_rejected_without_server_error(): void
@@ -403,13 +456,16 @@ class PaymentPageTest extends TestCase
             ->assertSee($numericReason, false);
 
         $page->set('payTotal', '1000')
-            ->assertSee(__('payments.unallocated').': '.Money::format(100000), false)
+            ->assertSee(__('payments.unallocated'), false)
+            ->assertSee(Money::format(100000), false)
             ->assertDontSee($txnReason, false);
 
-        $page->set('payAlloc.'.$charge->grade_fee_id, '1200')
-            ->assertSee(__('payments.errors.total_mismatch'));
+        $page->set('payTotal', '1200')
+            ->set('payAlloc.'.$charge->grade_fee_id, '1200')
+            ->assertSee(__('payments.errors.amount_exceeds_remaining'));
 
-        $page->set('payAlloc.'.$charge->grade_fee_id, '1000')
+        $page->set('payTotal', '1000')
+            ->set('payAlloc.'.$charge->grade_fee_id, '1000')
             ->set('payMethod', 'bank_transfer')
             ->assertSee($txnReason, false);
 
@@ -420,34 +476,6 @@ class PaymentPageTest extends TestCase
             ->assertHasNoErrors();
 
         $this->assertSame(1, Payment::query()->where('enrollment_id', $enrollment->id)->count());
-    }
-
-    public function test_pay_gate_overpayment_needs_confirmation(): void
-    {
-        $this->actingAs(User::factory()->create());
-        [$grade, $year] = $this->fixtures();
-        $this->scheduleTuition($grade, $year);
-        $enrollment = $this->enroll($grade, $year);
-        $charge = $enrollment->fees()->firstOrFail();
-
-        $reason = __('payments.unallocated').': '.Money::format(20000);
-
-        $page = Livewire::test('pages::enrollments.show', ['enrollment' => $enrollment->id])
-            ->call('openPaymentModal')
-            ->set('payTotal', '1200')
-            ->set('payAlloc.'.$charge->grade_fee_id, '1000')
-            ->assertSee($reason, false)
-            ->call('savePayment');
-
-        $page->assertHasErrors(['payTotal']);
-        $this->assertSame(0, Payment::query()->where('enrollment_id', $enrollment->id)->count());
-
-        $page->set('confirmOverpayment', true)
-            ->assertDontSee($reason, false)
-            ->call('savePayment')
-            ->assertHasNoErrors();
-
-        $this->assertSame(2, Payment::query()->where('enrollment_id', $enrollment->id)->count());
     }
 
     public function test_method_switch_clears_stale_transaction_error(): void
@@ -519,20 +547,9 @@ class PaymentPageTest extends TestCase
         $this->scheduleTuition($grade, $year);
         $enrollment = $this->enroll($grade, $year);
         $charge = $enrollment->fees()->firstOrFail();
+        $this->pay($enrollment, 40000, [['grade_fee_id' => $charge->grade_fee_id, 'amount_minor' => 40000]]);
 
-        app(RecordPayment::class)->handle([
-            'enrollment_id' => $enrollment->id,
-            'total_minor' => 40000,
-            'rows' => [['grade_fee_id' => $charge->grade_fee_id, 'amount_minor' => 40000]],
-            'overpayment_minor' => 0,
-            'overpayment_confirmed' => false,
-            'method' => 'cash',
-            'transaction_number' => null,
-            'paid_on' => date('Y-m-d'),
-            'note' => null,
-        ]);
-
-        $payment = $enrollment->payments()->firstOrFail();
+        $payment = $enrollment->refresh()->payments()->firstOrFail();
         app(VoidPayment::class)->handle($enrollment->id, $payment->id, 'Entered twice');
 
         $receiptUrl = route('enrollments.receipt', ['enrollment' => $enrollment->id, 'payments' => (string) $payment->id]);
@@ -552,18 +569,7 @@ class PaymentPageTest extends TestCase
         $this->scheduleTuition($grade, $year, '2000');
         $enrollment = $this->enroll($grade, $year);
         $charge = $enrollment->fees()->firstOrFail();
-
-        app(RecordPayment::class)->handle([
-            'enrollment_id' => $enrollment->id,
-            'total_minor' => 200000,
-            'rows' => [['grade_fee_id' => $charge->grade_fee_id, 'amount_minor' => 200000]],
-            'overpayment_minor' => 0,
-            'overpayment_confirmed' => false,
-            'method' => 'cash',
-            'transaction_number' => null,
-            'paid_on' => date('Y-m-d'),
-            'note' => null,
-        ]);
+        $this->pay($enrollment, 200000, [['grade_fee_id' => $charge->grade_fee_id, 'amount_minor' => 200000]]);
 
         $discount = app(CreateDiscount::class)->handle(['name' => 'Sibling', 'percent' => '10']);
 
@@ -581,29 +587,12 @@ class PaymentPageTest extends TestCase
         $this->actingAs(User::factory()->create());
         [$grade, $year] = $this->fixtures();
         $this->scheduleTuition($grade, $year);
-
-        $books = FeeType::factory()->create(['name' => 'Books', 'is_mandatory' => false]);
-        $booksFee = app(CreateGradeFee::class)->handle([
-            'grade_id' => $grade->id,
-            'academic_year_id' => $year->id,
-            'fee_type_id' => $books->id,
-            'amount' => '150',
-        ])->gradeFee;
+        $booksFee = $this->optionalFee($grade, $year);
 
         $enrollment = $this->enroll($grade, $year);
         app(AddOptionalFeeToEnrollment::class)->handle($enrollment->id, $booksFee->id);
 
-        app(RecordPayment::class)->handle([
-            'enrollment_id' => $enrollment->id,
-            'total_minor' => 15000,
-            'rows' => [['grade_fee_id' => $booksFee->id, 'amount_minor' => 15000]],
-            'overpayment_minor' => 0,
-            'overpayment_confirmed' => false,
-            'method' => 'cash',
-            'transaction_number' => null,
-            'paid_on' => date('Y-m-d'),
-            'note' => null,
-        ]);
+        $this->pay($enrollment, 15000, [['grade_fee_id' => $booksFee->id, 'amount_minor' => 15000]]);
 
         Livewire::test('pages::enrollments.show', ['enrollment' => $enrollment->id])
             ->call('removeOptional', $booksFee->id)
@@ -611,9 +600,8 @@ class PaymentPageTest extends TestCase
 
         $this->assertSame(2, $enrollment->refresh()->fees()->count());
 
-        // Voiding keeps the payment history, so the charge stays
-        // locked: removal is still rejected with a clear message.
-        $payment = $enrollment->payments()->firstOrFail();
+        // Voiding keeps the payment history, so the charge stays locked.
+        $payment = $enrollment->refresh()->payments()->firstOrFail();
         app(VoidPayment::class)->handle($enrollment->id, $payment->id, 'Entered twice');
 
         Livewire::test('pages::enrollments.show', ['enrollment' => $enrollment->id])
@@ -652,14 +640,7 @@ class PaymentPageTest extends TestCase
         $this->actingAs(User::factory()->create());
         [$grade, $year] = $this->fixtures();
         $tuitionFee = $this->scheduleTuition($grade, $year, '5000');
-
-        $books = FeeType::factory()->create(['name' => 'Books', 'is_mandatory' => false]);
-        $booksFee = app(CreateGradeFee::class)->handle([
-            'grade_id' => $grade->id,
-            'academic_year_id' => $year->id,
-            'fee_type_id' => $books->id,
-            'amount' => '1,250.50',
-        ])->gradeFee;
+        $booksFee = $this->optionalFee($grade, $year, '1,250.50');
 
         $enrollment = $this->enroll($grade, $year);
         app(AddOptionalFeeToEnrollment::class)->handle($enrollment->id, $booksFee->id);
@@ -679,7 +660,7 @@ class PaymentPageTest extends TestCase
         $this->assertEquals(Money::fromDecimal('6250.50'), $rows->sum('amount_minor'));
     }
 
-    public function test_ended_enrollment_save_blocked_through_direct_component_call(): void
+    public function test_ended_enrollment_submit_blocked_through_direct_component_call(): void
     {
         $this->actingAs(User::factory()->create());
         [$grade, $year] = $this->fixtures();
@@ -697,73 +678,30 @@ class PaymentPageTest extends TestCase
         $this->assertSame(0, Payment::query()->where('enrollment_id', $enrollment->id)->count());
     }
 
-    public function test_displayed_totals_stay_fresh_after_void_and_refund(): void
+    public function test_displayed_totals_stay_fresh_after_refund(): void
     {
         $this->actingAs(User::factory()->create());
         [$grade, $year] = $this->fixtures();
-        $tuitionFee = $this->scheduleTuition($grade, $year);
+        $this->scheduleTuition($grade, $year);
         $enrollment = $this->enroll($grade, $year);
+        $charge = $enrollment->fees()->firstOrFail();
+        $this->pay($enrollment, 40000, [['grade_fee_id' => $charge->grade_fee_id, 'amount_minor' => 40000]]);
 
-        $payment = app(RecordPayment::class)->handle([
-            'enrollment_id' => $enrollment->id,
-            'total_minor' => 120000,
-            'rows' => [['grade_fee_id' => $tuitionFee->id, 'amount_minor' => 100000]],
-            'overpayment_minor' => 20000,
-            'overpayment_confirmed' => true,
-            'method' => 'cash',
-            'transaction_number' => null,
-            'paid_on' => date('Y-m-d'),
-            'note' => null,
-        ])['payments'];
+        app(UpdateEnrollmentStatus::class)->handle($enrollment, EnrollmentStatus::Left);
 
         $page = Livewire::test('pages::enrollments.show', ['enrollment' => $enrollment->id])
-            ->assertSee(Money::format(100000), false)
-            ->assertSee(Money::format(20000), false);
-
-        $page->call('openVoidModal', 'payment', $payment->firstWhere('kind', PaymentKind::Fee)->id)
-            ->set('voidReason', 'Entered twice')
-            ->call('confirmVoid')
-            ->assertHasNoErrors()
-            ->assertSee(Money::format(100000), false);
+            ->assertSee(Money::format(40000), false);
 
         $page->call('openRefundModal')
-            ->set('refundAmount', '50')
+            ->set('refundTotal', '150')
+            ->set('refundAlloc.'.$charge->grade_fee_id, '150')
             ->set('refundNote', 'Partial return')
             ->call('saveRefund')
             ->assertHasNoErrors()
-            ->assertSee(Money::format(15000), false);
-    }
-
-    public function test_discounted_overpayment_stores_minor_units_once(): void
-    {
-        $this->actingAs(User::factory()->create());
-        [$grade, $year] = $this->fixtures();
-        $tuitionFee = $this->scheduleTuition($grade, $year, '200000');
-        $enrollment = $this->enroll($grade, $year);
-
-        $discount = app(CreateDiscount::class)->handle(['name' => 'Sibling', 'percent' => '10']);
-        app(ApplyDiscountToEnrollment::class)->handle($enrollment->id, $discount->id);
-
-        Livewire::test('pages::enrollments.show', ['enrollment' => $enrollment->id])
-            ->call('openPaymentModal')
-            ->set('payTotal', '200000')
-            ->set('payAlloc.'.$tuitionFee->id, '180000')
-            ->set('confirmOverpayment', true)
-            ->call('savePayment')
-            ->assertHasNoErrors();
-
-        $rows = Payment::query()->where('enrollment_id', $enrollment->id)->orderBy('id')->get();
-        $this->assertCount(2, $rows);
-
-        $this->assertTrue($rows[0]->kind === PaymentKind::Fee);
-        $this->assertSame(Money::fromDecimal('180000'), (int) $rows[0]->amount_minor);
-
-        $this->assertTrue($rows[1]->kind === PaymentKind::Overpayment);
-        $this->assertSame(Money::fromDecimal('20000'), (int) $rows[1]->amount_minor);
-
-        $this->assertEquals(
-            Money::fromDecimal('200000'),
-            $rows->sum('amount_minor')
-        );
+            ->assertSee(__('payments.received'), false)
+            ->assertSee(__('payments.closed_without_payment'), false)
+            ->assertSee(Money::format(15000), false)
+            ->assertSee(Money::format(25000), false)
+            ->assertSee(Money::format(75000), false);
     }
 }

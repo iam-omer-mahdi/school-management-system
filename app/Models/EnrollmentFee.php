@@ -52,4 +52,10 @@ class EnrollmentFee extends Model
     {
         return $this->hasMany(Payment::class);
     }
+
+    /** @return HasMany<Refund, $this> */
+    public function refunds(): HasMany
+    {
+        return $this->hasMany(Refund::class);
+    }
 }

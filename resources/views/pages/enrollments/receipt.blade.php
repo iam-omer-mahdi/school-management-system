@@ -98,12 +98,10 @@ new #[Layout('layouts::print')] class extends Component
                 @endif
                 <div class="flex flex-wrap items-center justify-between gap-2">
                     <span class="font-medium text-gray-900">
-                        @if($payment->isOverpayment())
-                            {{ __('payments.overpaid') }}
-                        @elseif($payment->enrollmentFee?->gradeFee?->feeType?->isTuition())
+                        @if($payment->enrollmentFee->gradeFee->feeType->isTuition())
                             {{ __('fees.tuition') }}
                         @else
-                            {{ $payment->enrollmentFee?->gradeFee?->feeType?->name }}
+                            {{ $payment->enrollmentFee->gradeFee->feeType->name }}
                         @endif
                     </span>
                     <x-ui.money :minor="$payment->amount_minor" />

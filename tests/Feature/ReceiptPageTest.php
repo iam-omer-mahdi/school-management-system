@@ -63,8 +63,6 @@ class ReceiptPageTest extends TestCase
             'enrollment_id' => $enrollment->id,
             'total_minor' => $minor,
             'rows' => [['grade_fee_id' => $charge->grade_fee_id, 'amount_minor' => $minor]],
-            'overpayment_minor' => 0,
-            'overpayment_confirmed' => false,
             'method' => 'cash',
             'transaction_number' => null,
             'paid_on' => date('Y-m-d'),
@@ -82,6 +80,14 @@ class ReceiptPageTest extends TestCase
     public function test_receipt_requires_auth(): void
     {
         $this->get(route('enrollments.receipt', 1))->assertRedirect(route('login'));
+    }
+
+    public function test_receipt_uses_the_same_missing_enrollment_gate_as_the_show_page(): void
+    {
+        $this->actingAs(User::factory()->create());
+
+        $this->get(route('enrollments.show', 999999))->assertNotFound();
+        $this->get(route('enrollments.receipt', ['enrollment' => 999999, 'payments' => '1']))->assertNotFound();
     }
 
     public function test_prints_one_payment_with_reference(): void
@@ -115,8 +121,6 @@ class ReceiptPageTest extends TestCase
             'enrollment_id' => $enrollment->id,
             'total_minor' => 10000,
             'rows' => [['grade_fee_id' => $charge->grade_fee_id, 'amount_minor' => 10000]],
-            'overpayment_minor' => 0,
-            'overpayment_confirmed' => false,
             'method' => 'cash',
             'transaction_number' => null,
             'paid_on' => date('Y-m-d'),
@@ -158,8 +162,6 @@ class ReceiptPageTest extends TestCase
             'enrollment_id' => $enrollment->id,
             'total_minor' => 10000,
             'rows' => [['grade_fee_id' => $charge->grade_fee_id, 'amount_minor' => 10000]],
-            'overpayment_minor' => 0,
-            'overpayment_confirmed' => false,
             'method' => 'cash',
             'transaction_number' => null,
             'paid_on' => date('Y-m-d'),

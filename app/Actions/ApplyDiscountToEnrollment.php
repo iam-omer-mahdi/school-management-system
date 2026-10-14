@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Actions;
 
-use App\Enums\PaymentKind;
 use App\Models\Discount;
 use App\Models\Enrollment;
 use App\Models\EnrollmentDiscount;
@@ -57,7 +56,6 @@ final class ApplyDiscountToEnrollment
 
         $tuitionPaid = (int) Payment::query()
             ->where('payments.enrollment_id', $enrollment->id)
-            ->where('payments.kind', PaymentKind::Fee)
             ->whereNull('payments.voided_at')
             ->join('enrollment_fees', 'enrollment_fees.id', '=', 'payments.enrollment_fee_id')
             ->join('grade_fees', 'grade_fees.id', '=', 'enrollment_fees.grade_fee_id')

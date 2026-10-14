@@ -13,9 +13,8 @@ return new class extends Migration
         Schema::create('payments', function (Blueprint $table): void {
             $table->id();
             $table->unsignedBigInteger('enrollment_id');
-            $table->unsignedBigInteger('enrollment_fee_id')->nullable();
+            $table->unsignedBigInteger('enrollment_fee_id');
             $table->unsignedBigInteger('amount_minor');
-            $table->string('kind', 16);
             $table->string('method', 16);
             $table->string('transaction_number', 100)->nullable();
             $table->date('paid_on');

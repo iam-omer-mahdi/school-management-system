@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Support;
 
-use App\Enums\PaymentKind;
 use App\Models\Enrollment;
 use App\Models\EnrollmentDiscount;
 use App\Models\EnrollmentFee;
@@ -16,11 +15,16 @@ use Illuminate\Database\Eloquent\Collection;
  * charge snapshots, the discount snapshot and non-voided rows.
  *
  * Identities (all in integer minor units):
- * - fee remaining = charged - discount - paid (fee rows only)
+ * - fee remaining = charged - discount - paid
+ * - fee refundable = paid - refunded (never negative)
  * - owed = 0 when ended, else charged - discount - paid
- * - closed_without_payment = charged - discount - paid when ended, else 0
- * - overpaid_outstanding = non-voided overpayment rows - non-voided refunds
- * - cash_received = non-voided payments - non-voided refunds
+ * - net paid = paid - refunded
+ * - closed_without_payment = charged - discount - net paid when ended, else 0
+ * - cash_received = paid - refunded
+ *
+ * Refunds never change charges or per-fee paid; they only consume the
+ * refundable portion of an already-paid fee. Payments and refunds are
+ * always fee-linked, so every total derives from the fee rows.
  *
  * The enrollments index due sort uses the equivalent SQL expression
  * (COALESCE sums with a CASE on status); its test asserts parity.
@@ -28,15 +32,17 @@ use Illuminate\Database\Eloquent\Collection;
 final class EnrollmentBalance
 {
     /**
-     * @return array{charged: int, discount: int, paid: int, remaining: int}
+     * @return array{charged: int, discount: int, paid: int, refunded: int, remaining: int, refundable: int}
      */
-    public static function fee(int $chargedMinor, int $discountMinor, int $paidMinor): array
+    public static function fee(int $chargedMinor, int $discountMinor, int $paidMinor, int $refundedMinor): array
     {
         return [
             'charged' => $chargedMinor,
             'discount' => $discountMinor,
             'paid' => $paidMinor,
+            'refunded' => $refundedMinor,
             'remaining' => $chargedMinor - $discountMinor - $paidMinor,
+            'refundable' => max(0, $paidMinor - $refundedMinor),
         ];
     }
 
@@ -49,34 +55,34 @@ final class EnrollmentBalance
         return $chargedMinor - $discountMinor - $paidMinor;
     }
 
-    public static function closedWithoutPayment(int $chargedMinor, int $discountMinor, int $paidMinor, bool $ended): int
+    public static function netPaid(int $paidMinor, int $refundedMinor): int
+    {
+        return $paidMinor - $refundedMinor;
+    }
+
+    public static function refundable(int $paidMinor, int $refundedMinor): int
+    {
+        return max(0, $paidMinor - $refundedMinor);
+    }
+
+    public static function closedWithoutPayment(int $chargedMinor, int $discountMinor, int $netPaidMinor, bool $ended): int
     {
         if (! $ended) {
             return 0;
         }
 
-        return $chargedMinor - $discountMinor - $paidMinor;
-    }
-
-    public static function overpaidOutstanding(int $overpaidMinor, int $refundedMinor): int
-    {
-        return $overpaidMinor - $refundedMinor;
-    }
-
-    public static function cashReceived(int $paymentsMinor, int $refundsMinor): int
-    {
-        return $paymentsMinor - $refundsMinor;
+        return $chargedMinor - $discountMinor - $netPaidMinor;
     }
 
     /**
      * Assemble every figure for one enrollment from loaded relations:
-     * fees (with payments and gradeFee.feeType), discount, payments and
-     * refunds. Voided rows are ignored here, never by the caller.
+     * fees (with payments and gradeFee.feeType), discount and refunds.
+     * Voided rows are ignored here, never by the caller.
      *
      * The single tuition discount is allocated to tuition fee rows in
      * order (normally exactly one such row exists).
      *
-     * @return array{charged: int, discount: int, paid: int, owed: int, overpaid: int, refunded: int, overpaid_outstanding: int, closed_without_payment: int, cash_received: int, fees: array<int, array{fee_id: int, charged: int, discount: int, paid: int, remaining: int, is_tuition: bool}>}
+     * @return array{charged: int, discount: int, paid: int, refunded: int, net_paid: int, refundable: int, owed: int, closed_without_payment: int, cash_received: int, fees: array<int, array{fee_id: int, is_tuition: bool, charged: int, discount: int, paid: int, refunded: int, remaining: int, refundable: int}>}
      */
     public static function forEnrollment(Enrollment $enrollment): array
     {
@@ -84,9 +90,20 @@ final class EnrollmentBalance
         $discount = $enrollment->getRelationValue('discount');
         $discountMinor = $discount instanceof EnrollmentDiscount ? (int) $discount->amount_minor : 0;
 
+        $refundsByFee = [];
+
+        foreach ($enrollment->refunds as $refund) {
+            if ($refund->isVoided()) {
+                continue;
+            }
+
+            $feeId = (int) $refund->enrollment_fee_id;
+            $refundsByFee[$feeId] = ($refundsByFee[$feeId] ?? 0) + (int) $refund->amount_minor;
+        }
+
         $charged = 0;
         $paid = 0;
-        $overpaid = 0;
+        $refunded = 0;
         $fees = [];
         $discountLeft = $discountMinor;
 
@@ -102,46 +119,34 @@ final class EnrollmentBalance
                 $discountLeft -= $feeDiscount;
             }
 
-            $feePaid = $charge->payments
+            $feePaid = (int) $charge->payments
                 ->whereNull('voided_at')
-                ->where('kind', PaymentKind::Fee)
                 ->sum('amount_minor');
+
+            $feeRefunded = $refundsByFee[$charge->id] ?? 0;
 
             $charged += $charge->amount_minor;
             $paid += $feePaid;
+            $refunded += $feeRefunded;
 
             $fees[$charge->id] = array_merge(
                 ['fee_id' => $charge->id, 'is_tuition' => $isTuition],
-                self::fee($charge->amount_minor, $feeDiscount, $feePaid)
+                self::fee($charge->amount_minor, $feeDiscount, $feePaid, $feeRefunded)
             );
         }
 
-        foreach ($enrollment->payments as $payment) {
-            if ($payment->isVoided() || ! $payment->isOverpayment()) {
-                continue;
-            }
-
-            $overpaid += $payment->amount_minor;
-        }
-
-        $refunded = $enrollment->refunds
-            ->whereNull('voided_at')
-            ->sum('amount_minor');
-
-        $received = $enrollment->payments
-            ->whereNull('voided_at')
-            ->sum('amount_minor');
+        $netPaid = self::netPaid($paid, $refunded);
 
         return [
             'charged' => $charged,
             'discount' => $discountMinor,
             'paid' => $paid,
-            'owed' => self::owed($charged, $discountMinor, $paid, $ended),
-            'overpaid' => $overpaid,
             'refunded' => $refunded,
-            'overpaid_outstanding' => self::overpaidOutstanding($overpaid, $refunded),
-            'closed_without_payment' => self::closedWithoutPayment($charged, $discountMinor, $paid, $ended),
-            'cash_received' => self::cashReceived($received, $refunded),
+            'net_paid' => $netPaid,
+            'refundable' => max(0, $netPaid),
+            'owed' => self::owed($charged, $discountMinor, $paid, $ended),
+            'closed_without_payment' => self::closedWithoutPayment($charged, $discountMinor, $netPaid, $ended),
+            'cash_received' => $netPaid,
             'fees' => $fees,
         ];
     }

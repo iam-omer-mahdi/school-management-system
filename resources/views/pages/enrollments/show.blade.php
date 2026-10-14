@@ -13,6 +13,7 @@ use App\Enums\EnrollmentStatus;
 use App\Models\Discount;
 use App\Models\Enrollment;
 use App\Models\GradeFee;
+use App\Support\EnrollmentBalance;
 use App\Support\Money;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Computed;
@@ -49,8 +50,6 @@ new #[Layout('layouts::app')] class extends Component
     /** @var array<int, string> */
     public array $payAlloc = [];
 
-    public bool $confirmOverpayment = false;
-
     public bool $lastTxnReused = false;
 
     /** @var array<int> */
@@ -62,7 +61,10 @@ new #[Layout('layouts::app')] class extends Component
 
     public bool $showRefundModal = false;
 
-    public string $refundAmount = '';
+    public string $refundTotal = '';
+
+    /** @var array<int, string> */
+    public array $refundAlloc = [];
 
     public string $refundMethod = 'cash';
 
@@ -98,8 +100,7 @@ new #[Layout('layouts::app')] class extends Component
                 'fees.payments',
                 'discount',
                 'payments.enrollmentFee.gradeFee.feeType:id,name,system_key',
-                'payments',
-                'refunds',
+                'refunds.enrollmentFee.gradeFee.feeType:id,name,system_key',
             ])
             ->findOrFail($this->enrollmentId);
     }
@@ -149,7 +150,8 @@ new #[Layout('layouts::app')] class extends Component
             'payMethod' => __('payments.method'),
             'payTxn' => __('payments.transaction_number'),
             'payDate' => __('payments.paid_on'),
-            'refundAmount' => __('payments.amount'),
+            'refundTotal' => __('payments.amount'),
+            'refundAlloc.*' => __('payments.amount'),
             'refundMethod' => __('payments.method'),
             'refundTxn' => __('payments.transaction_number'),
             'refundDate' => __('payments.refunded_on'),
@@ -183,18 +185,46 @@ new #[Layout('layouts::app')] class extends Component
     }
 
     /**
-     * Every entered per-fee amount parsed once to minor units, or null
-     * when any entered value is not a valid amount. Blank inputs are
-     * skipped. Keys are grade fee ids.
+     * Every entered per-fee payment amount parsed once to minor units,
+     * or null when any entered value is not a valid amount. Blank
+     * inputs are skipped. Keys are grade fee ids.
      *
      * @return array<int, int>|null
      */
     #[Computed]
     public function parsedPayAlloc(): ?array
     {
+        return $this->parseAllocations($this->payAlloc);
+    }
+
+    #[Computed]
+    public function parsedRefundTotal(): ?int
+    {
+        try {
+            return Money::fromDecimal($this->refundTotal);
+        } catch (\InvalidArgumentException) {
+            return null;
+        }
+    }
+
+    /**
+     * @return array<int, int>|null
+     */
+    #[Computed]
+    public function parsedRefundAlloc(): ?array
+    {
+        return $this->parseAllocations($this->refundAlloc);
+    }
+
+    /**
+     * @param  array<int, string>  $values
+     * @return array<int, int>|null
+     */
+    private function parseAllocations(array $values): ?array
+    {
         $parsed = [];
 
-        foreach ($this->payAlloc as $feeId => $value) {
+        foreach ($values as $feeId => $value) {
             if (trim((string) $value) === '') {
                 continue;
             }
@@ -210,9 +240,46 @@ new #[Layout('layouts::app')] class extends Component
     }
 
     /**
-     * Total minus allocated, or null when either side is not a valid
-     * amount. Drives the live Unallocated line and the overpayment
-     * checkbox. The Pay button itself is gated by payBlockReason.
+     * Per-fee remaining balances keyed by grade fee id, used by the
+     * live payment gate so a fee can never be over-allocated.
+     *
+     * @return array<int, int>
+     */
+    #[Computed]
+    public function payRemaining(): array
+    {
+        $balance = EnrollmentBalance::forEnrollment($this->enrollment);
+        $map = [];
+
+        foreach ($this->enrollment->fees as $charge) {
+            $map[(int) $charge->grade_fee_id] = (int) ($balance['fees'][$charge->id]['remaining'] ?? 0);
+        }
+
+        return $map;
+    }
+
+    /**
+     * Per-fee refundable balances keyed by grade fee id, used by the
+     * live refund gate.
+     *
+     * @return array<int, int>
+     */
+    #[Computed]
+    public function refundRemaining(): array
+    {
+        $balance = EnrollmentBalance::forEnrollment($this->enrollment);
+        $map = [];
+
+        foreach ($this->enrollment->fees as $charge) {
+            $map[(int) $charge->grade_fee_id] = (int) ($balance['fees'][$charge->id]['refundable'] ?? 0);
+        }
+
+        return $map;
+    }
+
+    /**
+     * Total minus allocated for the payment form, or null when either
+     * side is not a valid amount. Drives the live Unallocated line.
      */
     #[Computed]
     public function payUnallocated(): ?int
@@ -225,6 +292,41 @@ new #[Layout('layouts::app')] class extends Component
         }
 
         return $total - array_sum($allocs);
+    }
+
+    #[Computed]
+    public function refundUnallocated(): ?int
+    {
+        $total = $this->parsedRefundTotal;
+        $allocs = $this->parsedRefundAlloc;
+
+        if ($total === null || $allocs === null) {
+            return null;
+        }
+
+        return $total - array_sum($allocs);
+    }
+
+    /**
+     * Why the Add payment button is disabled before the modal opens:
+     * null when the form can be opened, otherwise the specific reason.
+     */
+    #[Computed]
+    public function paymentDisabledReason(): ?string
+    {
+        if ($this->enrollment->isEnded()) {
+            return __('payments.errors.ended_no_payments');
+        }
+
+        if ($this->enrollment->fees->isEmpty()) {
+            return __('payments.errors.no_charges');
+        }
+
+        if (array_sum($this->payRemaining) <= 0) {
+            return __('payments.errors.nothing_to_pay');
+        }
+
+        return null;
     }
 
     /**
@@ -243,18 +345,57 @@ new #[Layout('layouts::app')] class extends Component
             return __('validation.numeric', ['attribute' => __('payments.amount')]);
         }
 
-        $unallocated = $total - array_sum($allocs);
-
-        if ($unallocated < 0) {
+        if ($total - array_sum($allocs) !== 0) {
             return __('payments.errors.total_mismatch');
         }
 
-        if ($unallocated > 0 && ! $this->confirmOverpayment) {
-            return __('payments.unallocated').': '.Money::format($unallocated);
+        $remaining = $this->payRemaining;
+
+        foreach ($allocs as $feeId => $minor) {
+            if ($minor > ($remaining[$feeId] ?? 0)) {
+                return __('payments.errors.amount_exceeds_remaining');
+            }
         }
 
         if ($this->payMethod === 'bank_transfer' && trim((string) $this->payTxn) === '') {
             return __('validation.required', ['attribute' => __('payments.transaction_number')]);
+        }
+
+        return null;
+    }
+
+    #[Computed]
+    public function refundBlockReason(): ?string
+    {
+        if (! $this->enrollment->isEnded()) {
+            return __('payments.errors.refund_charged_only');
+        }
+
+        $total = $this->parsedRefundTotal;
+        $allocs = $this->parsedRefundAlloc;
+
+        if ($total === null || $total <= 0 || $allocs === null) {
+            return __('validation.numeric', ['attribute' => __('payments.amount')]);
+        }
+
+        if ($total - array_sum($allocs) !== 0) {
+            return __('payments.errors.total_mismatch');
+        }
+
+        $refundable = $this->refundRemaining;
+
+        foreach ($allocs as $feeId => $minor) {
+            if ($minor > ($refundable[$feeId] ?? 0)) {
+                return __('payments.errors.refund_amount_exceeds_refundable');
+            }
+        }
+
+        if ($this->refundMethod === 'bank_transfer' && trim((string) $this->refundTxn) === '') {
+            return __('validation.required', ['attribute' => __('payments.transaction_number')]);
+        }
+
+        if (trim((string) $this->refundNote) === '') {
+            return __('validation.required', ['attribute' => __('fees.note')]);
         }
 
         return null;
@@ -267,13 +408,19 @@ new #[Layout('layouts::app')] class extends Component
         unset($this->txnReuseWarning);
     }
 
+    public function updatedRefundMethod(): void
+    {
+        $this->refundTxn = null;
+        $this->resetValidation(['refundTxn', 'transaction_number']);
+    }
+
     public function openPaymentModal(): void
     {
         $this->resetValidation();
-        $this->reset(['payMethod', 'payTxn', 'payDate', 'payNote', 'payTotal', 'payAlloc', 'confirmOverpayment', 'lastTxnReused', 'lastPaymentIds']);
+        $this->reset(['payMethod', 'payTxn', 'payDate', 'payNote', 'payTotal', 'payAlloc', 'lastTxnReused', 'lastPaymentIds']);
         $this->payMethod = 'cash';
         $this->payDate = date('Y-m-d');
-        unset($this->txnReuseWarning, $this->payUnallocated, $this->parsedPayTotal, $this->parsedPayAlloc);
+        unset($this->txnReuseWarning, $this->payUnallocated, $this->parsedPayTotal, $this->parsedPayAlloc, $this->payBlockReason, $this->payRemaining);
         $this->showPaymentModal = true;
     }
 
@@ -285,8 +432,6 @@ new #[Layout('layouts::app')] class extends Component
 
     public function savePayment(RecordPayment $action): void
     {
-        $this->validate(['payTotal' => ['required', 'string']]);
-
         $total = $this->parsedPayTotal;
         $allocs = $this->parsedPayAlloc;
 
@@ -299,29 +444,15 @@ new #[Layout('layouts::app')] class extends Component
         $rows = [];
 
         foreach ($allocs as $feeId => $minor) {
-            if ($minor <= 0) {
-                $this->addError('payTotal', __('validation.numeric', ['attribute' => __('payments.amount')]));
-
-                return;
+            if ($minor > 0) {
+                $rows[] = ['grade_fee_id' => (int) $feeId, 'amount_minor' => $minor];
             }
-
-            $rows[] = ['grade_fee_id' => $feeId, 'amount_minor' => $minor];
-        }
-
-        $unallocated = $total - array_sum($allocs);
-
-        if ($unallocated < 0 || ($unallocated > 0 && ! $this->confirmOverpayment)) {
-            $this->addError('payTotal', __('validation.numeric', ['attribute' => __('payments.amount')]));
-
-            return;
         }
 
         $result = $action->handle([
             'enrollment_id' => $this->enrollmentId,
             'total_minor' => $total,
             'rows' => $rows,
-            'overpayment_minor' => max(0, $unallocated),
-            'overpayment_confirmed' => (bool) $this->confirmOverpayment,
             'method' => $this->payMethod,
             'transaction_number' => $this->payTxn,
             'paid_on' => $this->payDate ?? date('Y-m-d'),
@@ -331,8 +462,8 @@ new #[Layout('layouts::app')] class extends Component
         $this->lastPaymentIds = $result['payments']->pluck('id')->all();
         $this->lastTxnReused = $result['transaction_reused'];
         $this->showPaymentModal = false;
-        $this->reset(['payTotal', 'payAlloc', 'confirmOverpayment']);
-        unset($this->enrollment, $this->payUnallocated, $this->parsedPayTotal, $this->parsedPayAlloc, $this->txnReuseWarning);
+        $this->reset(['payTotal', 'payAlloc']);
+        unset($this->enrollment, $this->payUnallocated, $this->parsedPayTotal, $this->parsedPayAlloc, $this->txnReuseWarning, $this->payBlockReason, $this->payRemaining);
         session()->flash('status', __('payments.payment_recorded'));
     }
 
@@ -401,9 +532,10 @@ new #[Layout('layouts::app')] class extends Component
     public function openRefundModal(): void
     {
         $this->resetValidation();
-        $this->reset(['refundAmount', 'refundMethod', 'refundTxn', 'refundDate', 'refundNote']);
+        $this->reset(['refundTotal', 'refundAlloc', 'refundMethod', 'refundTxn', 'refundDate', 'refundNote']);
         $this->refundMethod = 'cash';
         $this->refundDate = date('Y-m-d');
+        unset($this->refundBlockReason, $this->parsedRefundTotal, $this->parsedRefundAlloc, $this->refundUnallocated, $this->refundRemaining);
         $this->showRefundModal = true;
     }
 
@@ -415,9 +547,27 @@ new #[Layout('layouts::app')] class extends Component
 
     public function saveRefund(RecordRefund $action): void
     {
+        $total = $this->parsedRefundTotal;
+        $allocs = $this->parsedRefundAlloc;
+
+        if ($total === null || $total <= 0 || $allocs === null) {
+            $this->addError('refundTotal', __('validation.numeric', ['attribute' => __('payments.amount')]));
+
+            return;
+        }
+
+        $rows = [];
+
+        foreach ($allocs as $feeId => $minor) {
+            if ($minor > 0) {
+                $rows[] = ['grade_fee_id' => (int) $feeId, 'amount_minor' => $minor];
+            }
+        }
+
         $action->handle([
             'enrollment_id' => $this->enrollmentId,
-            'amount' => $this->refundAmount,
+            'total_minor' => $total,
+            'rows' => $rows,
             'method' => $this->refundMethod,
             'transaction_number' => $this->refundTxn,
             'refunded_on' => $this->refundDate ?? date('Y-m-d'),
@@ -425,8 +575,8 @@ new #[Layout('layouts::app')] class extends Component
         ]);
 
         $this->showRefundModal = false;
-        $this->reset(['refundAmount', 'refundTxn', 'refundNote']);
-        unset($this->enrollment);
+        $this->reset(['refundTotal', 'refundAlloc', 'refundTxn', 'refundNote']);
+        unset($this->enrollment, $this->refundBlockReason, $this->parsedRefundTotal, $this->parsedRefundAlloc, $this->refundUnallocated, $this->refundRemaining, $this->payRemaining);
         session()->flash('status', __('payments.refund_recorded'));
     }
 
@@ -467,7 +617,7 @@ new #[Layout('layouts::app')] class extends Component
         }
 
         $this->closeVoidModal();
-        unset($this->enrollment);
+        unset($this->enrollment, $this->payRemaining, $this->refundRemaining);
     }
 
     public function removeOptional(RemoveOptionalFeeFromEnrollment $action, int $gradeFeeId): void
@@ -481,23 +631,19 @@ new #[Layout('layouts::app')] class extends Component
 
 @php
     $enrollment = $this->enrollment;
-    $tuitionMinor = null;
-    $otherMinor = 0;
-    foreach ($enrollment->fees as $charge) {
-        if ($charge->gradeFee->feeType->isTuition()) {
-            $tuitionMinor = ($tuitionMinor ?? 0) + $charge->amount_minor;
-        } else {
-            $otherMinor += $charge->amount_minor;
-        }
-    }
     $appliedDiscount = $enrollment->discount;
-    $netMinor = $tuitionMinor !== null ? $tuitionMinor - ($appliedDiscount?->amount_minor ?? 0) : null;
-    $totalMinor = $netMinor !== null ? $netMinor + $otherMinor : null;
     $choice = $this->catalogDiscounts->firstWhere('id', (int) ($discountChoice ?? 0));
-    $previewMinor = ($tuitionMinor !== null && $choice) ? \App\Support\Money::percentOf($tuitionMinor, $choice->percent_bp) : null;
-    $options = $this->optionalOptions;
     $isEnded = $enrollment->isEnded();
     $balance = \App\Support\EnrollmentBalance::forEnrollment($enrollment);
+    $tuitionMinor = null;
+    foreach ($balance['fees'] as $feeBalance) {
+        if ($feeBalance['is_tuition']) {
+            $tuitionMinor = ($tuitionMinor ?? 0) + $feeBalance['charged'];
+        }
+    }
+    $netMinor = $tuitionMinor !== null ? $tuitionMinor - $balance['discount'] : null;
+    $previewMinor = ($tuitionMinor !== null && $choice) ? \App\Support\Money::percentOf($tuitionMinor, $choice->percent_bp) : null;
+    $options = $this->optionalOptions;
 @endphp
 
 <div class="space-y-6">
@@ -564,16 +710,18 @@ new #[Layout('layouts::app')] class extends Component
                     <th>{{ __('fees.amount') }}</th>
                     <th>{{ __('fees.discount') }}</th>
                     <th>{{ __('payments.paid') }}</th>
+                    <th>{{ __('payments.refunded') }}</th>
                     <th>{{ __('payments.remaining') }}</th>
                     <th>{{ __('common.actions') }}</th>
                 </x-slot:head>
                 @foreach($enrollment->fees as $charge)
-                    @php $feeBalance = $balance['fees'][$charge->id] ?? ['charged' => $charge->amount_minor, 'discount' => 0, 'paid' => 0, 'remaining' => $charge->amount_minor]; @endphp
+                    @php $feeBalance = $balance['fees'][$charge->id] ?? ['charged' => $charge->amount_minor, 'discount' => 0, 'paid' => 0, 'refunded' => 0, 'remaining' => $charge->amount_minor]; @endphp
                     <tr wire:key="charge-{{ $charge->id }}">
                         <td class="font-medium text-gray-900 dark:text-white">@if($charge->gradeFee->feeType->isTuition()){{ __('fees.tuition') }}@else{{ $charge->gradeFee->feeType->name }}@endif</td>
                         <td><x-ui.money :minor="$feeBalance['charged']" /></td>
                         <td><x-ui.money :minor="$feeBalance['discount']" /></td>
                         <td><x-ui.money :minor="$feeBalance['paid']" /></td>
+                        <td><x-ui.money :minor="$feeBalance['refunded']" /></td>
                         <td><x-ui.money :minor="$feeBalance['remaining']" /></td>
                         <td>
                             @if(! $charge->gradeFee->feeType->is_mandatory && ! $isEnded)
@@ -643,17 +791,16 @@ new #[Layout('layouts::app')] class extends Component
         @endif
     </x-ui.card>
 
-    @if($totalMinor !== null)
+    @if($netMinor !== null)
         <x-ui.card>
             <dl class="grid grid-cols-2 gap-x-6 gap-y-4 text-sm sm:grid-cols-4">
                 <div><dt class="text-gray-500 dark:text-gray-400">{{ __('fees.tuition') }}</dt><dd class="font-medium text-gray-900 dark:text-white"><x-ui.money :minor="$tuitionMinor" /></dd></div>
-                <div><dt class="text-gray-500 dark:text-gray-400">{{ __('fees.discount') }}</dt><dd class="font-medium text-gray-900 dark:text-white"><x-ui.money :minor="$appliedDiscount?->amount_minor ?? 0" /></dd></div>
+                <div><dt class="text-gray-500 dark:text-gray-400">{{ __('fees.discount') }}</dt><dd class="font-medium text-gray-900 dark:text-white"><x-ui.money :minor="$balance['discount']" /></dd></div>
                 <div><dt class="text-gray-500 dark:text-gray-400">{{ __('fees.tuition_net') }}</dt><dd class="font-medium text-gray-900 dark:text-white"><x-ui.money :minor="$netMinor" /></dd></div>
                 <div><dt class="text-gray-500 dark:text-gray-400">{{ __('payments.paid') }}</dt><dd class="font-medium text-gray-900 dark:text-white"><x-ui.money :minor="$balance['paid']" /></dd></div>
+                <div><dt class="text-gray-500 dark:text-gray-400">{{ __('payments.refunded') }}</dt><dd class="font-medium text-gray-900 dark:text-white"><x-ui.money :minor="$balance['refunded']" /></dd></div>
+                <div><dt class="text-gray-500 dark:text-gray-400">{{ __('payments.net_paid') }}</dt><dd class="font-medium text-gray-900 dark:text-white"><x-ui.money :minor="$balance['net_paid']" /></dd></div>
                 <div><dt class="text-gray-500 dark:text-gray-400">{{ __('fees.total_due') }}</dt><dd class="font-medium text-gray-900 dark:text-white"><x-ui.money :minor="$balance['owed']" /></dd></div>
-                @if($balance['overpaid_outstanding'] > 0)
-                    <div><dt class="text-gray-500 dark:text-gray-400">{{ __('payments.overpaid') }}</dt><dd class="font-medium text-gray-900 dark:text-white"><x-ui.money :minor="$balance['overpaid_outstanding']" /></dd></div>
-                @endif
                 <div><dt class="text-gray-500 dark:text-gray-400">{{ __('payments.received') }}</dt><dd class="font-medium text-gray-900 dark:text-white"><x-ui.money :minor="$balance['cash_received']" /></dd></div>
             </dl>
             @if($isEnded)
@@ -666,16 +813,21 @@ new #[Layout('layouts::app')] class extends Component
         <x-slot:header>
             <div class="flex items-center justify-between gap-2">
                 <h2 class="text-base font-semibold text-gray-900 dark:text-white">{{ __('payments.payment') }}</h2>
-                @if(! $isEnded)
+                @if($this->paymentDisabledReason === null)
                     <x-ui.button variant="primary" size="sm" wire:click="openPaymentModal" :spinner="false">
+                        <x-ui.icon name="plus" class="h-4 w-4" />
+                        {{ __('payments.add_payment') }}
+                    </x-ui.button>
+                @elseif(! $isEnded)
+                    <x-ui.button variant="primary" size="sm" :spinner="false" disabled aria-disabled="true">
                         <x-ui.icon name="plus" class="h-4 w-4" />
                         {{ __('payments.add_payment') }}
                     </x-ui.button>
                 @endif
             </div>
         </x-slot:header>
-        @if($isEnded)
-            <p class="text-sm text-gray-500 dark:text-gray-400">{{ __('payments.errors.ended_no_payments') }}</p>
+        @if($this->paymentDisabledReason !== null)
+            <p class="text-sm text-gray-500 dark:text-gray-400">{{ $this->paymentDisabledReason }}</p>
         @endif
         @if($lastTxnReused)
             <x-ui.alert type="warning">{{ __('payments.transaction_reused') }}</x-ui.alert>
@@ -699,9 +851,7 @@ new #[Layout('layouts::app')] class extends Component
                         <input type="checkbox" wire:model.live="selectedReceiptIds" value="{{ $payment->id }}" @disabled($payment->isVoided()) aria-label="{{ $payment->reference() }}" class="h-4 w-4 shrink-0 rounded-sm border-gray-300 bg-gray-100 text-indigo-600 focus:ring-2 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-700" />
                         <span class="font-mono text-gray-700 dark:text-gray-300" dir="ltr">{{ $payment->reference() }}</span>
                         <span class="text-gray-700 dark:text-gray-300">
-                            @if($payment->isOverpayment())
-                                {{ __('payments.overpaid') }}
-                            @elseif($payment->enrollmentFee?->gradeFee?->feeType?->isTuition())
+                            @if($payment->enrollmentFee?->gradeFee?->feeType?->isTuition())
                                 {{ __('fees.tuition') }}
                             @else
                                 {{ $payment->enrollmentFee?->gradeFee?->feeType?->name }}
@@ -730,14 +880,14 @@ new #[Layout('layouts::app')] class extends Component
         <x-slot:header>
             <div class="flex items-center justify-between gap-2">
                 <h2 class="text-base font-semibold text-gray-900 dark:text-white">{{ __('payments.refunds') }}</h2>
-                @if($balance['overpaid_outstanding'] > 0)
+                @if($isEnded && $balance['refundable'] > 0)
                     <x-ui.button variant="secondary" size="sm" wire:click="openRefundModal" :spinner="false">{{ __('payments.refund') }}</x-ui.button>
                 @endif
             </div>
         </x-slot:header>
         <p class="flex flex-wrap items-center gap-2 text-sm">
-            <span class="text-gray-500 dark:text-gray-400">{{ __('payments.overpaid') }}:</span>
-            <x-ui.money :minor="$balance['overpaid_outstanding']" />
+            <span class="text-gray-500 dark:text-gray-400">{{ __('payments.refundable') }}:</span>
+            <x-ui.money :minor="$balance['refundable']" />
         </p>
         @php $refundHistory = $enrollment->refunds->sortByDesc('id'); @endphp
         @if($refundHistory->isEmpty())
@@ -746,6 +896,13 @@ new #[Layout('layouts::app')] class extends Component
             <ul class="mt-3 space-y-2 text-sm">
                 @foreach($refundHistory as $refund)
                     <li wire:key="refund-{{ $refund->id }}" class="flex flex-wrap items-center gap-2 rounded-lg bg-gray-50 px-3 py-2.5 dark:bg-gray-700/40">
+                        <span class="text-gray-700 dark:text-gray-300">
+                            @if($refund->enrollmentFee?->gradeFee?->feeType?->isTuition())
+                                {{ __('fees.tuition') }}
+                            @else
+                                {{ $refund->enrollmentFee?->gradeFee?->feeType?->name }}
+                            @endif
+                        </span>
                         <x-ui.money :minor="$refund->amount_minor" />
                         <span class="text-gray-500 dark:text-gray-400">{{ $refund->method === \App\Enums\PaymentMethod::BankTransfer ? __('payments.bank_transfer') : __('payments.cash') }}</span>
                         @if($refund->transaction_number !== null)
@@ -817,9 +974,6 @@ new #[Layout('layouts::app')] class extends Component
                         <x-ui.money :minor="max(0, $this->payUnallocated)" />
                     @endif
                 </p>
-                @if($this->payUnallocated !== null && $this->payUnallocated > 0)
-                    <x-ui.checkbox wire:model.live="confirmOverpayment" :label="__('payments.record_overpayment').' ('. \App\Support\Money::format($this->payUnallocated) .')'" />
-                @endif
                 @if($this->payBlockReason() !== null)
                     <p class="text-sm text-amber-700 dark:text-amber-400">{{ $this->payBlockReason() }}</p>
                 @endif
@@ -834,10 +988,38 @@ new #[Layout('layouts::app')] class extends Component
     @if($showRefundModal)
         <x-ui.modal :title="__('payments.refund')" close="closeRefundModal">
             <form wire:submit="saveRefund" class="space-y-4">
-                <p class="text-sm text-gray-600 dark:text-gray-400">{{ __('payments.overpaid') }}: <x-ui.money :minor="$balance['overpaid_outstanding']" /></p>
-                <x-ui.field :label="__('payments.amount')" for="refund-amount" required :error="$errors->first('amount')">
-                    <x-ui.input id="refund-amount" type="text" wire:model.blur="refundAmount" :error="$errors->first('amount')" inputmode="decimal" dir="ltr" autocomplete="off" class="font-mono" required />
+                @if($errors->any())
+                    <x-ui.alert type="error">
+                        <ul class="list-disc space-y-1 ps-5">
+                            @foreach($errors->all() as $message)
+                                <li>{{ $message }}</li>
+                            @endforeach
+                        </ul>
+                    </x-ui.alert>
+                @endif
+                <p class="text-sm text-gray-600 dark:text-gray-400">{{ __('payments.refundable') }}: <x-ui.money :minor="$balance['refundable']" /></p>
+                <x-ui.field :label="__('payments.amount')" for="refund-total" required :error="$errors->first('refundTotal')">
+                    <x-ui.input id="refund-total" type="text" wire:model.live.debounce.500ms="refundTotal" :error="$errors->first('refundTotal')" inputmode="decimal" dir="ltr" autocomplete="off" class="font-mono" required />
                 </x-ui.field>
+                @foreach($enrollment->fees as $charge)
+                    @php $feeRefundable = $balance['fees'][$charge->id]['refundable'] ?? 0; @endphp
+                    @if($feeRefundable > 0)
+                        <x-ui.field :label="$charge->gradeFee->feeType->isTuition() ? __('fees.tuition') : $charge->gradeFee->feeType->name" for="refund-alloc-{{ $charge->grade_fee_id }}">
+                            <div class="flex items-center gap-3">
+                                <x-ui.input id="refund-alloc-{{ $charge->grade_fee_id }}" type="text" wire:model.live.debounce.500ms="refundAlloc.{{ $charge->grade_fee_id }}" inputmode="decimal" dir="ltr" autocomplete="off" class="font-mono" />
+                                <span class="shrink-0 text-xs text-gray-500 dark:text-gray-400"><x-ui.money :minor="$feeRefundable" /></span>
+                            </div>
+                        </x-ui.field>
+                    @endif
+                @endforeach
+                <p class="flex flex-wrap items-center gap-2 text-sm">
+                    <span class="text-gray-500 dark:text-gray-400">{{ __('payments.unallocated') }}:</span>
+                    @if($this->refundUnallocated === null)
+                        <span class="text-gray-500 dark:text-gray-400">—</span>
+                    @else
+                        <x-ui.money :minor="max(0, $this->refundUnallocated)" />
+                    @endif
+                </p>
                 <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <x-ui.field :label="__('payments.method')" for="refund-method" required>
                         <x-ui.select id="refund-method" wire:model.live="refundMethod">
@@ -857,10 +1039,13 @@ new #[Layout('layouts::app')] class extends Component
                 <x-ui.field :label="__('fees.note')" for="refund-note" required :error="$errors->first('note')">
                     <x-ui.input id="refund-note" type="text" wire:model.blur="refundNote" :error="$errors->first('note')" autocomplete="off" required />
                 </x-ui.field>
+                @if($this->refundBlockReason() !== null)
+                    <p class="text-sm text-amber-700 dark:text-amber-400">{{ $this->refundBlockReason() }}</p>
+                @endif
             </form>
             <x-slot:footer>
                 <x-ui.button variant="secondary" wire:click="closeRefundModal" :spinner="false">{{ __('common.cancel') }}</x-ui.button>
-                <x-ui.button variant="primary" wire:click="saveRefund" loading-target="saveRefund" wire:loading.attr="disabled">{{ __('common.save') }}</x-ui.button>
+                <x-ui.button variant="primary" wire:click="saveRefund" loading-target="saveRefund" wire:loading.attr="disabled" :disabled="$this->refundBlockReason() !== null">{{ __('common.save') }}</x-ui.button>
             </x-slot:footer>
         </x-ui.modal>
     @endif
