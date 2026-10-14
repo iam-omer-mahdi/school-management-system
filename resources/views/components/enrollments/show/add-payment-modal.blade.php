@@ -34,14 +34,7 @@ new class extends Component
     #[Computed]
     public function enrollment(): Enrollment
     {
-        return Enrollment::query()
-            ->with([
-                'fees.gradeFee.feeType',
-                'fees.payments',
-                'discount',
-                'refunds',
-            ])
-            ->findOrFail($this->enrollmentId);
+        return Enrollment::query()->with(['fees.gradeFee.feeType', 'fees.payments', 'discount', 'refunds'])->findOrFail($this->enrollmentId);
     }
 
     /** @return array{charged: int, discount: int, paid: int, refunded: int, net_paid: int, refundable: int, owed: int, closed_without_payment: int, cash_received: int, fees: array<int, array{fee_id: int, is_tuition: bool, charged: int, discount: int, paid: int, refunded: int, remaining: int, refundable: int}>} */
@@ -80,23 +73,13 @@ new class extends Component
     #[Computed]
     public function paymentDisabledReason(): ?string
     {
-        return PaymentCalculation::paymentDisabledReason(
-            $this->enrollment->isEnded(),
-            $this->enrollment->fees->isNotEmpty(),
-            array_sum($this->payRemaining),
-        );
+        return PaymentCalculation::paymentDisabledReason($this->enrollment->isEnded(), $this->enrollment->fees->isNotEmpty(), array_sum($this->payRemaining));
     }
 
     #[Computed]
     public function payBlockReason(): ?string
     {
-        return PaymentCalculation::payBlockReason(
-            $this->parsedTotal,
-            $this->parsedAlloc,
-            $this->payRemaining,
-            $this->form->method,
-            $this->form->txn,
-        );
+        return PaymentCalculation::payBlockReason($this->parsedTotal, $this->parsedAlloc, $this->payRemaining, $this->form->method, $this->form->txn);
     }
 
     #[Computed]
@@ -192,15 +175,9 @@ new class extends Component
             <div class="flex items-center justify-between gap-2">
                 <h2 class="text-base font-semibold text-gray-900 dark:text-white">{{ __('payments.payment') }}</h2>
                 @if($this->paymentDisabledReason === null)
-                    <x-ui.button variant="primary" size="sm" wire:click="openPaymentModal" :spinner="false">
-                        <x-ui.icon name="plus" class="h-4 w-4" />
-                        {{ __('payments.add_payment') }}
-                    </x-ui.button>
+                    <x-ui.button variant="primary" size="sm" wire:click="openPaymentModal" :spinner="false"><x-ui.icon name="plus" class="h-4 w-4" />{{ __('payments.add_payment') }}</x-ui.button>
                 @elseif(! $isEnded)
-                    <x-ui.button variant="primary" size="sm" :spinner="false" disabled aria-disabled="true">
-                        <x-ui.icon name="plus" class="h-4 w-4" />
-                        {{ __('payments.add_payment') }}
-                    </x-ui.button>
+                    <x-ui.button variant="primary" size="sm" :spinner="false" disabled aria-disabled="true"><x-ui.icon name="plus" class="h-4 w-4" />{{ __('payments.add_payment') }}</x-ui.button>
                 @endif
             </div>
         </x-slot:header>
