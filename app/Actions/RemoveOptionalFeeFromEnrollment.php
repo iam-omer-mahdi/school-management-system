@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Actions;
 
+use App\Models\Enrollment;
 use App\Models\EnrollmentFee;
 use App\Models\FeeType;
 use Illuminate\Support\Facades\DB;
@@ -18,6 +19,14 @@ final class RemoveOptionalFeeFromEnrollment
      */
     public function handle(int $enrollmentId, int $gradeFeeId): void
     {
+        $enrollment = Enrollment::query()->findOrFail($enrollmentId);
+
+        if ($enrollment->isEnded()) {
+            throw ValidationException::withMessages([
+                'grade_fee_id' => __('fees.errors.enrollment_ended'),
+            ]);
+        }
+
         $charge = EnrollmentFee::query()
             ->where('enrollment_id', $enrollmentId)
             ->where('grade_fee_id', $gradeFeeId)

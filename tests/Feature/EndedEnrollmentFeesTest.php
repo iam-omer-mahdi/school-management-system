@@ -121,7 +121,37 @@ class EndedEnrollmentFeesTest extends TestCase
         $this->assertSame(0, $enrollment->refresh()->discount()->count());
     }
 
-    public function test_ended_enrollments_still_allow_removals(): void
+    #[DataProvider('endedStatuses')]
+    public function test_ended_enrollments_reject_discount_removal(EnrollmentStatus $status): void
+    {
+        [$grade, $year] = $this->fixtures();
+
+        app(CreateGradeFee::class)->handle([
+            'grade_id' => $grade->id,
+            'academic_year_id' => $year->id,
+            'fee_type_id' => $this->tuition()->id,
+            'amount' => '1000',
+        ]);
+
+        $enrollment = $this->enroll($grade, $year);
+        $discount = app(CreateDiscount::class)->handle(['name' => 'Sibling', 'percent' => '10']);
+        app(ApplyDiscountToEnrollment::class)->handle($enrollment->id, $discount->id);
+
+        app(UpdateEnrollmentStatus::class)->handle($enrollment, $status);
+
+        try {
+            app(RemoveEnrollmentDiscount::class)->handle($enrollment->id);
+            $this->fail('Expected ValidationException for discount removal on ended enrollment');
+        } catch (ValidationException $e) {
+            $this->assertArrayHasKey('discount_id', $e->errors());
+            $this->assertSame(__('fees.errors.enrollment_ended'), $e->errors()['discount_id'][0]);
+        }
+
+        $this->assertSame(1, $enrollment->refresh()->discount()->count());
+    }
+
+    #[DataProvider('endedStatuses')]
+    public function test_ended_enrollments_reject_optional_removal(EnrollmentStatus $status): void
     {
         [$grade, $year] = $this->fixtures();
 
@@ -143,16 +173,58 @@ class EndedEnrollmentFeesTest extends TestCase
         $enrollment = $this->enroll($grade, $year);
         app(AddOptionalFeeToEnrollment::class)->handle($enrollment->id, $gradeFee->id);
 
+        app(UpdateEnrollmentStatus::class)->handle($enrollment, $status);
+
+        try {
+            app(RemoveOptionalFeeFromEnrollment::class)->handle($enrollment->id, $gradeFee->id);
+            $this->fail('Expected ValidationException for optional removal on ended enrollment');
+        } catch (ValidationException $e) {
+            $this->assertArrayHasKey('grade_fee_id', $e->errors());
+            $this->assertSame(__('fees.errors.enrollment_ended'), $e->errors()['grade_fee_id'][0]);
+        }
+
+        $this->assertSame(2, $enrollment->refresh()->fees()->count());
+    }
+
+    public function test_ended_enrollment_hides_remove_buttons_and_rejects_removal_calls(): void
+    {
+        $this->actingAs(User::factory()->create());
+        [$grade, $year] = $this->fixtures();
+
+        app(CreateGradeFee::class)->handle([
+            'grade_id' => $grade->id,
+            'academic_year_id' => $year->id,
+            'fee_type_id' => $this->tuition()->id,
+            'amount' => '1000',
+        ]);
+
+        $books = FeeType::factory()->create(['name' => 'Books', 'is_mandatory' => false]);
+        $gradeFee = app(CreateGradeFee::class)->handle([
+            'grade_id' => $grade->id,
+            'academic_year_id' => $year->id,
+            'fee_type_id' => $books->id,
+            'amount' => '150',
+        ])->gradeFee;
+
+        $student = Student::factory()->create();
+        $enrollment = app(EnrollStudent::class)->handle($student->id, $year->id, $grade->id);
+        app(AddOptionalFeeToEnrollment::class)->handle($enrollment->id, $gradeFee->id);
+
         $discount = app(CreateDiscount::class)->handle(['name' => 'Sibling', 'percent' => '10']);
         app(ApplyDiscountToEnrollment::class)->handle($enrollment->id, $discount->id);
 
         app(UpdateEnrollmentStatus::class)->handle($enrollment, EnrollmentStatus::Left);
 
-        app(RemoveOptionalFeeFromEnrollment::class)->handle($enrollment->id, $gradeFee->id);
-        app(RemoveEnrollmentDiscount::class)->handle($enrollment->id);
+        Livewire::test('pages::enrollments.show', ['enrollment' => $enrollment->id])
+            ->assertDontSee(__('fees.remove_discount'), false)
+            ->assertDontSee(__('common.delete'), false)
+            ->call('removeDiscount')
+            ->assertHasErrors(['discount_id'])
+            ->call('removeOptional', $gradeFee->id)
+            ->assertHasErrors(['grade_fee_id']);
 
-        $this->assertSame(1, $enrollment->refresh()->fees()->count());
-        $this->assertSame(0, $enrollment->refresh()->discount()->count());
+        $this->assertSame(1, $enrollment->refresh()->discount()->count());
+        $this->assertSame(2, $enrollment->refresh()->fees()->count());
     }
 
     public function test_charged_enrollments_still_allow_adds(): void
@@ -177,7 +249,7 @@ class EndedEnrollmentFeesTest extends TestCase
         $this->assertSame(1, $suspended->refresh()->fees()->count());
     }
 
-    public function test_ended_enrollment_hides_add_forms_but_keeps_remove(): void
+    public function test_ended_enrollment_hides_add_and_remove_forms(): void
     {
         $this->actingAs(User::factory()->create());
         [$grade, $year] = $this->fixtures();

@@ -576,7 +576,7 @@ new #[Layout('layouts::app')] class extends Component
                         <td><x-ui.money :minor="$feeBalance['paid']" /></td>
                         <td><x-ui.money :minor="$feeBalance['remaining']" /></td>
                         <td>
-                            @if(! $charge->gradeFee->feeType->is_mandatory)
+                            @if(! $charge->gradeFee->feeType->is_mandatory && ! $isEnded)
                                 <x-ui.button variant="ghost" size="sm" wire:click="removeOptional({{ $charge->grade_fee_id }})" loading-target="removeOptional" wire:loading.attr="disabled" :spinner="false" class="text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/30">{{ __('common.delete') }}</x-ui.button>
                             @endif
                         </td>
@@ -611,7 +611,9 @@ new #[Layout('layouts::app')] class extends Component
                 <x-ui.percent :bp="$appliedDiscount->percent_bp" />
                 <span aria-hidden="true">—</span>
                 <x-ui.money :minor="$appliedDiscount->amount_minor" />
-                <x-ui.button variant="ghost" size="sm" wire:click="removeDiscount" loading-target="removeDiscount" wire:loading.attr="disabled" :spinner="false" class="text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/30">{{ __('fees.remove_discount') }}</x-ui.button>
+                @if(! $isEnded)
+                    <x-ui.button variant="ghost" size="sm" wire:click="removeDiscount" loading-target="removeDiscount" wire:loading.attr="disabled" :spinner="false" class="text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/30">{{ __('fees.remove_discount') }}</x-ui.button>
+                @endif
             </p>
         @endif
         @if($tuitionMinor === null)
