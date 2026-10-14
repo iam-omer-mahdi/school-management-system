@@ -41,5 +41,7 @@ return [
         'refund_exceeds_outstanding' => 'المبلغ أكبر من المدفوع بالزيادة المستحق.',
         'void_blocked_by_refunds' => 'لا يمكن إلغاء هذه الدفعة الزائدة لوجود استردادات عليها.',
         'ended_no_payments' => 'لا يمكن تسجيل مدفوعات لتسجيل منتهٍ.',
+        'total_mismatch' => 'المبالغ لا تساوي الإجمالي المدخل.',
+        'overpayment_confirmation_required' => 'أكّد تسجيل المبلغ غير المخصص كمدفوع بالزيادة.',
     ],
 ];

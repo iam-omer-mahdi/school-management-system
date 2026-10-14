@@ -68,7 +68,7 @@ class PaymentActionsTest extends TestCase
     }
 
     /**
-     * @return array{rows: array<int, array{grade_fee_id: int|null, amount: string}>}
+     * @return array{enrollment_id: int, total_minor: int, rows: array<int, array{grade_fee_id: int, amount_minor: int}>, overpayment_minor: int, overpayment_confirmed: bool, method: string, transaction_number: null, paid_on: string, note: null}
      */
     private function fullPayment(Enrollment $enrollment): array
     {
@@ -76,7 +76,28 @@ class PaymentActionsTest extends TestCase
 
         return [
             'enrollment_id' => $enrollment->id,
-            'rows' => [['grade_fee_id' => $fee->grade_fee_id, 'amount' => '1000']],
+            'total_minor' => 100000,
+            'rows' => [['grade_fee_id' => $fee->grade_fee_id, 'amount_minor' => 100000]],
+            'overpayment_minor' => 0,
+            'overpayment_confirmed' => false,
+            'method' => 'cash',
+            'transaction_number' => null,
+            'paid_on' => date('Y-m-d'),
+            'note' => null,
+        ];
+    }
+
+    /**
+     * @return array{enrollment_id: int, total_minor: int, rows: array<int>, overpayment_minor: int, overpayment_confirmed: bool, method: string, transaction_number: null, paid_on: string, note: null}
+     */
+    private function pureOverpayment(Enrollment $enrollment, int $totalMinor): array
+    {
+        return [
+            'enrollment_id' => $enrollment->id,
+            'total_minor' => $totalMinor,
+            'rows' => [],
+            'overpayment_minor' => $totalMinor,
+            'overpayment_confirmed' => true,
             'method' => 'cash',
             'transaction_number' => null,
             'paid_on' => date('Y-m-d'),
@@ -93,7 +114,10 @@ class PaymentActionsTest extends TestCase
 
         $partial = app(RecordPayment::class)->handle([
             'enrollment_id' => $enrollment->id,
-            'rows' => [['grade_fee_id' => $fee->grade_fee_id, 'amount' => '400']],
+            'total_minor' => 40000,
+            'rows' => [['grade_fee_id' => $fee->grade_fee_id, 'amount_minor' => 40000]],
+            'overpayment_minor' => 0,
+            'overpayment_confirmed' => false,
             'method' => 'cash',
             'transaction_number' => null,
             'paid_on' => date('Y-m-d'),
@@ -105,7 +129,10 @@ class PaymentActionsTest extends TestCase
 
         app(RecordPayment::class)->handle([
             'enrollment_id' => $enrollment->id,
-            'rows' => [['grade_fee_id' => $fee->grade_fee_id, 'amount' => '600']],
+            'total_minor' => 60000,
+            'rows' => [['grade_fee_id' => $fee->grade_fee_id, 'amount_minor' => 60000]],
+            'overpayment_minor' => 0,
+            'overpayment_confirmed' => false,
             'method' => 'cash',
             'transaction_number' => null,
             'paid_on' => date('Y-m-d'),
@@ -134,10 +161,13 @@ class PaymentActionsTest extends TestCase
 
         $result = app(RecordPayment::class)->handle([
             'enrollment_id' => $enrollment->id,
+            'total_minor' => 65000,
             'rows' => [
-                ['grade_fee_id' => $tuitionFee->id, 'amount' => '500'],
-                ['grade_fee_id' => $booksFee->id, 'amount' => '150'],
+                ['grade_fee_id' => $tuitionFee->id, 'amount_minor' => 50000],
+                ['grade_fee_id' => $booksFee->id, 'amount_minor' => 15000],
             ],
+            'overpayment_minor' => 0,
+            'overpayment_confirmed' => false,
             'method' => 'bank_transfer',
             'transaction_number' => 'TXN-1',
             'paid_on' => date('Y-m-d'),
@@ -175,7 +205,10 @@ class PaymentActionsTest extends TestCase
 
         $base = [
             'enrollment_id' => $enrollment->id,
-            'rows' => [['grade_fee_id' => $fee->grade_fee_id, 'amount' => '100']],
+            'total_minor' => 10000,
+            'rows' => [['grade_fee_id' => $fee->grade_fee_id, 'amount_minor' => 10000]],
+            'overpayment_minor' => 0,
+            'overpayment_confirmed' => false,
             'paid_on' => date('Y-m-d'),
             'note' => null,
         ];
@@ -206,7 +239,10 @@ class PaymentActionsTest extends TestCase
 
         $make = fn (Enrollment $e, int $feeId): array => [
             'enrollment_id' => $e->id,
-            'rows' => [['grade_fee_id' => $feeId, 'amount' => '100']],
+            'total_minor' => 10000,
+            'rows' => [['grade_fee_id' => $feeId, 'amount_minor' => 10000]],
+            'overpayment_minor' => 0,
+            'overpayment_confirmed' => false,
             'method' => 'bank_transfer',
             'transaction_number' => 'SHARED-TXN',
             'paid_on' => date('Y-m-d'),
@@ -223,14 +259,7 @@ class PaymentActionsTest extends TestCase
         $this->tuitionFee($grade, $year);
         $enrollment = $this->enroll($grade, $year);
 
-        $result = app(RecordPayment::class)->handle([
-            'enrollment_id' => $enrollment->id,
-            'rows' => [['grade_fee_id' => null, 'amount' => '500']],
-            'method' => 'cash',
-            'transaction_number' => null,
-            'paid_on' => date('Y-m-d'),
-            'note' => null,
-        ]);
+        $result = app(RecordPayment::class)->handle($this->pureOverpayment($enrollment, 50000));
 
         $overpayment = $result['payments']->firstOrFail();
         $this->assertTrue($overpayment->isOverpayment());
@@ -286,14 +315,7 @@ class PaymentActionsTest extends TestCase
         $this->tuitionFee($grade, $year);
         $enrollment = $this->enroll($grade, $year);
 
-        app(RecordPayment::class)->handle([
-            'enrollment_id' => $enrollment->id,
-            'rows' => [['grade_fee_id' => null, 'amount' => '500']],
-            'method' => 'cash',
-            'transaction_number' => null,
-            'paid_on' => date('Y-m-d'),
-            'note' => null,
-        ]);
+        app(RecordPayment::class)->handle($this->pureOverpayment($enrollment, 50000));
 
         $refund = app(RecordRefund::class)->handle([
             'enrollment_id' => $enrollment->id,
@@ -328,14 +350,7 @@ class PaymentActionsTest extends TestCase
         $this->tuitionFee($grade, $year);
         $enrollment = $this->enroll($grade, $year);
 
-        $overpayment = app(RecordPayment::class)->handle([
-            'enrollment_id' => $enrollment->id,
-            'rows' => [['grade_fee_id' => null, 'amount' => '500']],
-            'method' => 'cash',
-            'transaction_number' => null,
-            'paid_on' => date('Y-m-d'),
-            'note' => null,
-        ])['payments']->firstOrFail();
+        $overpayment = app(RecordPayment::class)->handle($this->pureOverpayment($enrollment, 50000))['payments']->firstOrFail();
 
         $refund = app(RecordRefund::class)->handle([
             'enrollment_id' => $enrollment->id,
@@ -366,14 +381,7 @@ class PaymentActionsTest extends TestCase
         $this->tuitionFee($grade, $year);
         $enrollment = $this->enroll($grade, $year);
 
-        $overpayment = app(RecordPayment::class)->handle([
-            'enrollment_id' => $enrollment->id,
-            'rows' => [['grade_fee_id' => null, 'amount' => '500']],
-            'method' => 'cash',
-            'transaction_number' => null,
-            'paid_on' => date('Y-m-d'),
-            'note' => null,
-        ])['payments']->firstOrFail();
+        $overpayment = app(RecordPayment::class)->handle($this->pureOverpayment($enrollment, 50000))['payments']->firstOrFail();
 
         app(UpdateEnrollmentStatus::class)->handle($enrollment, EnrollmentStatus::Left);
 
@@ -404,7 +412,10 @@ class PaymentActionsTest extends TestCase
 
         app(RecordPayment::class)->handle([
             'enrollment_id' => $enrollment->id,
-            'rows' => [['grade_fee_id' => $fee->grade_fee_id, 'amount' => '1000']],
+            'total_minor' => 100000,
+            'rows' => [['grade_fee_id' => $fee->grade_fee_id, 'amount_minor' => 100000]],
+            'overpayment_minor' => 0,
+            'overpayment_confirmed' => false,
             'method' => 'cash',
             'transaction_number' => null,
             'paid_on' => date('Y-m-d'),
@@ -416,5 +427,105 @@ class PaymentActionsTest extends TestCase
 
         $this->assertEquals(100000, Payment::query()->where('enrollment_id', $enrollment->id)->sum('amount_minor'));
         $this->assertSame(10000, EnrollmentDiscount::where('enrollment_id', $enrollment->id)->firstOrFail()->amount_minor);
+    }
+
+    public function test_mismatched_overpayment_is_rejected_and_stores_nothing(): void
+    {
+        [$grade, $year] = $this->fixtures();
+        $this->tuitionFee($grade, $year);
+        $enrollment = $this->enroll($grade, $year);
+        $fee = $enrollment->fees()->firstOrFail();
+
+        $payload = [
+            'enrollment_id' => $enrollment->id,
+            'total_minor' => 100000,
+            'rows' => [['grade_fee_id' => $fee->grade_fee_id, 'amount_minor' => 80000]],
+            'overpayment_minor' => 10000,
+            'overpayment_confirmed' => true,
+            'method' => 'cash',
+            'transaction_number' => null,
+            'paid_on' => date('Y-m-d'),
+            'note' => null,
+        ];
+
+        try {
+            app(RecordPayment::class)->handle($payload);
+            $this->fail('Expected ValidationException for mismatched overpayment');
+        } catch (ValidationException $e) {
+            $this->assertSame(__('payments.errors.total_mismatch'), $e->errors()['amount'][0]);
+        }
+
+        $this->assertSame(0, Payment::query()->where('enrollment_id', $enrollment->id)->count());
+    }
+
+    public function test_overpayment_without_confirmation_is_rejected(): void
+    {
+        [$grade, $year] = $this->fixtures();
+        $this->tuitionFee($grade, $year);
+        $enrollment = $this->enroll($grade, $year);
+        $fee = $enrollment->fees()->firstOrFail();
+
+        try {
+            app(RecordPayment::class)->handle([
+                'enrollment_id' => $enrollment->id,
+                'total_minor' => 100000,
+                'rows' => [['grade_fee_id' => $fee->grade_fee_id, 'amount_minor' => 80000]],
+                'overpayment_minor' => 20000,
+                'overpayment_confirmed' => false,
+                'method' => 'cash',
+                'transaction_number' => null,
+                'paid_on' => date('Y-m-d'),
+                'note' => null,
+            ]);
+            $this->fail('Expected ValidationException for missing overpayment confirmation');
+        } catch (ValidationException $e) {
+            $this->assertSame(__('payments.errors.overpayment_confirmation_required'), $e->errors()['amount'][0]);
+        }
+
+        $this->assertSame(0, Payment::query()->where('enrollment_id', $enrollment->id)->count());
+    }
+
+    public function test_tampered_fee_row_amount_is_rejected(): void
+    {
+        [$grade, $year] = $this->fixtures();
+        $this->tuitionFee($grade, $year);
+        $enrollment = $this->enroll($grade, $year);
+        $fee = $enrollment->fees()->firstOrFail();
+
+        try {
+            app(RecordPayment::class)->handle([
+                'enrollment_id' => $enrollment->id,
+                'total_minor' => 120000,
+                'rows' => [['grade_fee_id' => $fee->grade_fee_id, 'amount_minor' => 120000]],
+                'overpayment_minor' => 0,
+                'overpayment_confirmed' => false,
+                'method' => 'cash',
+                'transaction_number' => null,
+                'paid_on' => date('Y-m-d'),
+                'note' => null,
+            ]);
+            $this->fail('Expected ValidationException for fee row above remaining');
+        } catch (ValidationException $e) {
+            $this->assertSame(__('payments.errors.amount_exceeds_remaining'), $e->errors()['rows.0.amount'][0]);
+        }
+
+        try {
+            app(RecordPayment::class)->handle([
+                'enrollment_id' => $enrollment->id,
+                'total_minor' => 50000,
+                'rows' => [['grade_fee_id' => $fee->grade_fee_id, 'amount_minor' => 80000]],
+                'overpayment_minor' => 0,
+                'overpayment_confirmed' => false,
+                'method' => 'cash',
+                'transaction_number' => null,
+                'paid_on' => date('Y-m-d'),
+                'note' => null,
+            ]);
+            $this->fail('Expected ValidationException for rows exceeding the total');
+        } catch (ValidationException $e) {
+            $this->assertSame(__('payments.errors.total_mismatch'), $e->errors()['amount'][0]);
+        }
+
+        $this->assertSame(0, Payment::query()->where('enrollment_id', $enrollment->id)->count());
     }
 }

@@ -57,9 +57,14 @@ class ReceiptPageTest extends TestCase
         $enrollment = app(EnrollStudent::class)->handle($student->id, $year->id, $grade->id);
         $charge = $enrollment->fees()->firstOrFail();
 
+        $minor = Money::fromDecimal($amount);
+
         app(RecordPayment::class)->handle([
             'enrollment_id' => $enrollment->id,
-            'rows' => [['grade_fee_id' => $charge->grade_fee_id, 'amount' => $amount]],
+            'total_minor' => $minor,
+            'rows' => [['grade_fee_id' => $charge->grade_fee_id, 'amount_minor' => $minor]],
+            'overpayment_minor' => 0,
+            'overpayment_confirmed' => false,
             'method' => 'cash',
             'transaction_number' => null,
             'paid_on' => date('Y-m-d'),
@@ -105,7 +110,10 @@ class ReceiptPageTest extends TestCase
         $charge = $enrollment->fees()->firstOrFail();
         app(RecordPayment::class)->handle([
             'enrollment_id' => $enrollment->id,
-            'rows' => [['grade_fee_id' => $charge->grade_fee_id, 'amount' => '100']],
+            'total_minor' => 10000,
+            'rows' => [['grade_fee_id' => $charge->grade_fee_id, 'amount_minor' => 10000]],
+            'overpayment_minor' => 0,
+            'overpayment_confirmed' => false,
             'method' => 'cash',
             'transaction_number' => null,
             'paid_on' => date('Y-m-d'),

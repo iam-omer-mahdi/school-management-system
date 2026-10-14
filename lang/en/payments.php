@@ -41,5 +41,7 @@ return [
         'refund_exceeds_outstanding' => 'The amount is more than the outstanding overpayment.',
         'void_blocked_by_refunds' => 'This overpayment cannot be voided while refunds against it exist.',
         'ended_no_payments' => 'No payments can be recorded for an ended enrollment.',
+        'total_mismatch' => 'The amounts do not add up to the entered total.',
+        'overpayment_confirmation_required' => 'Confirm that the unallocated amount should be recorded as an overpayment.',
     ],
 ];

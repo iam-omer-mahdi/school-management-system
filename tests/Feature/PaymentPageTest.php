@@ -152,7 +152,10 @@ class PaymentPageTest extends TestCase
         $firstCharge = $first->fees()->firstOrFail();
         app(RecordPayment::class)->handle([
             'enrollment_id' => $first->id,
-            'rows' => [['grade_fee_id' => $firstCharge->grade_fee_id, 'amount' => '100']],
+            'total_minor' => 10000,
+            'rows' => [['grade_fee_id' => $firstCharge->grade_fee_id, 'amount_minor' => 10000]],
+            'overpayment_minor' => 0,
+            'overpayment_confirmed' => false,
             'method' => 'bank_transfer',
             'transaction_number' => 'SHARED-TXN',
             'paid_on' => date('Y-m-d'),
@@ -185,7 +188,10 @@ class PaymentPageTest extends TestCase
 
         $payment = app(RecordPayment::class)->handle([
             'enrollment_id' => $enrollment->id,
-            'rows' => [['grade_fee_id' => $charge->grade_fee_id, 'amount' => '200']],
+            'total_minor' => 20000,
+            'rows' => [['grade_fee_id' => $charge->grade_fee_id, 'amount_minor' => 20000]],
+            'overpayment_minor' => 0,
+            'overpayment_confirmed' => false,
             'method' => 'cash',
             'transaction_number' => null,
             'paid_on' => date('Y-m-d'),
@@ -217,7 +223,10 @@ class PaymentPageTest extends TestCase
 
         app(RecordPayment::class)->handle([
             'enrollment_id' => $enrollment->id,
-            'rows' => [['grade_fee_id' => $charge->grade_fee_id, 'amount' => '300']],
+            'total_minor' => 30000,
+            'rows' => [['grade_fee_id' => $charge->grade_fee_id, 'amount_minor' => 30000]],
+            'overpayment_minor' => 0,
+            'overpayment_confirmed' => false,
             'method' => 'cash',
             'transaction_number' => null,
             'paid_on' => date('Y-m-d'),
@@ -244,7 +253,10 @@ class PaymentPageTest extends TestCase
 
         app(RecordPayment::class)->handle([
             'enrollment_id' => $enrollment->id,
-            'rows' => [['grade_fee_id' => $charge->grade_fee_id, 'amount' => '300']],
+            'total_minor' => 30000,
+            'rows' => [['grade_fee_id' => $charge->grade_fee_id, 'amount_minor' => 30000]],
+            'overpayment_minor' => 0,
+            'overpayment_confirmed' => false,
             'method' => 'cash',
             'transaction_number' => null,
             'paid_on' => date('Y-m-d'),
@@ -269,7 +281,10 @@ class PaymentPageTest extends TestCase
 
         app(RecordPayment::class)->handle([
             'enrollment_id' => $enrollment->id,
-            'rows' => [['grade_fee_id' => null, 'amount' => '500']],
+            'total_minor' => 50000,
+            'rows' => [],
+            'overpayment_minor' => 50000,
+            'overpayment_confirmed' => true,
             'method' => 'cash',
             'transaction_number' => null,
             'paid_on' => date('Y-m-d'),

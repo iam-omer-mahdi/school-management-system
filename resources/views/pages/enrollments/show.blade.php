@@ -178,33 +178,47 @@ new #[Layout('layouts::app')] class extends Component
     }
 
     /**
+     * Every entered per-fee amount parsed once to minor units, or null
+     * when any entered value is not a valid amount. Blank inputs are
+     * skipped. Keys are grade fee ids.
+     *
+     * @return array<int, int>|null
+     */
+    #[Computed]
+    public function parsedPayAlloc(): ?array
+    {
+        $parsed = [];
+
+        foreach ($this->payAlloc as $feeId => $value) {
+            if (trim((string) $value) === '') {
+                continue;
+            }
+
+            try {
+                $parsed[(int) $feeId] = Money::fromDecimal((string) $value);
+            } catch (\InvalidArgumentException) {
+                return null;
+            }
+        }
+
+        return $parsed;
+    }
+
+    /**
      * Total minus allocated, or null when either side is not a valid
      * amount. Drives the live Unallocated line and the Save gate.
      */
     #[Computed]
     public function payUnallocated(): ?int
     {
-        try {
-            $total = Money::fromDecimal($this->payTotal);
-        } catch (\InvalidArgumentException) {
+        $total = $this->parsedPayTotal;
+        $allocs = $this->parsedPayAlloc;
+
+        if ($total === null || $allocs === null) {
             return null;
         }
 
-        $allocated = 0;
-
-        foreach ($this->payAlloc as $value) {
-            if (trim((string) $value) === '') {
-                continue;
-            }
-
-            try {
-                $allocated += Money::fromDecimal((string) $value);
-            } catch (\InvalidArgumentException) {
-                return null;
-            }
-        }
-
-        return $total - $allocated;
+        return $total - array_sum($allocs);
     }
 
     public function openPaymentModal(): void
@@ -213,7 +227,7 @@ new #[Layout('layouts::app')] class extends Component
         $this->reset(['payMethod', 'payTxn', 'payDate', 'payNote', 'payTotal', 'payAlloc', 'confirmOverpayment', 'lastTxnReused', 'lastPaymentIds']);
         $this->payMethod = 'cash';
         $this->payDate = date('Y-m-d');
-        unset($this->txnReuseWarning, $this->payUnallocated);
+        unset($this->txnReuseWarning, $this->payUnallocated, $this->parsedPayTotal, $this->parsedPayAlloc);
         $this->showPaymentModal = true;
     }
 
@@ -227,31 +241,41 @@ new #[Layout('layouts::app')] class extends Component
     {
         $this->validate(['payTotal' => ['required', 'string']]);
 
-        $rows = [];
+        $total = $this->parsedPayTotal;
+        $allocs = $this->parsedPayAlloc;
 
-        foreach ($this->payAlloc as $feeId => $value) {
-            if (trim((string) $value) === '') {
-                continue;
-            }
-
-            $rows[] = ['grade_fee_id' => (int) $feeId, 'amount' => (string) $value];
-        }
-
-        $unallocated = $this->payUnallocated;
-
-        if ($unallocated === null || $unallocated < 0 || ($unallocated > 0 && ! $this->confirmOverpayment)) {
+        if ($total === null || $total <= 0 || $allocs === null) {
             $this->addError('payTotal', __('validation.numeric', ['attribute' => __('payments.amount')]));
 
             return;
         }
 
-        if ($unallocated > 0) {
-            $rows[] = ['enrollment_fee_id' => null, 'amount' => (string) $unallocated];
+        $rows = [];
+
+        foreach ($allocs as $feeId => $minor) {
+            if ($minor <= 0) {
+                $this->addError('payTotal', __('validation.numeric', ['attribute' => __('payments.amount')]));
+
+                return;
+            }
+
+            $rows[] = ['grade_fee_id' => $feeId, 'amount_minor' => $minor];
+        }
+
+        $unallocated = $total - array_sum($allocs);
+
+        if ($unallocated < 0 || ($unallocated > 0 && ! $this->confirmOverpayment)) {
+            $this->addError('payTotal', __('validation.numeric', ['attribute' => __('payments.amount')]));
+
+            return;
         }
 
         $result = $action->handle([
             'enrollment_id' => $this->enrollmentId,
+            'total_minor' => $total,
             'rows' => $rows,
+            'overpayment_minor' => max(0, $unallocated),
+            'overpayment_confirmed' => (bool) $this->confirmOverpayment,
             'method' => $this->payMethod,
             'transaction_number' => $this->payTxn,
             'paid_on' => $this->payDate ?? date('Y-m-d'),
@@ -262,7 +286,7 @@ new #[Layout('layouts::app')] class extends Component
         $this->lastTxnReused = $result['transaction_reused'];
         $this->showPaymentModal = false;
         $this->reset(['payTotal', 'payAlloc', 'confirmOverpayment']);
-        unset($this->enrollment, $this->payUnallocated, $this->txnReuseWarning);
+        unset($this->enrollment, $this->payUnallocated, $this->parsedPayTotal, $this->parsedPayAlloc, $this->txnReuseWarning);
         session()->flash('status', __('payments.payment_recorded'));
     }
 
