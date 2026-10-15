@@ -1,6 +1,6 @@
 @props(['loadingLabel' => null])
 
-<div {{ $attributes->merge(['class' => 'relative overflow-x-auto rounded-lg border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800']) }}>
+<div {{ $attributes->merge(['class' => 'relative overflow-x-auto rounded-lg border border-gray-700 bg-white dark:border-gray-700 dark:bg-gray-800']) }}>
     <table class="flowbite-table w-full text-sm">
         @if(isset($head))
             <thead><tr>{{ $head }}</tr></thead>
