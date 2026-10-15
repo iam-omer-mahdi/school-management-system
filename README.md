@@ -1,6 +1,6 @@
 # School Management System
 
-A modern, bilingual (English / Arabic) web application for running the administrative side of a school: academic structure, students and enrollment today, with fees, payments, reporting and more planned.
+A modern, bilingual (English / Arabic) web application for running the administrative side of a school: academic structure, students and enrollment, fees, payments and financial reporting.
 
 The system is being built as a complete product, delivered in well-defined phases. Each phase ships tested, documented and usable on its own. See the [Roadmap](#roadmap).
 
@@ -259,9 +259,9 @@ The product is delivered phase by phase. Scope for later phases is a plan, not a
 | Phase | Focus | Status |
 | --- | --- | --- |
 | 1. Foundation | Authentication and account security, schools and grades, academic years, students, enrollment, English/Arabic with RTL, light/dark themes, UI component library | Done |
-| 2. Fees and discounts | Fee structures per school, grade and academic year; installment plans; discount types and rules (sibling, scholarship, staff); per-student fee assignment | In progress |
-| 3. Payments | Recording payments, receipts, per-fee and enrollment balances, refunds of paid fees for ended enrollments, voids | In progress |
-| 4. Reports | Collection, outstanding balances and enrollment reports; filters by school, grade and year; export to PDF and Excel. Reports show all enrollments by default, with an active-only toggle and a breakdown by status, including balances owed by students who left | Planned |
+| 2. Fees and discounts | Fee structures per school, grade and academic year; discount types and rules (sibling, scholarship, staff); per-student fee assignment | Done |
+| 3. Payments | Recording payments, receipts, per-fee and enrollment balances, refunds of paid fees for ended enrollments, voids | Done |
+| 4. Reports | Year summary, tuition vs other fees, outstanding call list, collections, discounts, forgone by leavers, refunds and student statements; filters by year, school, grade and status; native Excel export and printable views; dashboard financial cards and offline charts | Done |
 | 5. Wider school management | Additional modules such as attendance, staff and academic records, to be defined once the finance core is complete | To be scoped |
 
 Ideas for later (not committed): roles and auditing, activity log, backups.

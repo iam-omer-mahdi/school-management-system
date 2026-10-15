@@ -177,7 +177,7 @@ new #[Layout('layouts::app')] class extends Component
                     </x-ui.select>
                 </x-ui.field>
                 <x-ui.field :label="__('fees.amount')" for="set-fee-amount" required :error="$errors->first('amount')">
-                    <x-ui.input id="set-fee-amount" type="text" wire:model.blur="amount" :error="$errors->first('amount')" inputmode="decimal" dir="ltr" autocomplete="off" class="font-mono" />
+                    <x-ui.input id="set-fee-amount" type="text" wire:model.blur="amount" :error="$errors->first('amount')" inputmode="decimal" dir="ltr" autocomplete="off" class="font-mono" data-money />
                 </x-ui.field>
             </div>
             @if($this->parsedAmount)
