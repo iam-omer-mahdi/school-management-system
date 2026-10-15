@@ -117,3 +117,58 @@ body {
 .dark .flowbite-table tbody tr:hover td {
     background-color: var(--color-gray-700);
 }
+
+/*
+ * Compact bordered report tables, shared by the on-screen reports and
+ * the printable views so both render from the same partials. Logical
+ * properties keep RTL/LTR identical.
+ */
+.report-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8125rem;
+    line-height: 1.35rem;
+    color: var(--color-gray-900);
+}
+
+.dark .report-table {
+    color: var(--color-gray-100);
+}
+
+.report-table thead th {
+    background-color: var(--color-gray-100);
+    font-weight: 700;
+    text-align: start;
+    padding: 0.5rem 0.625rem;
+    border: 1px solid var(--color-gray-300);
+    white-space: nowrap;
+}
+
+.dark .report-table thead th {
+    background-color: var(--color-gray-700);
+    border-color: var(--color-gray-600);
+}
+
+.report-table tbody td {
+    padding: 0.5rem 0.625rem;
+    border: 1px solid var(--color-gray-200);
+    vertical-align: top;
+    background-color: var(--color-white);
+}
+
+.dark .report-table tbody td {
+    border-color: var(--color-gray-700);
+    background-color: var(--color-gray-800);
+}
+
+.report-table tfoot td {
+    padding: 0.5rem 0.625rem;
+    border: 1px solid var(--color-gray-300);
+    font-weight: 700;
+    background-color: var(--color-gray-100);
+}
+
+.dark .report-table tfoot td {
+    border-color: var(--color-gray-600);
+    background-color: var(--color-gray-700);
+}

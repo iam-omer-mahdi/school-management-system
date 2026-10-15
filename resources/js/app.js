@@ -1,7 +1,9 @@
 import 'flowbite';
 import { initFlowbite } from 'flowbite';
 import Datepicker from 'flowbite-datepicker/Datepicker';
+import ApexCharts from 'apexcharts';
 
+window.ApexCharts = ApexCharts;
 window.initFlowbite = initFlowbite;
 
 function componentForElement(el) {
@@ -109,6 +111,137 @@ function initMonthPickers() {
 
 window.initMonthPickers = initMonthPickers;
 
+/**
+ * Money inputs (data-money): display thousands grouping for readability
+ * while the Livewire model keeps the raw ungrouped string. Group on
+ * blur, strip back to raw on focus. Invalid text is left untouched so
+ * server validation still reports it. The backend (Money::fromDecimal)
+ * already strips commas, so grouped values parse and store cleanly.
+ */
+function groupMoneyValue(value) {
+    const raw = value.replace(/[,٬\s]/gu, '');
+
+    if (!/^\d+(\.\d{1,2})?$/.test(raw)) {
+        return null;
+    }
+
+    const [intPart, decPart] = raw.split('.');
+    const grouped = Number(intPart).toLocaleString('en-US');
+
+    return decPart !== undefined ? `${grouped}.${decPart}` : grouped;
+}
+
+function initMoneyInputs() {
+    document.querySelectorAll('[data-money]').forEach((el) => {
+        if (!(el instanceof HTMLInputElement)) {
+            return;
+        }
+
+        if (el._moneyBound) {
+            return;
+        }
+        el._moneyBound = true;
+
+        el.addEventListener('focus', () => {
+            el.value = el.value.replace(/[,٬\s]/gu, '');
+        });
+
+        el.addEventListener('blur', () => {
+            const grouped = groupMoneyValue(el.value);
+
+            if (grouped !== null) {
+                el.value = grouped;
+            }
+        });
+
+        // Never reformat the field the user is actively typing in;
+        // morph echoes would otherwise move the caret mid-typing.
+        if (document.activeElement === el) {
+            return;
+        }
+
+        const grouped = groupMoneyValue(el.value);
+
+        if (grouped !== null && grouped !== el.value) {
+            el.value = grouped;
+        }
+    });
+}
+
+window.initMoneyInputs = initMoneyInputs;
+
+/**
+ * Dashboard charts (ApexCharts, bundled offline). Each [data-chart]
+ * element carries its labels/series as JSON data attributes rendered
+ * by Blade, so charts survive Livewire morphs: re-render after every
+ * navigation and every morph.
+ */
+function renderDashboardCharts() {
+    if (!window.ApexCharts) {
+        return;
+    }
+
+    const isDark = document.documentElement.classList.contains('dark');
+    const mode = isDark ? 'dark' : 'light';
+
+    document.querySelectorAll('[data-chart]').forEach((el) => {
+        if (!(el instanceof HTMLElement)) {
+            return;
+        }
+
+        let config = null;
+        const kind = el.getAttribute('data-chart');
+        const labels = JSON.parse(el.getAttribute('data-labels') || '[]');
+
+        if (kind === 'grade-stacked') {
+            const collected = JSON.parse(el.getAttribute('data-collected') || '[]');
+            const remaining = JSON.parse(el.getAttribute('data-remaining') || '[]');
+            const cashLabel = el.getAttribute('data-cash-label') || '';
+            const restLabel = el.getAttribute('data-rest-label') || '';
+            config = {
+                series: [
+                    { name: cashLabel, data: collected },
+                    { name: restLabel, data: remaining },
+                ],
+                chart: { type: 'bar', height: 280, stacked: true, background: 'transparent', toolbar: { show: false } },
+                colors: ['#10b981', '#f59e0b'],
+                xaxis: { categories: labels },
+                legend: { position: 'bottom' },
+                theme: { mode },
+            };
+        } else if (kind === 'status-donut' || kind === 'fee-donut') {
+            const values = JSON.parse(el.getAttribute('data-values') || '[]');
+            config = {
+                series: values,
+                labels,
+                chart: { type: 'donut', height: 280, background: 'transparent' },
+                legend: { position: 'bottom' },
+                theme: { mode },
+            };
+        } else if (kind === 'monthly-line') {
+            const values = JSON.parse(el.getAttribute('data-values') || '[]');
+            const netLabel = el.getAttribute('data-net-label') || '';
+            config = {
+                series: [{ name: netLabel, data: values }],
+                chart: { type: 'line', height: 280, background: 'transparent', toolbar: { show: false } },
+                xaxis: { categories: labels },
+                stroke: { curve: 'smooth', width: 3 },
+                colors: ['#6366f1'],
+                theme: { mode },
+            };
+        }
+
+        if (!config) {
+            return;
+        }
+
+        el.innerHTML = '';
+        new ApexCharts(el, config).render();
+    });
+}
+
+window.renderDashboardCharts = renderDashboardCharts;
+
 function applyTheme() {
     const stored = localStorage.getItem('color-theme');
 
@@ -125,6 +258,8 @@ document.addEventListener('DOMContentLoaded', () => {
     applyTheme();
     initFlowbite();
     initMonthPickers();
+    initMoneyInputs();
+    renderDashboardCharts();
 });
 
 // Livewire SPA navigation (wire:navigate) swaps page content without a full
@@ -134,6 +269,8 @@ document.addEventListener('livewire:navigated', () => {
     applyTheme();
     initFlowbite();
     initMonthPickers();
+    initMoneyInputs();
+    renderDashboardCharts();
 });
 
 // The academic-year form is inserted by a Livewire roundtrip (showForm
@@ -144,6 +281,8 @@ function registerMonthPickerMorphHook() {
     if (window.Livewire && typeof window.Livewire.hook === 'function') {
         window.Livewire.hook('morphed', () => {
             initMonthPickers();
+            initMoneyInputs();
+            renderDashboardCharts();
         });
 
         return true;
