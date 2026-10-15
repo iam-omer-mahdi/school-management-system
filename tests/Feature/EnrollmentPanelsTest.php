@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Feature;
 
-use App\Actions\ApplyDiscountToEnrollment;
-use App\Actions\CreateDiscount;
 use App\Actions\CreateGradeFee;
 use App\Actions\EnrollStudent;
 use App\Actions\RecordPayment;
@@ -57,21 +55,37 @@ final class EnrollmentPanelsTest extends TestCase
         return $this->enroll($grade, $year);
     }
 
-    public function test_payments_panel_shows_fresh_numbers_after_discount_elsewhere(): void
+    public function test_payments_panel_shows_fresh_history_after_payment_elsewhere(): void
     {
         $this->actingAs(User::factory()->create());
         [$grade, $year] = $this->fixtures();
         $enrollment = $this->tuitionEnrollment($grade, $year, '2000');
+        $charge = $enrollment->fees()->firstOrFail();
 
         $page = Livewire::test('enrollments.show.payments-panel', ['enrollmentId' => $enrollment->id])
-            ->assertSee(Money::format(200000), false);
+            ->assertDontSee(Money::format(30000), false);
 
-        $discount = app(CreateDiscount::class)->handle(['name' => 'Sibling', 'percent' => '10']);
-        app(ApplyDiscountToEnrollment::class)->handle($enrollment->id, $discount->id);
+        app(RecordPayment::class)->handle([
+            'enrollment_id' => $enrollment->id, 'total_minor' => 30000,
+            'rows' => [['grade_fee_id' => $charge->grade_fee_id, 'amount_minor' => 30000]],
+            'method' => 'cash', 'transaction_number' => null, 'paid_on' => date('Y-m-d'), 'note' => null,
+        ]);
 
         $page->dispatch('enrollment-changed')
-            ->assertSee(Money::format(20000), false)
-            ->assertSee(Money::format(180000), false);
+            ->assertSee(Money::format(30000), false);
+    }
+
+    public function test_show_page_renders_single_charges_and_payment_sections(): void
+    {
+        $this->actingAs(User::factory()->create());
+        [$grade, $year] = $this->fixtures();
+        $enrollment = $this->tuitionEnrollment($grade, $year);
+
+        $html = $this->get(route('enrollments.show', $enrollment))->assertOk()->getContent();
+        $heading = fn (string $title): string => '<h2 class="text-base font-semibold text-gray-900 dark:text-white">'.$title.'</h2>';
+
+        $this->assertSame(1, substr_count($html, $heading(__('fees.charges'))));
+        $this->assertSame(1, substr_count($html, $heading(__('payments.payment'))));
     }
 
     public function test_charges_panel_shows_fresh_numbers_after_payment_elsewhere(): void

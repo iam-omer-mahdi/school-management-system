@@ -87,7 +87,7 @@ new #[Layout('layouts::print')] class extends Component
 
     <dl class="grid grid-cols-1 gap-x-8 gap-y-3 text-sm sm:grid-cols-2">
         <div><dt class="text-gray-500">{{ __('students.name') }}</dt><dd class="mt-0.5 font-medium text-gray-900">{{ $enrollment->student->name }}</dd></div>
-        <div><dt class="text-gray-500">{{ __('students.student_number') }}</dt><dd class="mt-0.5 font-medium text-gray-900" dir="ltr">{{ $enrollment->student->student_number }}</dd></div>
+        <div><dt class="text-gray-500">{{ __('students.student_number') }}</dt><dd class="mt-0.5 font-medium text-gray-900">{{ $enrollment->student->student_number }}</dd></div>
     </dl>
 
     <ul class="space-y-3 text-sm">
@@ -107,9 +107,9 @@ new #[Layout('layouts::print')] class extends Component
                     <x-ui.money :minor="$payment->amount_minor" />
                 </div>
                 <dl class="grid grid-cols-1 gap-x-8 gap-y-2 text-sm sm:grid-cols-3">
-                    <div><dt class="text-gray-500">{{ __('payments.reference') }}</dt><dd class="mt-0.5 font-mono font-medium text-gray-900" dir="ltr">{{ $payment->reference() }}</dd></div>
-                    <div><dt class="text-gray-500">{{ __('payments.transaction_number') }}</dt><dd class="mt-0.5 font-mono font-medium text-gray-900" dir="ltr">{{ $payment->transaction_number ?? '—' }}</dd></div>
-                    <div><dt class="text-gray-500">{{ __('payments.paid_on') }}</dt><dd class="mt-0.5 font-medium text-gray-900" dir="ltr">{{ $payment->paid_on?->format('Y-m-d') }}</dd></div>
+                    <div><dt class="text-gray-500">{{ __('payments.reference') }}</dt><dd class="mt-0.5 font-mono font-medium text-gray-900">{{ $payment->reference() }}</dd></div>
+                    <div><dt class="text-gray-500">{{ __('payments.transaction_number') }}</dt><dd class="mt-0.5 font-mono font-medium text-gray-900">{{ $payment->transaction_number ?? '—' }}</dd></div>
+                    <div><dt class="text-gray-500">{{ __('payments.paid_on') }}</dt><dd class="mt-0.5 font-medium text-gray-900">{{ $payment->paid_on?->format('Y-m-d') }}</dd></div>
                 </dl>
                 <p class="text-xs text-gray-500">{{ $payment->method === \App\Enums\PaymentMethod::BankTransfer ? __('payments.bank_transfer') : __('payments.cash') }}</p>
             </li>

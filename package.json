@@ -8,7 +8,7 @@
     },
     "dependencies": {
         "@tailwindcss/vite": "^4.1.11",
-        "apexcharts": "^8.2.0",
+        "apexcharts": "^8.3.1",
         "concurrently": "^10.0.3",
         "flowbite": "3.1.2",
         "laravel-vite-plugin": "^3.1",

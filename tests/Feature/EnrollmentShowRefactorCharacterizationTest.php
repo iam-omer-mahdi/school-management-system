@@ -176,8 +176,10 @@ final class EnrollmentShowRefactorCharacterizationTest extends TestCase
         $enrollment = $this->enroll($grade, $year);
         app(UpdateEnrollmentStatus::class)->handle($enrollment, EnrollmentStatus::Left);
 
+        Livewire::test('enrollments.show.payments-panel', ['enrollmentId' => $enrollment->id])
+            ->assertSee(__('payments.errors.ended_no_payments'));
+
         Livewire::test('enrollments.show.add-payment-modal', ['enrollmentId' => $enrollment->id])
-            ->assertSee(__('payments.errors.ended_no_payments'))
             ->call('openPaymentModal')
             ->set('form.total', '100')
             ->set('form.alloc.'.$tuitionFee->id, '100')

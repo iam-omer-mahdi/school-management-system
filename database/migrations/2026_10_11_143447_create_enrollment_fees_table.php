@@ -20,6 +20,7 @@ return new class extends Migration
             $table->foreign('enrollment_id', 'ef_enrollment_fk')->references('id')->on('enrollments')->restrictOnDelete();
             $table->foreign('grade_fee_id', 'ef_grade_fee_fk')->references('id')->on('grade_fees')->restrictOnDelete();
             $table->unique(['enrollment_id', 'grade_fee_id'], 'ef_enrollment_grade_fee_unique');
+            $table->index('enrollment_id', 'ef_enrollment_idx');
         });
     }
 

@@ -223,14 +223,14 @@ new class extends Component
                 @endif
                 <p class="text-sm text-gray-600 dark:text-gray-400">{{ __('payments.refundable') }}: <x-ui.money :minor="$balance['refundable']" /></p>
                 <x-ui.field :label="__('payments.amount')" for="refund-total" required :error="$errors->first('form.total')">
-                    <x-ui.input id="refund-total" type="text" wire:model.live.debounce.500ms="form.total" :error="$errors->first('form.total')" inputmode="decimal" dir="ltr" autocomplete="off" class="font-mono" required />
+                    <x-ui.input id="refund-total" type="text" wire:model.live.debounce.500ms="form.total" :error="$errors->first('form.total')" inputmode="decimal" dir="ltr" autocomplete="off" class="font-mono" data-money required />
                 </x-ui.field>
                 @foreach($enrollment->fees as $charge)
                     @php $feeRefundable = $balance['fees'][$charge->id]['refundable'] ?? 0; @endphp
                     @if($feeRefundable > 0)
                         <x-ui.field :label="$charge->gradeFee->feeType->isTuition() ? __('fees.tuition') : $charge->gradeFee->feeType->name" for="refund-alloc-{{ $charge->grade_fee_id }}">
                             <div class="flex items-center gap-3">
-                                <x-ui.input id="refund-alloc-{{ $charge->grade_fee_id }}" type="text" wire:model.live.debounce.500ms="form.alloc.{{ $charge->grade_fee_id }}" inputmode="decimal" dir="ltr" autocomplete="off" class="font-mono" />
+                                <x-ui.input id="refund-alloc-{{ $charge->grade_fee_id }}" type="text" wire:model.live.debounce.500ms="form.alloc.{{ $charge->grade_fee_id }}" inputmode="decimal" dir="ltr" autocomplete="off" class="font-mono" data-money />
                                 <span class="shrink-0 text-xs text-gray-500 dark:text-gray-400"><x-ui.money :minor="$feeRefundable" /></span>
                             </div>
                         </x-ui.field>

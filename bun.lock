@@ -5,7 +5,7 @@
     "": {
       "dependencies": {
         "@tailwindcss/vite": "^4.1.11",
-        "apexcharts": "^8.2.0",
+        "apexcharts": "^8.3.1",
         "concurrently": "^10.0.3",
         "flowbite": "3.1.2",
         "laravel-vite-plugin": "^3.1",
@@ -316,7 +316,7 @@
 
     "apex-commons": ["apex-commons@0.8.2", "", {}, "sha512-XTaIc8S8YEJ6gjNMvnY2Eq5X8UM2IstpYaVSh7iERBUXIefJ8hjUR2nGhWr9guZuQpFvG9NFca9arhrDdYSgIQ=="],
 
-    "apexcharts": ["apexcharts@8.2.0", "", { "dependencies": { "apex-commons": "^0.8.0" } }, "sha512-SoJgwGOQQ8PWqbhZWA5yQUQUjCnwcDZpVb5NC4d0xeChgRN9UVem5r196s8GtsjvDGrHgq7X5nUoiNu/ZpUMew=="],
+    "apexcharts": ["apexcharts@8.3.1", "", { "dependencies": { "apex-commons": "^0.8.0" } }, "sha512-Z0LX1rPyXBe85082t9EqUWzikOdLy3Z184cvL+4uYS7J4kyLAzK50JBtAGKH5OU8Y6EOPqiH8BqjxjMIBF2+gw=="],
 
     "aria-query": ["aria-query@5.3.0", "", { "dependencies": { "dequal": "^2.0.3" } }, "sha512-b0P0sZPKtyu8HkeRAfCq0IfURZK+SuwMjY1UXGBU27wpAiTwQAIlq56IbIO+ytk/JjS1fMR14ee5WBBfKi5J6A=="],
 

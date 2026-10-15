@@ -26,7 +26,7 @@ return new class extends Migration
             $table->foreign('enrollment_id', 'pay_enrollment_fk')->references('id')->on('enrollments')->restrictOnDelete();
             $table->foreign('enrollment_fee_id', 'pay_enrollment_fee_fk')->references('id')->on('enrollment_fees')->restrictOnDelete();
             $table->index('enrollment_id', 'pay_enrollment_idx');
-            $table->index(['paid_on', 'voided_at'], 'pay_paid_on_voided_idx');
+            $table->index(['paid_on', 'voided_at'], 'pay_paid_voided_idx');
             $table->index(['enrollment_fee_id', 'voided_at'], 'pay_fee_voided_idx');
         });
     }

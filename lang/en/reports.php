@@ -12,6 +12,7 @@ return [
     'filters' => 'Filters',
     'all_schools' => 'All schools',
     'all_grades' => 'All grades',
+    'all_fee_types' => 'All fee types',
     'all_statuses' => 'All statuses',
     'preset_charged' => 'Charged (Active + Suspended)',
     'preset_ended' => 'Ended (Transferred + Expelled + Left)',
@@ -21,18 +22,15 @@ return [
     'prepared_by' => 'Prepared by',
     'approved_by' => 'Approved by',
     'footnote_year_summary' => '* Remaining includes unpaid charges of students who left.',
-
-    // Tabs / Report types
     'year_summary' => 'Year summary',
     'tuition_vs_other' => 'Tuition vs other fees',
     'call_list' => 'Outstanding call list',
     'collections' => 'Collections',
     'discounts' => 'Discounts',
     'forgone_by_leavers' => 'Forgone by leavers',
+    'forgone_details' => 'Leaver details',
     'refunds' => 'Refunds',
     'student_statement' => 'Student account statement',
-
-    // Column labels & Metrics
     'grand_total' => 'Grand total',
     'current' => 'Current (Net paid)',
     'remaining' => 'Remaining',
@@ -45,6 +43,7 @@ return [
     'method' => 'Method',
     'transaction_numbers' => 'Bank transaction numbers',
     'cash_net' => 'Net cash',
+    'events_count' => 'Transactions',
     'discount_name' => 'Discount name',
     'students_count' => 'Students count',
     'total_amount' => 'Total amount',
@@ -56,5 +55,7 @@ return [
     'audit_voided' => 'Voided audit records (excluded from totals)',
     'void_reason' => 'Void reason',
     'student_search_placeholder' => 'Search by student name or number...',
-    'select_student' => 'Select a student to view statement',
+    'select_student' => 'Select a student to view the statement.',
+    'refund_lines' => 'Refund lines',
+    'by_status' => 'By status',
 ];

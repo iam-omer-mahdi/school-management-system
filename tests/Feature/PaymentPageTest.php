@@ -246,7 +246,7 @@ class PaymentPageTest extends TestCase
 
         // No charges yet: the button is replaced by the reason.
         $noCharges = $this->enroll($grade, $year);
-        Livewire::test('enrollments.show.add-payment-modal', ['enrollmentId' => $noCharges->id])
+        Livewire::test('enrollments.show.payments-panel', ['enrollmentId' => $noCharges->id])
             ->assertSee(__('payments.errors.no_charges'))
             ->assertSee(__('payments.add_payment'), false)
             ->assertSee('disabled="disabled"', false)
@@ -258,7 +258,7 @@ class PaymentPageTest extends TestCase
         $paidCharge = $paid->fees()->firstOrFail();
         $this->pay($paid, 100000, [['grade_fee_id' => $paidCharge->grade_fee_id, 'amount_minor' => 100000]]);
 
-        Livewire::test('enrollments.show.add-payment-modal', ['enrollmentId' => $paid->id])
+        Livewire::test('enrollments.show.payments-panel', ['enrollmentId' => $paid->id])
             ->assertSee(__('payments.errors.nothing_to_pay'))
             ->assertSee(__('payments.add_payment'), false)
             ->assertSee('disabled="disabled"', false)
@@ -276,12 +276,12 @@ class PaymentPageTest extends TestCase
 
         app(UpdateEnrollmentStatus::class)->handle($enrollment, EnrollmentStatus::Left);
 
-        Livewire::test('enrollments.show.add-payment-modal', ['enrollmentId' => $enrollment->id])
+        Livewire::test('enrollments.show.payments-panel', ['enrollmentId' => $enrollment->id])
             ->assertSee(__('payments.errors.ended_no_payments'))
             ->assertDontSee(__('payments.add_payment'), false)
             ->assertDontSee('wire:click="openPaymentModal"', false);
 
-        Livewire::test('enrollments.show.payments-panel', ['enrollmentId' => $enrollment->id])
+        Livewire::test('pages::enrollments.show', ['enrollment' => $enrollment->id])
             ->assertSee(__('payments.closed_without_payment'))
             ->assertSee(Money::format(70000))
             ->assertSee(Money::format(30000));
@@ -709,7 +709,7 @@ class PaymentPageTest extends TestCase
             ->assertHasNoErrors()
             ->assertDispatched('enrollment-changed');
 
-        Livewire::test('enrollments.show.payments-panel', ['enrollmentId' => $enrollment->id])
+        Livewire::test('pages::enrollments.show', ['enrollment' => $enrollment->id])
             ->assertSee(__('payments.closed_without_payment'), false)
             ->assertSee(Money::format(25000), false)
             ->assertSee(Money::format(75000), false);

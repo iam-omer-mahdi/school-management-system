@@ -107,6 +107,7 @@ new class extends Component
         unset($this->parsedTotal, $this->parsedAlloc, $this->payUnallocated, $this->payBlockReason, $this->payRemaining, $this->paymentDisabledReason);
     }
 
+    #[On('open-payment-modal')]
     public function openPaymentModal(): void
     {
         $this->resetValidation();
@@ -170,29 +171,18 @@ new class extends Component
 @endphp
 
 <div>
-    <x-ui.card>
-        <x-slot:header>
-            <div class="flex items-center justify-between gap-2">
-                <h2 class="text-base font-semibold text-gray-900 dark:text-white">{{ __('payments.payment') }}</h2>
-                @if($this->paymentDisabledReason === null)
-                    <x-ui.button variant="primary" size="sm" wire:click="openPaymentModal" :spinner="false"><x-ui.icon name="plus" class="h-4 w-4" />{{ __('payments.add_payment') }}</x-ui.button>
-                @elseif(! $isEnded)
-                    <x-ui.button variant="primary" size="sm" :spinner="false" disabled aria-disabled="true"><x-ui.icon name="plus" class="h-4 w-4" />{{ __('payments.add_payment') }}</x-ui.button>
-                @endif
-            </div>
-        </x-slot:header>
-        @if($this->paymentDisabledReason !== null)
-            <p class="text-sm text-gray-500 dark:text-gray-400">{{ $this->paymentDisabledReason }}</p>
-        @endif
-        @if($lastTxnReused)
-            <x-ui.alert type="warning">{{ __('payments.transaction_reused') }}</x-ui.alert>
-        @endif
-        @if($lastPaymentIds !== [])
-            <p class="mt-3">
-                <x-ui.button href="{{ route('enrollments.receipt', ['enrollment' => $enrollment->id, 'payments' => implode(',', $lastPaymentIds)]) }}" variant="secondary" size="sm" :spinner="false">{{ __('payments.print_receipt') }}</x-ui.button>
-            </p>
-        @endif
-    </x-ui.card>
+    @if($lastTxnReused || $lastPaymentIds !== [])
+        <x-ui.card>
+            @if($lastTxnReused)
+                <x-ui.alert type="warning">{{ __('payments.transaction_reused') }}</x-ui.alert>
+            @endif
+            @if($lastPaymentIds !== [])
+                <p class="mt-3">
+                    <x-ui.button href="{{ route('enrollments.receipt', ['enrollment' => $enrollment->id, 'payments' => implode(',', $lastPaymentIds)]) }}" variant="secondary" size="sm" :spinner="false">{{ __('payments.print_receipt') }}</x-ui.button>
+                </p>
+            @endif
+        </x-ui.card>
+    @endif
 
     @if($showModal)
         <x-ui.modal :title="__('payments.add_payment')" close="closePaymentModal">
@@ -229,13 +219,13 @@ new class extends Component
                     <x-ui.input id="pay-note" type="text" wire:model.blur="form.note" autocomplete="off" />
                 </x-ui.field>
                 <x-ui.field :label="__('payments.amount')" for="pay-total" required :error="$errors->first('form.total')">
-                    <x-ui.input id="pay-total" type="text" wire:model.live.debounce.500ms="form.total" :error="$errors->first('form.total')" inputmode="decimal" dir="ltr" autocomplete="off" class="font-mono" required />
+                    <x-ui.input id="pay-total" type="text" wire:model.live.debounce.500ms="form.total" :error="$errors->first('form.total')" inputmode="decimal" dir="ltr" autocomplete="off" class="font-mono" data-money required />
                 </x-ui.field>
                 @foreach($enrollment->fees as $charge)
                     @php $feeRemaining = $balance['fees'][$charge->id]['remaining'] ?? 0; @endphp
                     <x-ui.field :label="$charge->gradeFee->feeType->isTuition() ? __('fees.tuition') : $charge->gradeFee->feeType->name" for="pay-alloc-{{ $charge->grade_fee_id }}">
                         <div class="flex items-center gap-3">
-                            <x-ui.input id="pay-alloc-{{ $charge->grade_fee_id }}" type="text" wire:model.live.debounce.500ms="form.alloc.{{ $charge->grade_fee_id }}" inputmode="decimal" dir="ltr" autocomplete="off" class="font-mono" :disabled="$feeRemaining <= 0" />
+                            <x-ui.input id="pay-alloc-{{ $charge->grade_fee_id }}" type="text" wire:model.live.debounce.500ms="form.alloc.{{ $charge->grade_fee_id }}" inputmode="decimal" dir="ltr" autocomplete="off" class="font-mono" data-money :disabled="$feeRemaining <= 0" />
                             <span class="shrink-0 text-xs text-gray-500 dark:text-gray-400"><x-ui.money :minor="max(0, $feeRemaining)" /></span>
                         </div>
                     </x-ui.field>
