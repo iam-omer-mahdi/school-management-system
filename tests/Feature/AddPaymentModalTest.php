@@ -62,12 +62,30 @@ final class AddPaymentModalTest extends TestCase
         $enrollment = $this->enroll($grade, $year);
 
         Livewire::test('enrollments.show.add-payment-modal', ['enrollmentId' => $enrollment->id])
-            ->assertSee(__('payments.payment'), false)
-            ->assertSee(__('payments.add_payment'), false)
-            ->call('openPaymentModal')
+            ->assertDontSee(__('payments.add_payment'), false)
+            ->dispatch('open-payment-modal')
             ->assertSee(__('payments.add_payment'), false)
             ->call('closePaymentModal')
             ->assertHasNoErrors();
+    }
+
+    public function test_saves_grouped_thousands_entry_without_commas_stored(): void
+    {
+        $this->actingAs(User::factory()->create());
+        [$grade, $year] = $this->fixtures();
+        $this->scheduleTuition($grade, $year, '2000');
+        $enrollment = $this->enroll($grade, $year);
+        $charge = $enrollment->fees()->firstOrFail();
+
+        Livewire::test('enrollments.show.add-payment-modal', ['enrollmentId' => $enrollment->id])
+            ->call('openPaymentModal')
+            ->set('form.total', '1,250')
+            ->set('form.alloc.'.$charge->grade_fee_id, '1,250')
+            ->set('form.method', 'cash')
+            ->call('savePayment')
+            ->assertHasNoErrors();
+
+        $this->assertSame(125000, (int) Payment::query()->where('enrollment_id', $enrollment->id)->sum('amount_minor'));
     }
 
     public function test_saves_split_payment_and_dispatches_refresh(): void
@@ -118,7 +136,7 @@ final class AddPaymentModalTest extends TestCase
         $enrollment = $this->enroll($grade, $year);
         app(UpdateEnrollmentStatus::class)->handle($enrollment, EnrollmentStatus::Left);
 
-        Livewire::test('enrollments.show.add-payment-modal', ['enrollmentId' => $enrollment->id])
+        Livewire::test('enrollments.show.payments-panel', ['enrollmentId' => $enrollment->id])
             ->assertSee(__('payments.errors.ended_no_payments'));
     }
 

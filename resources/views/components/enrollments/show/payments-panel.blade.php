@@ -42,6 +42,16 @@ new class extends Component
         return PaymentCalculation::balance($this->enrollment);
     }
 
+    #[Computed]
+    public function paymentDisabledReason(): ?string
+    {
+        return PaymentCalculation::paymentDisabledReason(
+            $this->enrollment->isEnded(),
+            $this->enrollment->fees->isNotEmpty(),
+            array_sum(PaymentCalculation::remainingByGradeFee($this->balance, $this->enrollment->fees))
+        );
+    }
+
     public function requestVoid(string $type, int $id): void
     {
         if ($type !== 'payment' && $type !== 'refund') {
@@ -68,46 +78,21 @@ new class extends Component
     $isEnded = $enrollment->isEnded();
 @endphp
 
-<div class="space-y-6">
+<div>
     <x-ui.card>
         <x-slot:header>
-            <h2 class="text-base font-semibold text-gray-900 dark:text-white">{{ __('fees.charges') }}</h2>
+            <div class="flex items-center justify-between gap-2">
+                <h2 class="text-base font-semibold text-gray-900 dark:text-white">{{ __('payments.payment') }}</h2>
+                @if($this->paymentDisabledReason === null)
+                    <x-ui.button variant="primary" size="sm" wire:click="$dispatch('open-payment-modal')" :spinner="false"><x-ui.icon name="plus" class="h-4 w-4" />{{ __('payments.add_payment') }}</x-ui.button>
+                @elseif(! $isEnded)
+                    <x-ui.button variant="primary" size="sm" :spinner="false" disabled aria-disabled="true"><x-ui.icon name="plus" class="h-4 w-4" />{{ __('payments.add_payment') }}</x-ui.button>
+                @endif
+            </div>
         </x-slot:header>
-        @if($enrollment->fees->isEmpty())
-            <p class="text-sm text-gray-600 dark:text-gray-400">{{ __('fees.no_charges') }}</p>
-        @else
-            <x-ui.table>
-                <x-slot:head>
-                    <th>{{ __('fees.fee_type') }}</th>
-                    <th>{{ __('fees.amount') }}</th>
-                    <th>{{ __('fees.discount') }}</th>
-                    <th>{{ __('payments.paid') }}</th>
-                    <th>{{ __('payments.refunded') }}</th>
-                    <th>{{ __('payments.remaining') }}</th>
-                </x-slot:head>
-                @foreach($enrollment->fees as $charge)
-                    @php $feeBalance = $balance['fees'][$charge->id] ?? ['charged' => $charge->amount_minor, 'discount' => 0, 'paid' => 0, 'refunded' => 0, 'remaining' => $charge->amount_minor]; @endphp
-                    <tr wire:key="pp-charge-{{ $charge->id }}">
-                        <td class="font-medium text-gray-900 dark:text-white">@if($charge->gradeFee->feeType->isTuition()){{ __('fees.tuition') }}@else{{ $charge->gradeFee->feeType->name }}@endif</td>
-                        <td><x-ui.money :minor="$feeBalance['charged']" /></td>
-                        <td><x-ui.money :minor="$feeBalance['discount']" /></td>
-                        <td><x-ui.money :minor="$feeBalance['paid']" /></td>
-                        <td><x-ui.money :minor="$feeBalance['refunded']" /></td>
-                        <td><x-ui.money :minor="$feeBalance['remaining']" /></td>
-                    </tr>
-                @endforeach
-            </x-ui.table>
+        @if($this->paymentDisabledReason !== null)
+            <p class="mb-3 text-sm text-gray-500 dark:text-gray-400">{{ $this->paymentDisabledReason }}</p>
         @endif
-        @if($isEnded)
-            <p class="mt-4 text-sm text-gray-600 dark:text-gray-400">{{ __('payments.closed_without_payment') }}: <x-ui.money :minor="$balance['closed_without_payment']" /></p>
-            <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">{{ __('payments.net_paid') }}: <x-ui.money :minor="$balance['net_paid']" /> · {{ __('fees.total_due') }}: <x-ui.money :minor="$balance['owed']" /></p>
-        @endif
-    </x-ui.card>
-
-    <x-ui.card>
-        <x-slot:header>
-            <h2 class="text-base font-semibold text-gray-900 dark:text-white">{{ __('payments.payment') }}</h2>
-        </x-slot:header>
         @php
             $history = $enrollment->payments->sortByDesc('id');
             $voidedHistoryIds = $history->filter(fn ($payment) => $payment->isVoided())->map(fn ($payment) => $payment->id)->all();

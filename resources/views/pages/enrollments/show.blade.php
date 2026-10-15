@@ -108,11 +108,11 @@ new #[Layout('layouts::app')] class extends Component
 
     <livewire:enrollments.show.charges-panel :enrollment-id="$enrollment->id" wire:key="charges-panel-{{ $enrollment->id }}" />
 
-    <livewire:enrollments.show.add-payment-modal :enrollment-id="$enrollment->id" wire:key="add-payment-{{ $enrollment->id }}" />
+    <livewire:enrollments.show.payments-panel :enrollment-id="$enrollment->id" wire:key="payments-panel-{{ $enrollment->id }}" />
 
     <livewire:enrollments.show.refund-modal :enrollment-id="$enrollment->id" wire:key="refund-{{ $enrollment->id }}" />
 
-    <livewire:enrollments.show.payments-panel :enrollment-id="$enrollment->id" wire:key="payments-panel-{{ $enrollment->id }}" />
+    <livewire:enrollments.show.add-payment-modal :enrollment-id="$enrollment->id" wire:key="add-payment-{{ $enrollment->id }}" />
 
     <livewire:enrollments.show.void-modal :enrollment-id="$enrollment->id" wire:key="void-{{ $enrollment->id }}" />
 </div>
