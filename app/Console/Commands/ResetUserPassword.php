@@ -32,7 +32,15 @@ final class ResetUserPassword extends Command
 
     public function handle(): int
     {
-        $email = strtolower(trim((string) $this->argument('email')));
+        $emailArgument = $this->argument('email');
+
+        if (! is_string($emailArgument)) {
+            $this->error('The email argument must be a string.');
+
+            return self::FAILURE;
+        }
+
+        $email = strtolower(trim($emailArgument));
         $user = User::query()->where('email', $email)->first();
 
         if ($user === null) {

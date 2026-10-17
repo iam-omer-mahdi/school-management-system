@@ -56,6 +56,15 @@ class ResetUserPasswordTest extends TestCase
         $this->assertSame(0, DB::table('sessions')->where('user_id', $user->id)->count());
     }
 
+    public function test_fails_clearly_when_email_argument_is_not_a_string(): void
+    {
+        $this->artisan('user:reset-password', ['email' => ['finance@school.local']])
+            ->expectsOutputToContain('The email argument must be a string.')
+            ->assertExitCode(1);
+
+        $this->assertSame(0, User::count());
+    }
+
     public function test_fails_for_unknown_email(): void
     {
         $this->artisan('user:reset-password', ['email' => 'ghost@school.local'])
