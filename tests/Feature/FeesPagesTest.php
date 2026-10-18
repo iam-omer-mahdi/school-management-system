@@ -155,6 +155,55 @@ class FeesPagesTest extends TestCase
             ->assertSet('amount', '');
     }
 
+    public function test_set_fee_page_changing_school_clears_grade(): void
+    {
+        $this->actingAs(User::factory()->create());
+
+        $grade = Grade::firstOrFail();
+        $other = Grade::query()->where('school_id', '!=', $grade->school_id)->firstOrFail();
+
+        Livewire::test('pages::fee-schedule.create')
+            ->set('school_id', $grade->school_id)
+            ->set('grade_id', $grade->id)
+            ->set('school_id', $other->school_id)
+            ->assertSet('grade_id', null);
+    }
+
+    public function test_set_fee_page_rejects_grade_from_another_school(): void
+    {
+        $this->actingAs(User::factory()->create());
+
+        $grade = Grade::firstOrFail();
+        $other = Grade::query()->where('school_id', '!=', $grade->school_id)->firstOrFail();
+        $year = AcademicYear::factory()->create(['name' => '30/31']);
+        $tuition = FeeType::query()->where('system_key', 'tuition')->firstOrFail();
+
+        Livewire::test('pages::fee-schedule.create')
+            ->set('school_id', $other->school_id)
+            ->set('grade_id', $grade->id)
+            ->set('academic_year_id', $year->id)
+            ->set('fee_type_id', $tuition->id)
+            ->set('amount', '1000')
+            ->call('save')
+            ->assertHasErrors('grade_id');
+
+        $this->assertSame(0, GradeFee::count());
+    }
+
+    public function test_schedule_index_changing_school_clears_grade(): void
+    {
+        $this->actingAs(User::factory()->create());
+
+        $grade = Grade::firstOrFail();
+        $other = Grade::query()->where('school_id', '!=', $grade->school_id)->firstOrFail();
+
+        Livewire::test('pages::fee-schedule.index')
+            ->set('school_id', $grade->school_id)
+            ->set('grade_id', $grade->id)
+            ->set('school_id', $other->school_id)
+            ->assertSet('grade_id', null);
+    }
+
     public function test_index_has_no_set_fee_modal_state(): void
     {
         $this->actingAs(User::factory()->create());

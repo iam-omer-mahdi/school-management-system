@@ -7,6 +7,7 @@ use App\Models\FeeType;
 use App\Models\Grade;
 use App\Models\School;
 use App\Support\Money;
+use Illuminate\Validation\Rule;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
@@ -103,10 +104,15 @@ new #[Layout('layouts::app')] class extends Component
         ];
     }
 
+    public function updatedSchoolId(): void
+    {
+        $this->grade_id = null;
+    }
+
     public function save(CreateGradeFee $action): void
     {
         $this->validate([
-            'grade_id' => ['required', 'exists:grades,id'],
+            'grade_id' => ['required', Rule::exists('grades', 'id')->where('school_id', $this->school_id)],
             'academic_year_id' => ['required', 'exists:academic_years,id'],
             'fee_type_id' => ['required', 'exists:fee_types,id'],
             'amount' => ['required', 'string'],

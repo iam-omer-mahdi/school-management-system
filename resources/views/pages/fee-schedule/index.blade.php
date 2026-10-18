@@ -78,6 +78,11 @@ new #[Layout('layouts::app')] class extends Component
         ];
     }
 
+    public function updatedSchoolId(): void
+    {
+        $this->grade_id = null;
+    }
+
     public function confirmDelete(int $id): void
     {
         $this->deletingId = $id;
