@@ -5,7 +5,7 @@ A modern, bilingual (English / Arabic) web application for running the administr
 The system is being built as a complete product, delivered in well-defined phases. Each phase ships tested, documented and usable on its own. See the [Roadmap](#roadmap).
 
 [![CI](https://github.com/iam-omer-mahdi/school-management-system/actions/workflows/ci.yml/badge.svg)](https://github.com/iam-omer-mahdi/school-management-system/actions/workflows/ci.yml)
-![PHP](https://img.shields.io/badge/PHP-8.5-777BB4?logo=php&logoColor=white)
+![PHP](https://img.shields.io/badge/PHP-8.3%2B-777BB4?logo=php&logoColor=white)
 ![Laravel](https://img.shields.io/badge/Laravel-13-FF2D20?logo=laravel&logoColor=white)
 ![Livewire](https://img.shields.io/badge/Livewire-4-FB70A9)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4-06B6D4?logo=tailwindcss&logoColor=white)
@@ -76,7 +76,7 @@ Available now:
 
 | Layer | Choice |
 | --- | --- |
-| Language | PHP 8.5 |
+| Language | PHP 8.3 or newer |
 | Framework | Laravel 13 |
 | UI | Livewire 4 (single-file page components) |
 | Styling | Tailwind CSS v4, Flowbite |
@@ -88,13 +88,13 @@ Available now:
 
 ### Requirements
 
-- PHP 8.5 with the extensions Laravel requires, including the MySQL driver (`pdo_mysql`)
+- PHP 8.3 or newer with the extensions Laravel requires, including the MySQL driver (`pdo_mysql`)
 - The ZIP extension (`ext-zip`), used by Excel report exports to write `.xlsx` archives with PHP's `ZipArchive`
 - MySQL 8.4 (development, tests and production)
 - Composer
 - bun
 
-Enable `ext-zip` by installing the ZIP package for your PHP build (for example `php8.5-zip` on Debian/Ubuntu, or `docker-php-ext-install zip` in the official Docker images). `composer install` fails with a platform requirement error when the extension is missing.
+Enable `ext-zip` by installing the ZIP package for your PHP version (for example `php-zip` on Debian/Ubuntu, or `docker-php-ext-install zip` in the official Docker images). `composer install` fails with a platform requirement error when the extension is missing.
 
 ### Installation
 
@@ -183,16 +183,21 @@ The suite runs against that dedicated MySQL testing database (`school_management
 ```text
 app/
   Actions/        Single-purpose domain operations (CreateStudent, EnrollStudent, ...)
+  Console/        Artisan commands (user:reset-password)
   Enums/          DisplayLocale, EnrollmentStatus
+  Http/           Middleware (SetLocale) and the base controller
   Livewire/Forms/ Form objects (AcademicYearForm, StudentForm)
   Mail/           Mailables (reset codes)
   Models/         Eloquent models
+  Providers/      Application service providers
   Services/       Cross-cutting services (PasswordResetService)
+  Support/        Shared helpers (Money, Percent, TextNormalizer, PaymentCalculation) and Reports/ (report queries and the Excel export)
 resources/
   views/pages/    Livewire single-file page components, routed with Route::livewire
   views/components/ui/   Reusable UI components
 lang/             en and ar translation files
 tests/Feature/    Feature tests
+tests/Unit/       Unit tests
 ```
 
 Conventions:
@@ -204,7 +209,7 @@ Conventions:
 
 ## Data model
 
-Phase 1 domain:
+Core domain:
 
 ```mermaid
 erDiagram
@@ -217,6 +222,10 @@ erDiagram
     GRADE ||--o{ GRADE_FEE : scheduled
     FEE_TYPE ||--o{ GRADE_FEE : defines
     DISCOUNT ||--o{ ENROLLMENT_DISCOUNT : applied
+    ENROLLMENT ||--o{ PAYMENT : receives
+    ENROLLMENT ||--o{ REFUND : refunds
+    ENROLLMENT_FEE ||--o{ PAYMENT : paid
+    ENROLLMENT_FEE ||--o{ REFUND : refunded
 
     SCHOOL { string code UK
              string name UK }
@@ -248,9 +257,21 @@ erDiagram
                           string name
                           int percent_bp
                           int amount_minor }
+    PAYMENT { int enrollment_id FK
+              int enrollment_fee_id FK
+              int amount_minor
+              string method
+              date paid_on
+              datetime voided_at }
+    REFUND { int enrollment_id FK
+             int enrollment_fee_id FK
+             int amount_minor
+             string method
+             date refunded_on
+             datetime voided_at }
 ```
 
-Key constraints: a grade number is unique per school, and a student has at most one enrollment per academic year. Foreign keys use `restrict` so history cannot be orphaned.
+Key constraints: a grade number is unique per school, and a student has at most one enrollment per academic year. Amounts are stored in minor units with database check constraints (fee, payment and refund amounts positive; discounts between 1 and 10000 basis points; bank transfers carry a transaction number). Foreign keys use `restrict` so history cannot be orphaned.
 
 ## Internationalization and RTL
 
