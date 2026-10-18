@@ -37,4 +37,16 @@ class ExcelExportTest extends TestCase
         $this->assertSame(2.0, ExcelExport::dateSerial('1900-01-01'));
         $this->assertGreaterThan(45000, ExcelExport::dateSerial('2026-01-01'));
     }
+
+    /**
+     * The export zips xlsx parts with ZipArchive, so a PHP install without
+     * ext-zip must be rejected at `composer install` instead of crashing
+     * mid-download.
+     */
+    public function test_composer_requires_ext_zip_for_excel_exports(): void
+    {
+        $composer = json_decode((string) file_get_contents(base_path('composer.json')), true, flags: JSON_THROW_ON_ERROR);
+
+        $this->assertSame('*', $composer['require']['ext-zip'] ?? null);
+    }
 }

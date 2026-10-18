@@ -85,8 +85,11 @@ Available now (Phase 1: Foundation):
 ### Requirements
 
 - PHP 8.5 with the extensions Laravel requires
+- The ZIP extension (`ext-zip`), used by Excel report exports to write `.xlsx` archives with PHP's `ZipArchive`
 - Composer
 - Node.js and bun
+
+Enable `ext-zip` by installing the ZIP package for your PHP build (for example `php8.5-zip` on Debian/Ubuntu, or `docker-php-ext-install zip` in the official Docker images). `composer install` fails with a platform requirement error when the extension is missing.
 
 ### Installation
 
