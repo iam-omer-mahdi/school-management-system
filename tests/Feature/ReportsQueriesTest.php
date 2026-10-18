@@ -16,6 +16,7 @@ use App\Models\Payment;
 use App\Models\Refund;
 use App\Models\School;
 use App\Models\Student;
+use App\Models\User;
 use App\Support\Reports\FinancialSummary;
 use App\Support\Reports\ReportQueries;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -25,6 +26,13 @@ use Tests\TestCase;
 class ReportsQueriesTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->actingAs(User::factory()->create());
+    }
 
     /** @return array{year: AcademicYear, grade: Grade} */
     private function seedFiveHundred(): array

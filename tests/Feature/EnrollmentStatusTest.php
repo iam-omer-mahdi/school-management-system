@@ -15,6 +15,7 @@ use App\Models\FeeType;
 use App\Models\Grade;
 use App\Models\School;
 use App\Models\Student;
+use App\Models\User;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -24,6 +25,13 @@ use Tests\TestCase;
 class EnrollmentStatusTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->actingAs(User::factory()->create());
+    }
 
     /**
      * @return array{Grade, AcademicYear, FeeType}

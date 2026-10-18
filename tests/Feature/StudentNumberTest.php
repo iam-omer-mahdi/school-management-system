@@ -7,6 +7,7 @@ namespace Tests\Feature;
 use App\Actions\CreateStudent;
 use App\Actions\GenerateStudentNumber;
 use App\Models\Student;
+use App\Models\User;
 use Illuminate\Database\QueryException;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -17,6 +18,13 @@ use Tests\TestCase;
 class StudentNumberTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->actingAs(User::factory()->create());
+    }
 
     public function test_skips_taken_student_number(): void
     {

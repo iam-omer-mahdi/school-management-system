@@ -15,6 +15,7 @@ use App\Models\EnrollmentDiscount;
 use App\Models\FeeType;
 use App\Models\Grade;
 use App\Models\Student;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Validation\ValidationException;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -23,6 +24,13 @@ use Tests\TestCase;
 class DiscountCatalogTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->actingAs(User::factory()->create());
+    }
 
     private function create(string $name, string $percent): Discount
     {

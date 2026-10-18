@@ -29,6 +29,7 @@ class StudentEnrollmentTest extends TestCase
     {
         parent::setUp();
         $this->seed(SchoolSeeder::class);
+        $this->actingAs(User::factory()->create());
     }
 
     public function test_student_creation_without_enroll(): void

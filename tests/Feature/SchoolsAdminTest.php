@@ -147,7 +147,7 @@ class SchoolsAdminTest extends TestCase
     public function test_the_school_controls_are_hidden_from_users_without_schools_manage(): void
     {
         $this->seed(SchoolSeeder::class);
-        $this->actingAs(User::factory()->create());
+        $this->actingAs(User::factory()->withRole()->create());
 
         Livewire::test('pages::schools.index')
             ->assertDontSee(__('schools.add'))
@@ -166,7 +166,7 @@ class SchoolsAdminTest extends TestCase
 
     public function test_a_user_without_schools_manage_cannot_add_a_school(): void
     {
-        $this->actingAs(User::factory()->create());
+        $this->actingAs(User::factory()->withRole()->create());
 
         Livewire::test('pages::schools.index')
             ->call('create')
@@ -182,7 +182,7 @@ class SchoolsAdminTest extends TestCase
     {
         $this->seed(SchoolSeeder::class);
         $school = School::query()->where('type', SchoolType::High->value)->firstOrFail();
-        $this->actingAs(User::factory()->create());
+        $this->actingAs(User::factory()->withRole()->create());
 
         Livewire::test('pages::schools.index')
             ->call('confirmDelete', $school->id)
@@ -196,7 +196,7 @@ class SchoolsAdminTest extends TestCase
     {
         $this->seed(SchoolSeeder::class);
         $school = School::query()->where('type', SchoolType::High->value)->firstOrFail();
-        $this->actingAs(User::factory()->create());
+        $this->actingAs(User::factory()->withRole()->create());
 
         Livewire::test('pages::schools.index')
             ->call('editName', $school->id)

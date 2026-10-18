@@ -5,7 +5,7 @@ declare(strict_types=1);
 use App\Models\User;
 
 test('every signed-in user can read the help page', function () {
-    $this->actingAs(User::factory()->create());
+    $this->actingAs(User::factory()->withRole()->create());
 
     $this->get(route('help'))->assertOk();
 });
@@ -15,7 +15,7 @@ test('a guest is sent to the login page', function () {
 });
 
 test('the sidebar offers help to a user without any role', function () {
-    $this->actingAs(User::factory()->create());
+    $this->actingAs(User::factory()->withRole()->create());
 
     $this->get(route('dashboard'))->assertOk()->assertSee(route('help'));
 });
@@ -26,7 +26,7 @@ test('the two language files cover the same sections', function () {
 });
 
 test('every section renders in both languages', function () {
-    $this->actingAs(User::factory()->create());
+    $this->actingAs(User::factory()->withRole()->create());
 
     foreach (['en', 'ar'] as $locale) {
         $response = $this->withSession(['locale' => $locale])->get(route('help'))->assertOk();

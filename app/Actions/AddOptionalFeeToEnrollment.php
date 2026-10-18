@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace App\Actions;
 
+use App\Enums\Permission;
 use App\Models\Enrollment;
 use App\Models\EnrollmentFee;
 use App\Models\FeeType;
 use App\Models\GradeFee;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
 
 final class AddOptionalFeeToEnrollment
@@ -23,6 +25,8 @@ final class AddOptionalFeeToEnrollment
      */
     public function handle(int $enrollmentId, int $gradeFeeId): EnrollmentFee
     {
+        Gate::authorize(Permission::EnrollmentsManage->value);
+
         $enrollment = Enrollment::query()->findOrFail($enrollmentId);
 
         if ($enrollment->isEnded()) {

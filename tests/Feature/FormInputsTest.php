@@ -19,6 +19,13 @@ class FormInputsTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->actingAs(User::factory()->create());
+    }
+
     public function test_discount_rejects_non_percentage_with_clear_message(): void
     {
         foreach (['en', 'ar'] as $locale) {

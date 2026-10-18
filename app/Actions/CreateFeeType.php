@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace App\Actions;
 
+use App\Enums\Permission;
 use App\Models\FeeType;
 use App\Support\TextNormalizer;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
 
 final class CreateFeeType
@@ -19,6 +21,8 @@ final class CreateFeeType
      */
     public function handle(array $data): FeeType
     {
+        Gate::authorize(Permission::FeesManage->value);
+
         $name = TextNormalizer::normalize((string) ($data['name'] ?? ''));
 
         if ($name === '') {

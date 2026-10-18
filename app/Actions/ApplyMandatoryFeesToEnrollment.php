@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace App\Actions;
 
+use App\Enums\Permission;
 use App\Models\Enrollment;
 use App\Models\EnrollmentFee;
 use App\Models\GradeFee;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\UniqueConstraintViolationException;
+use Illuminate\Support\Facades\Gate;
 
 final class ApplyMandatoryFeesToEnrollment
 {
@@ -22,6 +24,8 @@ final class ApplyMandatoryFeesToEnrollment
      */
     public function handle(Enrollment $enrollment): int
     {
+        Gate::authorize(Permission::EnrollmentsManage->value);
+
         if (! $this->isChargeable($enrollment)) {
             return 0;
         }

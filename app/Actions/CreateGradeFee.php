@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Actions;
 
+use App\Enums\Permission;
 use App\Models\AcademicYear;
 use App\Models\Enrollment;
 use App\Models\FeeType;
@@ -13,6 +14,7 @@ use App\Models\GradeFeeResult;
 use App\Support\Money;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
 use InvalidArgumentException;
 
@@ -39,6 +41,8 @@ final class CreateGradeFee
      */
     public function handle(array $data): GradeFeeResult
     {
+        Gate::authorize(Permission::FeesManage->value);
+
         try {
             $amountMinor = Money::fromDecimal((string) ($data['amount'] ?? ''));
         } catch (InvalidArgumentException) {

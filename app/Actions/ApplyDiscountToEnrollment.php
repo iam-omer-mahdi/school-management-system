@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Actions;
 
+use App\Enums\Permission;
 use App\Models\Discount;
 use App\Models\Enrollment;
 use App\Models\EnrollmentDiscount;
@@ -13,6 +14,7 @@ use App\Models\Refund;
 use App\Support\Money;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
 
 final class ApplyDiscountToEnrollment
@@ -28,6 +30,8 @@ final class ApplyDiscountToEnrollment
      */
     public function handle(int $enrollmentId, int $discountId): EnrollmentDiscount
     {
+        Gate::authorize(Permission::EnrollmentsManage->value);
+
         $enrollment = Enrollment::query()->findOrFail($enrollmentId);
 
         if ($enrollment->isEnded()) {

@@ -110,10 +110,9 @@ class RolesAndPermissionsTest extends TestCase
      */
     public function test_users_without_a_role_are_promoted_to_administrator(): void
     {
-        $orphan = User::factory()->create();
-        $deactivated = User::factory()->create(['is_active' => false]);
-        $registrar = User::factory()->create();
-        $registrar->assignRole(Role::Registrar->value);
+        $orphan = User::factory()->withRole()->create();
+        $deactivated = User::factory()->withRole()->create(['is_active' => false]);
+        $registrar = User::factory()->withRole(Role::Registrar->value)->create();
 
         $this->runRoleSeedingMigration();
 

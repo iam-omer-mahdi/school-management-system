@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace App\Actions;
 
+use App\Enums\Permission;
 use App\Models\Enrollment;
 use App\Models\Grade;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
 
 final class EnrollStudent
@@ -30,6 +32,8 @@ final class EnrollStudent
      */
     public function handle(int $studentId, int $academicYearId, int $gradeId): Enrollment
     {
+        Gate::authorize(Permission::EnrollmentsManage->value);
+
         return DB::transaction(function () use ($studentId, $academicYearId, $gradeId): Enrollment {
             $grade = Grade::query()->whereKey($gradeId)->lockForUpdate()->first();
 

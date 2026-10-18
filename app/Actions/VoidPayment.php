@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace App\Actions;
 
+use App\Enums\Permission;
 use App\Models\Payment;
 use App\Models\Refund;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
 
 final class VoidPayment
@@ -24,6 +26,8 @@ final class VoidPayment
      */
     public function handle(int $enrollmentId, int $paymentId, ?string $reason): Payment
     {
+        Gate::authorize(Permission::PaymentsManage->value);
+
         $reason = trim((string) $reason);
 
         if ($reason === '') {

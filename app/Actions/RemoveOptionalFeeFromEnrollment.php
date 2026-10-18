@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace App\Actions;
 
+use App\Enums\Permission;
 use App\Models\Enrollment;
 use App\Models\EnrollmentFee;
 use App\Models\FeeType;
 use App\Models\Payment;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
 
 final class RemoveOptionalFeeFromEnrollment
@@ -20,6 +22,8 @@ final class RemoveOptionalFeeFromEnrollment
      */
     public function handle(int $enrollmentId, int $gradeFeeId): void
     {
+        Gate::authorize(Permission::EnrollmentsManage->value);
+
         $enrollment = Enrollment::query()->findOrFail($enrollmentId);
 
         if ($enrollment->isEnded()) {

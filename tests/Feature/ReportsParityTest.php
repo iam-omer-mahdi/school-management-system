@@ -35,6 +35,13 @@ class ReportsParityTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->actingAs(User::factory()->create());
+    }
+
     private function year(int $startYear, string $suffix = ''): AcademicYear
     {
         return AcademicYear::factory()->create([

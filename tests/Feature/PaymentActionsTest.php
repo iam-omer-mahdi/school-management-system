@@ -26,6 +26,7 @@ use App\Models\Payment;
 use App\Models\Refund;
 use App\Models\School;
 use App\Models\Student;
+use App\Models\User;
 use App\Support\BusinessDate;
 use App\Support\EnrollmentBalance;
 use App\Support\Money;
@@ -37,6 +38,13 @@ use Tests\TestCase;
 class PaymentActionsTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->actingAs(User::factory()->create());
+    }
 
     /**
      * @return array{Grade, AcademicYear}

@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace App\Actions;
 
+use App\Enums\Permission;
 use App\Models\Discount;
 use App\Support\Percent;
 use App\Support\TextNormalizer;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
 use InvalidArgumentException;
 
@@ -25,6 +27,8 @@ final class CreateDiscount
      */
     public function handle(array $data): Discount
     {
+        Gate::authorize(Permission::FeesManage->value);
+
         $name = TextNormalizer::normalize((string) ($data['name'] ?? ''));
 
         if ($name === '') {

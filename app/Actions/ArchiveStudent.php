@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Actions;
 
+use App\Enums\Permission;
 use App\Models\Student;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
 
 final class ArchiveStudent
@@ -19,6 +21,8 @@ final class ArchiveStudent
      */
     public function handle(Student|int $student, ?string $note = null): Student
     {
+        Gate::authorize(Permission::StudentsManage->value);
+
         if ($note !== null && mb_strlen($note) > 255) {
             throw ValidationException::withMessages([
                 'archive_note' => __('validation.max.string', ['attribute' => __('students.archive_note'), 'max' => 255]),

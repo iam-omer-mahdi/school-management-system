@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace App\Actions;
 
+use App\Enums\Permission;
 use App\Models\Enrollment;
 use App\Models\Student;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 
@@ -23,6 +25,8 @@ final class CreateStudent
      */
     public function handle(array $studentData, ?int $academicYearId = null, ?int $gradeId = null): Student
     {
+        Gate::authorize(Permission::StudentsManage->value);
+
         $student = $this->createWithUniqueNumber($studentData);
 
         if ($academicYearId !== null && $gradeId !== null) {

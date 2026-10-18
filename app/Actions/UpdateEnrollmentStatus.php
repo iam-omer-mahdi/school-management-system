@@ -5,11 +5,13 @@ declare(strict_types=1);
 namespace App\Actions;
 
 use App\Enums\EnrollmentStatus;
+use App\Enums\Permission;
 use App\Models\Enrollment;
 use App\Models\Grade;
 use App\Models\GradeFee;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
 
 final class UpdateEnrollmentStatus
@@ -34,6 +36,8 @@ final class UpdateEnrollmentStatus
      */
     public function handle(Enrollment|int $enrollment, EnrollmentStatus $status, ?string $note = null): Enrollment
     {
+        Gate::authorize(Permission::EnrollmentsManage->value);
+
         $enrollmentId = $enrollment instanceof Enrollment ? $enrollment->id : $enrollment;
 
         if ($note !== null && mb_strlen($note) > 255) {

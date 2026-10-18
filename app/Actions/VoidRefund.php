@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Actions;
 
+use App\Enums\Permission;
 use App\Models\Refund;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
 
 final class VoidRefund
@@ -22,6 +24,8 @@ final class VoidRefund
      */
     public function handle(int $enrollmentId, int $refundId, ?string $reason): Refund
     {
+        Gate::authorize(Permission::PaymentsManage->value);
+
         $reason = trim((string) $reason);
 
         if ($reason === '') {

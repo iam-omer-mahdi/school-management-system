@@ -25,6 +25,13 @@ class ValidationTranslationsTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->actingAs(User::factory()->create());
+    }
+
     /** @return array<string> */
     private function flatKeys(array $data, string $prefix = ''): array
     {

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Database\Factories;
 
+use App\Enums\Role;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
@@ -34,6 +35,28 @@ class UserFactory extends Factory
             'remember_token' => Str::random(10),
             'display_locale' => 'en',
         ];
+    }
+
+    /**
+     * A factory user holds the Administrator role unless the test says
+     * otherwise: most tests are about what a module does, not about who may
+     * call it. Tests about access state their role with withRole().
+     */
+    public function configure(): static
+    {
+        return $this->afterCreating(function (User $user): void {
+            $user->loadMissing('roles')->assignRole(Role::Administrator->value);
+        });
+    }
+
+    /**
+     * Hold exactly these roles — pass none for an account with no access at all.
+     */
+    public function withRole(string ...$roles): static
+    {
+        return $this->afterCreating(function (User $user) use ($roles): void {
+            $user->loadMissing('roles')->syncRoles($roles);
+        });
     }
 
     /**

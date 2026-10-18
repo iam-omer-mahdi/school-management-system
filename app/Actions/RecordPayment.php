@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Actions;
 
 use App\Enums\PaymentMethod;
+use App\Enums\Permission;
 use App\Models\Enrollment;
 use App\Models\EnrollmentFee;
 use App\Models\Payment;
@@ -13,6 +14,7 @@ use App\Support\BusinessDate;
 use App\Support\Money;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
 
 final class RecordPayment
@@ -43,6 +45,8 @@ final class RecordPayment
      */
     public function handle(array $data): array
     {
+        Gate::authorize(Permission::PaymentsManage->value);
+
         $method = PaymentMethod::tryFrom((string) ($data['method'] ?? ''));
 
         if ($method === null) {

@@ -17,6 +17,7 @@ use App\Models\FeeType;
 use App\Models\Grade;
 use App\Models\School;
 use App\Models\Student;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Validation\ValidationException;
 use Tests\TestCase;
@@ -24,6 +25,13 @@ use Tests\TestCase;
 class DiscountTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->actingAs(User::factory()->create());
+    }
 
     /**
      * @return array{Grade, AcademicYear}

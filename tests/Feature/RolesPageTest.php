@@ -24,7 +24,7 @@ function makeStaffOfficer(): User
     $role = SpatieRole::create(['name' => 'Staff Officer']);
     $role->syncPermissions([Permission::StaffManage->value]);
 
-    return User::factory()->create()->assignRole($role->name);
+    return User::factory()->withRole($role->name)->create();
 }
 
 function findRole(string $name): SpatieRole
@@ -188,7 +188,7 @@ test('the administrator role cannot be deleted', function () {
 test('a role assigned to a user cannot be deleted', function () {
     $this->actingAs(makeAdministrator());
     $readOnly = findRole(Role::ReadOnly->value);
-    User::factory()->create()->assignRole($readOnly->name);
+    User::factory()->withRole($readOnly->name)->create();
 
     Livewire::test('pages::staff.index')
         ->call('confirmDeleteRole', $readOnly->id)
@@ -223,7 +223,7 @@ test('a user cannot strip their own staff access through a role', function () {
 });
 
 test('the role actions are closed to users without staff manage', function () {
-    $this->actingAs(User::factory()->create());
+    $this->actingAs(User::factory()->withRole()->create());
 
     expect(fn () => app(SaveRole::class)->handle(null, [
         'name' => 'Sneaky',

@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Actions;
 
+use App\Enums\Permission;
 use App\Models\Student;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 
 final class RestoreStudent
 {
@@ -14,6 +16,8 @@ final class RestoreStudent
      */
     public function handle(Student|int $student): Student
     {
+        Gate::authorize(Permission::StudentsManage->value);
+
         return DB::transaction(function () use ($student): Student {
             $row = $student instanceof Student ? $student : Student::query()->findOrFail($student);
 

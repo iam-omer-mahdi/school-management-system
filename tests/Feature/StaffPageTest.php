@@ -36,7 +36,7 @@ class StaffPageTest extends TestCase
 
     public function test_the_page_is_closed_to_users_without_staff_manage(): void
     {
-        $this->actingAs(User::factory()->create());
+        $this->actingAs(User::factory()->withRole()->create());
 
         $this->get(route('staff.index'))->assertForbidden();
     }
@@ -51,7 +51,7 @@ class StaffPageTest extends TestCase
 
     public function test_the_nav_entry_follows_the_permission(): void
     {
-        $this->actingAs(User::factory()->create());
+        $this->actingAs(User::factory()->withRole()->create());
         $this->get(route('dashboard'))->assertOk()->assertDontSee(route('staff.index'));
 
         $this->actingAs($this->administrator());
@@ -133,7 +133,7 @@ class StaffPageTest extends TestCase
     public function test_an_administrator_can_change_a_staff_members_roles(): void
     {
         $this->actingAs($this->administrator());
-        $staff = User::factory()->create()->assignRole(Role::ReadOnly->value);
+        $staff = User::factory()->withRole(Role::ReadOnly->value)->create();
 
         Livewire::test('pages::staff.index')
             ->call('editAccess', $staff->id)
@@ -151,7 +151,7 @@ class StaffPageTest extends TestCase
     public function test_an_administrator_can_deactivate_a_staff_member(): void
     {
         $this->actingAs($this->administrator());
-        $staff = User::factory()->create()->assignRole(Role::ReadOnly->value);
+        $staff = User::factory()->withRole(Role::ReadOnly->value)->create();
 
         Livewire::test('pages::staff.index')
             ->call('editAccess', $staff->id)
@@ -187,7 +187,7 @@ class StaffPageTest extends TestCase
         // last-administrator guard is what stops them, not the self-lockout one.
         $officerRole = SpatieRole::create(['name' => 'Staff Officer']);
         $officerRole->syncPermissions([Permission::StaffManage->value]);
-        $officer = User::factory()->create()->assignRole('Staff Officer');
+        $officer = User::factory()->withRole('Staff Officer')->create();
         $this->actingAs($officer);
 
         Livewire::test('pages::staff.index')
@@ -231,7 +231,7 @@ class StaffPageTest extends TestCase
 
     public function test_a_user_without_staff_manage_cannot_open_the_page_component(): void
     {
-        $victim = User::factory()->create()->assignRole(Role::ReadOnly->value);
+        $victim = User::factory()->withRole(Role::ReadOnly->value)->create();
         $this->actingAs($victim);
 
         Livewire::test('pages::staff.index')
