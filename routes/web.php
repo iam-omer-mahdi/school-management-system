@@ -29,6 +29,8 @@ Route::middleware('guest')->group(function (): void {
 });
 
 Route::middleware('auth')->group(function (): void {
+    Route::livewire('/first-login', 'pages::auth.first-login')->name('first-login');
+
     Route::livewire('/', 'pages::dashboard')->name('dashboard');
 
     Route::livewire('/schools', 'pages::schools.index')->name('schools.index');

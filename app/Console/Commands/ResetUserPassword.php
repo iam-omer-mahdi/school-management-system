@@ -73,6 +73,7 @@ final class ResetUserPassword extends Command
             // The model casts `password` to `hashed`, so assign the plain
             // value and let the cast hash it.
             $user->password = $newPassword;
+            $user->must_change_password = true;
             $user->setRememberToken(Str::random(60));
             $user->save();
 
@@ -84,7 +85,7 @@ final class ResetUserPassword extends Command
             }
         });
 
-        $this->info("Password reset for [{$email}]. Existing logins have been signed out.");
+        $this->info("Password reset for [{$email}]. Existing logins have been signed out; the member must set their own password at the next sign-in.");
 
         return self::SUCCESS;
     }

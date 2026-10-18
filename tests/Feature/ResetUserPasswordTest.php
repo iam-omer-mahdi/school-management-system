@@ -49,6 +49,7 @@ class ResetUserPasswordTest extends TestCase
         $user->refresh();
 
         $this->assertTrue(Hash::check('brand-new-password-123', $user->password));
+        $this->assertTrue($user->must_change_password);
         $this->assertFalse(Hash::check('old-password-123', $user->password));
         $this->assertNotSame('known-remember-token', $user->remember_token);
         $this->assertSame(0, PasswordResetOtp::where('email', 'finance@school.local')->count());

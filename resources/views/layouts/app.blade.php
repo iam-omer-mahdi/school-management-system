@@ -18,7 +18,7 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body class="min-h-screen bg-gray-50 font-sans text-gray-900 antialiased dark:bg-gray-900 dark:text-gray-100">
-@if(auth()->check())
+@if(auth()->check() && ! auth()->user()->must_change_password)
     @php($drawerOnRight = app()->getLocale() === 'ar')
     <div class="flex min-h-screen">
         <aside class="sticky top-0 hidden h-screen w-64 shrink-0 flex-col overflow-y-auto bg-gray-900 p-4 text-gray-100 lg:flex dark:border-e dark:border-gray-800 dark:bg-gray-950">
