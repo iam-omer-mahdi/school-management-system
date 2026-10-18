@@ -10,6 +10,9 @@ use Livewire\Form;
 
 class AcademicYearForm extends Form
 {
+    /** How many years back an academic year may still start. */
+    private const YEARS_BACK_LIMIT = 3;
+
     public string $name = '';
 
     /** @var ?string month in "YYYY-MM" format */
@@ -22,8 +25,8 @@ class AcademicYearForm extends Form
     public function rules(): array
     {
         return [
-            'starts_on' => ['required', 'date_format:Y-m', $this->uniqueStartYearRule()],
-            'ends_on' => ['required', 'date_format:Y-m', $this->endAfterStartRule()],
+            'starts_on' => ['required', 'date_format:Y-m', $this->uniqueStartYearRule(), $this->startYearFloorRule()],
+            'ends_on' => ['required', 'date_format:Y-m', $this->endYearAfterStartRule()],
             'name' => ['nullable', 'string'],
         ];
     }
@@ -45,16 +48,44 @@ class AcademicYearForm extends Form
         };
     }
 
-    /** The end month must not be before the start month ("YYYY-MM" compares lexicographically). */
-    private function endAfterStartRule(): Closure
+    /**
+     * A year may no longer be started once it is older than
+     * YEARS_BACK_LIMIT years ("YYYY-MM" strings compare lexicographically).
+     */
+    private function startYearFloorRule(): Closure
+    {
+        return function (string $attribute, mixed $value, Closure $fail): void {
+            if (! is_string($value)) {
+                return;
+            }
+
+            if ($value < now()->subYears(self::YEARS_BACK_LIMIT)->format('Y-m')) {
+                $fail(__('academic_years.start_month_too_old', ['years' => self::YEARS_BACK_LIMIT]));
+            }
+        };
+    }
+
+    /**
+     * The year spans exactly one school year, so the end year is the start
+     * year plus one. That also rules out a reversed or same-year pair.
+     */
+    private function endYearAfterStartRule(): Closure
     {
         return function (string $attribute, mixed $value, Closure $fail): void {
             if (! is_string($value) || ! is_string($this->starts_on)) {
                 return;
             }
 
-            if ($value < $this->starts_on) {
-                $fail(__('validation.after_or_equal', ['attribute' => __('academic_years.ends_on'), 'date' => __('academic_years.starts_on')]));
+            if (! preg_match('/^(\d{4})-\d{2}$/', $value, $end)) {
+                return;
+            }
+
+            if (! preg_match('/^(\d{4})-\d{2}$/', $this->starts_on, $start)) {
+                return;
+            }
+
+            if ((int) $end[1] !== (int) $start[1] + 1) {
+                $fail(__('academic_years.end_year_after_start'));
             }
         };
     }
