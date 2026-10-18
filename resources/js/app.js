@@ -235,6 +235,61 @@ function initModals() {
 window.initModals = initModals;
 
 /**
+ * Move focus to the first invalid field after a failed wired action.
+ * Livewire reports validation errors inside a normal morph (there is no
+ * client-side failure event), so capture-phase listeners snapshot the
+ * component root's current invalid-field count on every wire:click /
+ * wire:submit; after the morph a grown count means that action produced
+ * new errors. Unrelated morphs (blur validation, pagination) keep the
+ * count flat and never steal focus.
+ */
+let lastAction = null;
+
+function trackWiredActions() {
+    const snapshot = (event) => {
+        const trigger = event.target instanceof Element ? event.target.closest('[wire\\:click],[wire\\:submit]') : null;
+        const root = trigger ? trigger.closest('[wire\\:id],[wire-id]') : null;
+
+        if (!root) {
+            return;
+        }
+
+        lastAction = {
+            root,
+            at: Date.now(),
+            invalid: root.querySelectorAll('[aria-invalid="true"]').length,
+        };
+    };
+
+    document.addEventListener('click', snapshot, true);
+    document.addEventListener('submit', snapshot, true);
+}
+
+trackWiredActions();
+
+function focusInvalidAfterAction() {
+    if (!lastAction) {
+        return;
+    }
+
+    const action = lastAction;
+    lastAction = null;
+
+    if (Date.now() - action.at > 2000 || !action.root.isConnected) {
+        return;
+    }
+
+    const invalid = action.root.querySelectorAll('[aria-invalid="true"]');
+
+    if (invalid.length <= action.invalid) {
+        return;
+    }
+
+    invalid[0].scrollIntoView({ block: 'center' });
+    invalid[0].focus({ preventScroll: true });
+}
+
+/**
  * Dashboard charts (ApexCharts, bundled offline). Each [data-chart]
  * element carries its labels/series as JSON data attributes rendered
  * by Blade, so charts survive Livewire morphs: re-render after every
@@ -324,6 +379,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initMonthPickers();
     initMoneyInputs();
     initModals();
+    focusInvalidAfterAction();
     renderDashboardCharts();
 });
 
@@ -336,6 +392,7 @@ document.addEventListener('livewire:navigated', () => {
     initMonthPickers();
     initMoneyInputs();
     initModals();
+    focusInvalidAfterAction();
     renderDashboardCharts();
 });
 
@@ -349,6 +406,7 @@ function registerMonthPickerMorphHook() {
             initMonthPickers();
             initMoneyInputs();
             initModals();
+            focusInvalidAfterAction();
             renderDashboardCharts();
         });
 
