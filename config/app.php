@@ -69,6 +69,19 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | School Timezone
+    |--------------------------------------------------------------------------
+    |
+    | The clock the school actually lives on. Timestamps stay in UTC, but
+    | "is this date in the future" and form date defaults must use the
+    | school's calendar day, not the server's UTC day.
+    |
+    */
+
+    'school_timezone' => env('SCHOOL_TIMEZONE', 'Africa/Khartoum'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Application Locale Configuration
     |--------------------------------------------------------------------------
     |

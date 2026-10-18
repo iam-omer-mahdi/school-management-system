@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Livewire\Forms;
 
+use App\Support\BusinessDate;
 use App\Support\PaymentCalculation;
 use Livewire\Form;
 
@@ -82,6 +83,6 @@ class RefundForm extends Form
     {
         $this->reset(['total', 'alloc', 'method', 'txn', 'date', 'note']);
         $this->method = 'cash';
-        $this->date = $today ?? date('Y-m-d');
+        $this->date = $today ?? BusinessDate::today();
     }
 }

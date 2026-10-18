@@ -26,9 +26,11 @@ use App\Models\Payment;
 use App\Models\Refund;
 use App\Models\School;
 use App\Models\Student;
+use App\Support\BusinessDate;
 use App\Support\EnrollmentBalance;
 use App\Support\Money;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Illuminate\Validation\ValidationException;
 use Tests\TestCase;
 
@@ -917,12 +919,61 @@ class PaymentActionsTest extends TestCase
             $this->fail('Expected ValidationException for a future payment date');
         } catch (ValidationException $e) {
             $this->assertSame(
-                __('validation.before_or_equal', ['attribute' => __('payments.paid_on'), 'date' => date('Y-m-d')]),
+                __('validation.before_or_equal', ['attribute' => __('payments.paid_on'), 'date' => BusinessDate::today()]),
                 $e->errors()['paid_on'][0]
             );
         }
 
         $this->assertSame(0, Payment::query()->where('enrollment_id', $enrollment->id)->count());
+    }
+
+    /**
+     * 22:30 UTC is already the next day at the school (UTC+2), so the server's
+     * UTC calendar day is one behind the school's. A payment dated the school's
+     * today is not in the future and must be accepted.
+     */
+    public function test_payment_accepts_the_school_day_when_utc_is_a_day_behind(): void
+    {
+        $this->travelTo(Carbon::parse('2027-06-30 22:30:00', 'UTC'));
+
+        [$grade, $year] = $this->fixtures();
+        $this->tuitionFee($grade, $year);
+        $enrollment = $this->enroll($grade, $year);
+        $fee = $enrollment->fees()->firstOrFail();
+
+        $result = app(RecordPayment::class)->handle(array_merge(
+            $this->payment($enrollment->id, 10000, [['grade_fee_id' => $fee->grade_fee_id, 'amount_minor' => 10000]]),
+            ['paid_on' => '2027-07-01'],
+        ));
+
+        $this->assertCount(1, $result['payments']);
+    }
+
+    /**
+     * Same one-day offset as the payment case, for refunds.
+     */
+    public function test_refund_accepts_the_school_day_when_utc_is_a_day_behind(): void
+    {
+        $this->travelTo(Carbon::parse('2027-06-30 22:30:00', 'UTC'));
+
+        [$grade, $year] = $this->fixtures();
+        $this->tuitionFee($grade, $year);
+        $enrollment = $this->enroll($grade, $year);
+        $fee = $enrollment->fees()->firstOrFail();
+
+        app(RecordPayment::class)->handle($this->payment(
+            $enrollment->id,
+            10000,
+            [['grade_fee_id' => $fee->grade_fee_id, 'amount_minor' => 10000]]
+        ));
+        app(UpdateEnrollmentStatus::class)->handle($enrollment, EnrollmentStatus::Left);
+
+        $refunds = app(RecordRefund::class)->handle(array_merge(
+            $this->refund($enrollment->id, 10000, [['grade_fee_id' => $fee->grade_fee_id, 'amount_minor' => 10000]]),
+            ['refunded_on' => '2027-07-01'],
+        ));
+
+        $this->assertCount(1, $refunds);
     }
 
     public function test_refund_rejects_impossible_and_future_dates(): void
@@ -961,7 +1012,7 @@ class PaymentActionsTest extends TestCase
             $this->fail('Expected ValidationException for a future refund date');
         } catch (ValidationException $e) {
             $this->assertSame(
-                __('validation.before_or_equal', ['attribute' => __('payments.refunded_on'), 'date' => date('Y-m-d')]),
+                __('validation.before_or_equal', ['attribute' => __('payments.refunded_on'), 'date' => BusinessDate::today()]),
                 $e->errors()['refunded_on'][0]
             );
         }

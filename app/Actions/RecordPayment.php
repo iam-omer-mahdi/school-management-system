@@ -9,6 +9,7 @@ use App\Models\Enrollment;
 use App\Models\EnrollmentFee;
 use App\Models\Payment;
 use App\Models\Refund;
+use App\Support\BusinessDate;
 use App\Support\Money;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
@@ -84,9 +85,9 @@ final class RecordPayment
             ]);
         }
 
-        if ($paidOn > date('Y-m-d')) {
+        if ($paidOn > BusinessDate::today()) {
             throw ValidationException::withMessages([
-                'paid_on' => __('validation.before_or_equal', ['attribute' => __('payments.paid_on'), 'date' => date('Y-m-d')]),
+                'paid_on' => __('validation.before_or_equal', ['attribute' => __('payments.paid_on'), 'date' => BusinessDate::today()]),
             ]);
         }
 
