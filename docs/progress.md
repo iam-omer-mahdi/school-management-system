@@ -29,12 +29,12 @@ have no `wire:key` (Livewire 4 `smart_wire_keys` covers them).
 
 ## Resume here
 
-**Next action:** **T7 is done.** Continue with **T8** — the Help page: `Route::livewire('/help',
-'pages::help')` open to every authenticated user, `lang/{en,ar}/help.php` as one structured
-array (sections → title, intro, steps, notes), a single Blade template rendering it, and a
-sidebar entry in `resources/views/layouts/nav-links.blade.php`. Then **T9** (guard every write
-Action and every page `mount()`), then **T10** (pint + full suite). Full task list and hashes:
-see **Ledger** below.
+**Next action:** **T8 is done.** Continue with **T9** — the enforcement pass: `Gate::authorize`
+at the top of every write Action in `app/Actions/` (list in `docs/plan.md` §5), and the module
+`view` permission in each page's `mount()`. Expect real test churn: tests that call Actions or
+Livewire write methods as role-less factory users now need an Administrator (a factory state or
+a `TestCase` helper plus `permission` keys is the cheap way). Then **T10** (pint + full suite).
+Full task list and hashes: see **Ledger** below.
 
 Tasks 1–6 are on the branch. Run `git log --oneline -12` to see them; this file's ledger has
 the hashes and the rulings that matter.
@@ -234,3 +234,7 @@ Rulings made while executing:
   an unflagged account is bounced off the page so it cannot become a password change without
   knowing the old one. `user:reset-password` sets the flag too. The app layout shows the bare
   card while the flag is on, so nobody clicks a sidebar of dead links.
+- Task 8 (help page): complete (commit `b1943fd`; tests `tests/Feature/HelpPageTest.php` → 5
+  passed; full suite 515 passed). `/help` needs no permission, the sidebar link is unfiltered,
+  and one template renders `lang/{en,ar}/help.php` — eleven sections, each with a title, an
+  intro, ordered steps and notes. A test asserts both files cover the same sections.
