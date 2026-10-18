@@ -171,6 +171,70 @@ function initMoneyInputs() {
 window.initMoneyInputs = initMoneyInputs;
 
 /**
+ * Modal a11y for [role="dialog"] (components/ui/modal): focus the dialog on
+ * open so assistive tech announces it, close on Escape by triggering the
+ * dialog's own [data-modal-close] control (a real .click() keeps us agnostic
+ * of how Livewire wired it), and keep Tab/Shift+Tab inside the dialog. Guarded
+ * per element so morphs that keep a dialog alive neither rebind nor steal focus.
+ */
+function initModals() {
+    document.querySelectorAll('[role="dialog"]').forEach((dialog) => {
+        if (!(dialog instanceof HTMLElement) || dialog._a11yBound) {
+            return;
+        }
+        dialog._a11yBound = true;
+
+        dialog.focus({ preventScroll: true });
+
+        dialog.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') {
+                const closer = dialog.querySelector('[data-modal-close]');
+
+                if (closer) {
+                    event.preventDefault();
+                    closer.click();
+                }
+
+                return;
+            }
+
+            if (event.key !== 'Tab') {
+                return;
+            }
+
+            const focusables = dialog.querySelectorAll('a[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])');
+
+            if (focusables.length === 0) {
+                event.preventDefault();
+                return;
+            }
+
+            const first = focusables[0];
+            const last = focusables[focusables.length - 1];
+            let active = document.activeElement;
+
+            if (active === dialog) {
+                active = first;
+            } else if (!dialog.contains(active)) {
+                event.preventDefault();
+                first.focus();
+                return;
+            }
+
+            if (event.shiftKey && active === first) {
+                event.preventDefault();
+                last.focus();
+            } else if (!event.shiftKey && active === last) {
+                event.preventDefault();
+                first.focus();
+            }
+        });
+    });
+}
+
+window.initModals = initModals;
+
+/**
  * Dashboard charts (ApexCharts, bundled offline). Each [data-chart]
  * element carries its labels/series as JSON data attributes rendered
  * by Blade, so charts survive Livewire morphs: re-render after every
@@ -259,6 +323,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initFlowbite();
     initMonthPickers();
     initMoneyInputs();
+    initModals();
     renderDashboardCharts();
 });
 
@@ -270,6 +335,7 @@ document.addEventListener('livewire:navigated', () => {
     initFlowbite();
     initMonthPickers();
     initMoneyInputs();
+    initModals();
     renderDashboardCharts();
 });
 
@@ -282,6 +348,7 @@ function registerMonthPickerMorphHook() {
         window.Livewire.hook('morphed', () => {
             initMonthPickers();
             initMoneyInputs();
+            initModals();
             renderDashboardCharts();
         });
 
