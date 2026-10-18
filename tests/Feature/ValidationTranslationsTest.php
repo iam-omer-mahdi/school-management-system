@@ -264,20 +264,20 @@ class ValidationTranslationsTest extends TestCase
         $this->actingAs($user);
 
         $empty = Livewire::test('pages::academic-years.index')->call('save');
-        $empty->assertHasErrors(['form.starts_on', 'form.ends_on']);
+        $empty->assertHasErrors(['form.starts_on', 'form.end_month']);
         $this->assertMessagesAreArabic($empty->errors());
 
         $dates = Livewire::test('pages::academic-years.index')
-            ->set('form.starts_on', '2026-10')
-            ->set('form.ends_on', '2026-09')
+            ->set('form.starts_on', now()->subYears(4)->format('Y-m'))
+            ->set('form.end_month', '06')
             ->call('save');
-        $dates->assertHasErrors(['form.ends_on']);
+        $dates->assertHasErrors(['form.starts_on']);
         $this->assertMessagesAreArabic($dates->errors());
 
         AcademicYear::query()->create(['name' => '2026/2027', 'starts_on' => '2026-01-01', 'ends_on' => '2027-03-01']);
         $duplicate = Livewire::test('pages::academic-years.index')
             ->set('form.starts_on', '2026-05')
-            ->set('form.ends_on', '2027-03')
+            ->set('form.end_month', '03')
             ->call('save');
         $duplicate->assertHasErrors(['form.starts_on']);
         $this->assertMessagesAreArabic($duplicate->errors());

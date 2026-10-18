@@ -15,7 +15,6 @@ return [
     'cannot_delete_with_enrollments' => 'Cannot delete a year that has enrollments.',
     'already_exists_for_year' => 'There is an academic year already created for :year.',
     'start_month_too_old' => 'The start month cannot be more than :years years ago.',
-    'end_year_after_start' => 'The end year must be the year after the start year.',
     'confirm_delete' => 'Are you sure you want to delete this academic year?',
     'open_note' => 'Creating a new year does not close older years.',
 ];

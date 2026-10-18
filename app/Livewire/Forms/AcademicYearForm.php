@@ -6,6 +6,7 @@ namespace App\Livewire\Forms;
 
 use App\Models\AcademicYear;
 use Closure;
+use Illuminate\Support\Carbon;
 use Livewire\Form;
 
 class AcademicYearForm extends Form
@@ -18,15 +19,15 @@ class AcademicYearForm extends Form
     /** @var ?string month in "YYYY-MM" format */
     public ?string $starts_on = null;
 
-    /** @var ?string month in "YYYY-MM" format */
-    public ?string $ends_on = null;
+    /** @var ?string two-digit month, "01" to "12" */
+    public ?string $end_month = null;
 
     /** @return array<string, mixed> */
     public function rules(): array
     {
         return [
             'starts_on' => ['required', 'date_format:Y-m', $this->uniqueStartYearRule(), $this->startYearFloorRule()],
-            'ends_on' => ['required', 'date_format:Y-m', $this->endYearAfterStartRule()],
+            'end_month' => ['required', 'date_format:m'],
             'name' => ['nullable', 'string'],
         ];
     }
@@ -66,52 +67,19 @@ class AcademicYearForm extends Form
     }
 
     /**
-     * The year spans exactly one school year, so the end year is the start
-     * year plus one. That also rules out a reversed or same-year pair.
-     */
-    private function endYearAfterStartRule(): Closure
-    {
-        return function (string $attribute, mixed $value, Closure $fail): void {
-            if (! is_string($value) || ! is_string($this->starts_on)) {
-                return;
-            }
-
-            if (! preg_match('/^(\d{4})-\d{2}$/', $value, $end)) {
-                return;
-            }
-
-            if (! preg_match('/^(\d{4})-\d{2}$/', $this->starts_on, $start)) {
-                return;
-            }
-
-            if ((int) $end[1] !== (int) $start[1] + 1) {
-                $fail(__('academic_years.end_year_after_start'));
-            }
-        };
-    }
-
-    /**
-     * The display name derived from both months, e.g. "2026/2027".
-     * Empty until both months are present.
+     * The display name derived from the start month, e.g. "2026/2027":
+     * a year always ends in the following calendar year.
      */
     public function generatedName(): string
     {
-        if ($this->starts_on === null || $this->ends_on === null) {
+        if ($this->starts_on === null || ! preg_match('/^(\d{4})-\d{2}$/', $this->starts_on, $start)) {
             return '';
         }
 
-        if (! preg_match('/^(\d{4})-\d{2}$/', $this->starts_on, $start)) {
-            return '';
-        }
-
-        if (! preg_match('/^(\d{4})-\d{2}$/', $this->ends_on, $end)) {
-            return '';
-        }
-
-        return $start[1].'/'.$end[1];
+        return $start[1].'/'.((int) $start[1] + 1);
     }
 
-    /** Refresh the readonly name preview after either month changes. */
+    /** Refresh the readonly name preview after the start month changes. */
     public function syncName(): void
     {
         $this->name = $this->generatedName();
@@ -123,7 +91,7 @@ class AcademicYearForm extends Form
         return [
             'name' => __('academic_years.name'),
             'starts_on' => __('academic_years.starts_on'),
-            'ends_on' => __('academic_years.ends_on'),
+            'end_month' => __('academic_years.ends_on'),
         ];
     }
 
@@ -132,10 +100,12 @@ class AcademicYearForm extends Form
     {
         $this->validate();
 
+        $startYear = (int) substr((string) $this->starts_on, 0, 4);
+
         return [
             'name' => $this->generatedName(),
             'starts_on' => $this->starts_on.'-01',
-            'ends_on' => $this->ends_on.'-01',
+            'ends_on' => ($startYear + 1).'-'.$this->end_month.'-01',
         ];
     }
 
@@ -144,8 +114,27 @@ class AcademicYearForm extends Form
         return AcademicYear::query()->create($this->data());
     }
 
+    /**
+     * Month choices for the end of the year, labelled in the current locale
+     * by Carbon's bundled translations.
+     *
+     * @return array<string, string>
+     */
+    public static function monthOptions(): array
+    {
+        $locale = app()->getLocale();
+        $options = [];
+
+        foreach (range(1, 12) as $month) {
+            $value = str_pad((string) $month, 2, '0', STR_PAD_LEFT);
+            $options[$value] = Carbon::createFromDate(1970, (int) $value, 1)->settings(['locale' => $locale])->translatedFormat('F');
+        }
+
+        return $options;
+    }
+
     public function resetForm(): void
     {
-        $this->reset(['name', 'starts_on', 'ends_on']);
+        $this->reset(['name', 'starts_on', 'end_month']);
     }
 }

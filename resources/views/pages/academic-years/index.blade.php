@@ -24,11 +24,11 @@ new #[Layout('layouts::app')] class extends Component
     }
 
     /**
-     * Keep the readonly generated name in sync whenever a month changes.
+     * Keep the readonly generated name in sync when the start month changes.
      */
     public function updated(string $property): void
     {
-        if ($property === 'form.starts_on' || $property === 'form.ends_on') {
+        if ($property === 'form.starts_on') {
             $this->form->syncName();
         }
     }
@@ -95,11 +95,16 @@ new #[Layout('layouts::app')] class extends Component
                     <x-ui.field :label="__('academic_years.starts_on')" for="year-starts" required :error="$errors->first('form.starts_on')">
                         <x-ui.input id="year-starts" type="text" wire:ignore data-month-picker="form.starts_on" :value="$form->starts_on" placeholder="YYYY-MM" pattern="\d{4}-\d{2}" inputmode="numeric" autocomplete="off" :error="$errors->first('form.starts_on')" required />
                     </x-ui.field>
-                    <x-ui.field :label="__('academic_years.ends_on')" for="year-ends" required :error="$errors->first('form.ends_on')">
-                        <x-ui.input id="year-ends" type="text" wire:ignore data-month-picker="form.ends_on" :value="$form->ends_on" placeholder="YYYY-MM" pattern="\d{4}-\d{2}" inputmode="numeric" autocomplete="off" :error="$errors->first('form.ends_on')" required />
+                    <x-ui.field :label="__('academic_years.ends_on')" for="year-ends" required :error="$errors->first('form.end_month')">
+                        <x-ui.select id="year-ends" wire:model="form.end_month" :error="$errors->first('form.end_month')" required>
+                            <option value="">—</option>
+                            @foreach(\App\Livewire\Forms\AcademicYearForm::monthOptions() as $value => $label)
+                                <option value="{{ $value }}">{{ $label }}</option>
+                            @endforeach
+                        </x-ui.select>
                     </x-ui.field>
                 </div>
-                <x-ui.field :label="__('academic_years.name')" for="year-name" :error="$errors->first('form.starts_on')">
+                <x-ui.field :label="__('academic_years.name')" for="year-name">
                     <x-ui.input id="year-name" type="text" wire:model="form.name" readonly tabindex="-1" class="bg-gray-100 dark:bg-gray-800" />
                 </x-ui.field>
                 <div class="flex flex-wrap gap-2">
