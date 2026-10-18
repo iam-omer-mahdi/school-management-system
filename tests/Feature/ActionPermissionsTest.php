@@ -9,10 +9,12 @@ use App\Actions\ArchiveStudent;
 use App\Actions\CreateDiscount;
 use App\Actions\CreateFeeType;
 use App\Actions\CreateGradeFee;
+use App\Actions\CreateStaff;
 use App\Actions\CreateStudent;
 use App\Actions\DeleteDiscount;
 use App\Actions\DeleteFeeType;
 use App\Actions\DeleteGradeFee;
+use App\Actions\DeleteRole;
 use App\Actions\EnrollStudent;
 use App\Actions\RecordPayment;
 use App\Actions\RecordRefund;
@@ -20,6 +22,7 @@ use App\Actions\RemoveEnrollmentDiscount;
 use App\Actions\RemoveOptionalFeeFromEnrollment;
 use App\Actions\RestoreStudent;
 use App\Actions\UpdateEnrollmentStatus;
+use App\Actions\UpdateStaffAccess;
 use App\Actions\VoidPayment;
 use App\Actions\VoidRefund;
 use App\Enums\EnrollmentStatus;
@@ -92,6 +95,34 @@ test('the seeded read only role cannot write anything', function (Closure $call)
 
     expect($call)->toThrow(AuthorizationException::class);
 })->with('guarded writes');
+
+dataset('staff writes', [
+    'create staff' => [fn () => app(CreateStaff::class)->handle([])],
+    'update staff access' => [fn () => app(UpdateStaffAccess::class)->handle(1, [Role::Administrator->value], true)],
+    'delete role' => [fn () => app(DeleteRole::class)->handle(999999)],
+]);
+
+test('a staff or role write refuses an account without staff.manage', function (Closure $call) {
+    $this->actingAs(User::factory()->withRole(Role::Registrar->value)->create());
+
+    expect($call)->toThrow(AuthorizationException::class);
+})->with('staff writes');
+
+test('a staff or role write lets through an account holding staff.manage', function (Closure $call) {
+    $this->actingAs(User::factory()->create());
+
+    $refused = false;
+
+    try {
+        $call();
+    } catch (AuthorizationException) {
+        $refused = true;
+    } catch (Throwable) {
+        // The guard let it through and the action rejected the stand-in arguments.
+    }
+
+    expect($refused)->toBeFalse();
+})->with('staff writes');
 
 test('every action carries a guard unless it is one of the known exceptions', function () {
     $exempt = [

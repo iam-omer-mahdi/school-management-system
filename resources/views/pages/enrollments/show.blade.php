@@ -90,7 +90,7 @@ new #[Layout('layouts::app')] class extends Component
         </dl>
     </x-ui.card>
 
-    @if($netMinor !== null)
+    @if($netMinor !== null && auth()->user()?->can(\App\Enums\Permission::FeesView->value))
         <x-ui.card>
             <dl class="grid grid-cols-2 gap-x-6 gap-y-4 text-sm sm:grid-cols-4">
                 <div><dt class="text-gray-500 dark:text-gray-400">{{ __('fees.tuition') }}</dt><dd class="font-medium text-gray-900 dark:text-white"><x-ui.money :minor="$tuitionMinor" /></dd></div>
@@ -112,13 +112,17 @@ new #[Layout('layouts::app')] class extends Component
         <livewire:enrollments.show.status-panel :enrollment-id="$enrollment->id" wire:key="status-panel-{{ $enrollment->id }}" />
     @endcan
 
-    <livewire:enrollments.show.charges-panel :enrollment-id="$enrollment->id" wire:key="charges-panel-{{ $enrollment->id }}" />
+    @can(\App\Enums\Permission::FeesView->value)
+        <livewire:enrollments.show.charges-panel :enrollment-id="$enrollment->id" wire:key="charges-panel-{{ $enrollment->id }}" />
+    @endcan
 
-    <livewire:enrollments.show.payments-panel :enrollment-id="$enrollment->id" wire:key="payments-panel-{{ $enrollment->id }}" />
+    @can(\App\Enums\Permission::PaymentsView->value)
+        <livewire:enrollments.show.payments-panel :enrollment-id="$enrollment->id" wire:key="payments-panel-{{ $enrollment->id }}" />
 
-    <livewire:enrollments.show.refund-modal :enrollment-id="$enrollment->id" wire:key="refund-{{ $enrollment->id }}" />
+        <livewire:enrollments.show.refund-modal :enrollment-id="$enrollment->id" wire:key="refund-{{ $enrollment->id }}" />
 
-    <livewire:enrollments.show.add-payment-modal :enrollment-id="$enrollment->id" wire:key="add-payment-{{ $enrollment->id }}" />
+        <livewire:enrollments.show.add-payment-modal :enrollment-id="$enrollment->id" wire:key="add-payment-{{ $enrollment->id }}" />
 
-    <livewire:enrollments.show.void-modal :enrollment-id="$enrollment->id" wire:key="void-{{ $enrollment->id }}" />
+        <livewire:enrollments.show.void-modal :enrollment-id="$enrollment->id" wire:key="void-{{ $enrollment->id }}" />
+    @endcan
 </div>

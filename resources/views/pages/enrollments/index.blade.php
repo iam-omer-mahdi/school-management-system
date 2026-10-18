@@ -251,8 +251,10 @@ new #[Layout('layouts::app')] class extends Component
                     <option value="">{{ __('enrollments.sort_default') }}</option>
                     <option value="name_asc">{{ __('enrollments.sort_name_asc') }}</option>
                     <option value="name_desc">{{ __('enrollments.sort_name_desc') }}</option>
-                    <option value="total_asc">{{ __('enrollments.sort_total_asc') }}</option>
-                    <option value="total_desc">{{ __('enrollments.sort_total_desc') }}</option>
+                    @can(\App\Enums\Permission::FeesView->value)
+                        <option value="total_asc">{{ __('enrollments.sort_total_asc') }}</option>
+                        <option value="total_desc">{{ __('enrollments.sort_total_desc') }}</option>
+                    @endcan
                 </x-ui.select>
             </x-ui.field>
             <div class="flex flex-wrap items-center gap-2 text-sm sm:ms-auto">
@@ -283,7 +285,9 @@ new #[Layout('layouts::app')] class extends Component
                         <th>{{ __('fees.grade') }}</th>
                         <th>{{ __('fees.academic_year') }}</th>
                         <th>{{ __('enrollments.status') }}</th>
-                        <th>{{ __('fees.total_due') }}</th>
+                        @can(\App\Enums\Permission::FeesView->value)
+                            <th>{{ __('fees.total_due') }}</th>
+                        @endcan
                     </x-slot:head>
             @foreach($this->enrollments as $enrollment)
                 @php
@@ -301,7 +305,9 @@ new #[Layout('layouts::app')] class extends Component
                             <td>{{ __('schools.grade_number', ['number' => $enrollment->grade->number]) }}</td>
                             <td>{{ $enrollment->academicYear->name }}</td>
                     <td><x-ui.badge :status="$enrollment->status->value" /></td>
-                    <td><x-ui.money :minor="$balance['owed']" /></td>
+                    @can(\App\Enums\Permission::FeesView->value)
+                        <td><x-ui.money :minor="$balance['owed']" /></td>
+                    @endcan
                         </tr>
                     @endforeach
                 </x-ui.table>

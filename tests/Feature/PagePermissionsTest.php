@@ -185,6 +185,53 @@ it('hides the fee write controls from an account that may only look', function (
     $this->get(route('discounts.index'))->assertSee(__('fees.discount_create'));
 });
 
+it('refuses a student edit from a view-only account', function () {
+    $student = Student::factory()->create(['name' => 'Original Name']);
+
+    $this->actingAs(pagePermissionUser(Permission::StudentsView->value));
+
+    Livewire::test('pages::students.show', ['student' => $student->id])
+        ->set('editing', true)
+        ->set('form.name', 'Renamed by a viewer')
+        ->call('update')
+        ->assertStatus(403);
+
+    expect($student->refresh()->name)->toBe('Original Name');
+});
+
+it('hides money from an account without the fees or payments view permissions', function () {
+    $this->actingAs(User::factory()->create());
+    $enrollment = enrollmentWithControls();
+
+    $this->actingAs(pagePermissionUser(
+        Permission::StudentsView->value,
+        Permission::EnrollmentsView->value,
+    ));
+
+    $this->get(route('enrollments.show', $enrollment))
+        ->assertOk()
+        ->assertDontSee(__('fees.total_due'))
+        ->assertDontSee(__('fees.charges'))
+        ->assertDontSee(__('payments.payment'));
+
+    $this->get(route('enrollments.index'))->assertOk()->assertDontSee(__('fees.total_due'));
+    $this->get(route('students.show', $enrollment->student))->assertOk()->assertDontSee(__('fees.total_due'));
+    $this->get(route('dashboard'))->assertOk()->assertDontSee(__('reports.grand_total'));
+    $this->get(route('enrollments.receipt', $enrollment))->assertForbidden();
+});
+
+it('keeps the payment history for an account that may see payments', function () {
+    $this->actingAs(User::factory()->create());
+    $enrollment = enrollmentWithControls();
+
+    $this->actingAs(pagePermissionUser(Permission::EnrollmentsView->value, Permission::PaymentsView->value));
+
+    $this->get(route('enrollments.show', $enrollment))
+        ->assertOk()
+        ->assertSee(__('payments.payment'))
+        ->assertDontSee(__('fees.charges'));
+});
+
 it('hides the enrollment write controls from an account that may only look', function () {
     $this->actingAs(User::factory()->create());
     $enrollment = enrollmentWithControls();

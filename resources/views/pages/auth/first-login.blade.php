@@ -2,6 +2,7 @@
 
 use App\Actions\SecurityQuestionRecovery;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rules\Password;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
 
@@ -41,8 +42,22 @@ new #[Layout('layouts::app')] class extends Component
 
     public function save(SecurityQuestionRecovery $recovery): void
     {
+        // A stale tab must not turn into a password change after the flag was
+        // already cleared elsewhere.
+        if (! auth()->user()->must_change_password) {
+            $this->redirectRoute('dashboard');
+
+            return;
+        }
+
+        $rules = ['required', 'string', 'min:8', 'confirmed'];
+        $defaults = Password::defaults();
+        if ($defaults !== null) {
+            $rules[] = $defaults;
+        }
+
         $this->validate([
-            'password' => ['required', 'string', 'min:8', 'confirmed'],
+            'password' => $rules,
             'answer_1' => ['required', 'string', 'min:2'],
             'answer_2' => ['required', 'string', 'min:2'],
             'answer_3' => ['required', 'string', 'min:2'],

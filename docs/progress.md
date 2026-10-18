@@ -2,7 +2,7 @@
 
 Companion to `docs/plan.md` (the design and decisions). **Read `docs/plan.md` first.**
 
-Last updated: 2026-10-18 by the execution session (tasks 1–9b landed on `feature/roles-permissions`).
+Last updated: 2026-10-18 by the execution session (tasks 1–10 and the review fixes landed on `feature/roles-permissions`).
 
 ---
 
@@ -29,12 +29,12 @@ have no `wire:key` (Livewire 4 `smart_wire_keys` covers them).
 
 ## Resume here
 
-**Next action:** **T9 is done.** Continue with **T10** — `vendor/bin/pint --dirty --format agent`,
-then the full suite (`php artisan test --compact`), then a fresh-context review of the branch and
-`finishing-a-development-branch`. Full task list and hashes: see **Ledger** below.
+**Next action:** the branch is complete — T1–T10 plus the fresh-context review fixes. Choose how
+to integrate it (the owner's call: merge, PR, or leave it). Full task list and hashes: see
+**Ledger** below.
 
-Tasks 1–9 are on the branch. Run `git log --oneline -12` to see them; this file's ledger has
-the hashes and the rulings that matter.
+Run `git log --oneline -12` to see the work; this file's ledger has the hashes and the rulings
+that matter.
 
 ## How to resume (any session, any model)
 
@@ -254,7 +254,7 @@ Rulings made while executing:
   actor. Exempt: `GenerateStudentNumber` (writes nothing), the password/email OTP and
   security-question actions (they run signed-out by design). The suite also fails if a new Action
   ships without a guard. **Known gap:** academic-year writes have no permission (see the ruling).
-- Task 9b (page guards): complete (test `tests/Feature/PagePermissionsTest.php` → 19 passed; full
+- Task 9b (page guards): complete (commit `1e833cc`; test `tests/Feature/PagePermissionsTest.php` → 19 passed; full
   suite 595 passed). Every module page authorizes its `view` permission in `mount()`
   (`students/create` and `fee-schedule/create` ask for `manage` — their only job is to write);
   `/schools` stays open on purpose. The sidebar hides the links an account cannot use, and the
@@ -262,3 +262,26 @@ Rulings made while executing:
   add-student, fee-type/discount/fee-schedule create and delete, student edit/archive/restore and
   the enroll form, the add-payment, void and apply/remove-discount buttons, and the enrollment
   status panel whole.
+- Task 10 (review pass): complete (commit `a9551d2`; full suite 606 passed / 2603 assertions; pint clean). A
+  fresh-context review of the whole branch found one Critical and four Important gaps, all fixed
+  in their own commit:
+  - **C1** `students/show::update()` had no guard: any `students.view` account could write PII
+    through a crafted Livewire call. Now `students.manage` and covered by a test.
+  - **I1** the charges panel offered Fee controls that the Actions gate on `enrollments.manage`
+    (Finance saw buttons that 403'd; Registrar could write without the buttons). The UI now uses
+    the Actions' ability. Note for the owner: the plan (§5) files discounts and optional fees
+    under Enrollments, so Finance cannot apply them — add `enrollments.manage` to Finance on the
+    Roles page if that is not what you want.
+  - **I2** deactivating an Administrator skipped the last-administrator guard, and inactive admins
+    counted as a way back in. Both are now one guard requiring another *active* Administrator;
+    self-deactivation keeps its precise error.
+  - **I3** deactivation was only checked at login. New `EnsureUserIsActive` middleware (in the
+    `web` group) ends an open session or remember-me cookie on the next request.
+  - **I4** money was visible to roles without `fees.view`/`payments.view` on the enrollment page,
+    the enrollment list, the student page, the receipt and the dashboard. Each money block is now
+    gated by its module's view permission; the receipt page asks for `payments.view`.
+  - Minors fixed: the schools migration no longer re-adds the obsolete unique `code` index on
+    rollback; report output prints school names raw instead of translating them as keys; the
+    first-login and staff-create password validation now appends `Password::defaults()`; the
+    first-login `save()` re-checks `must_change_password` (stale-tab guard); the guard test
+    gained `CreateStaff`, `UpdateStaffAccess` and `DeleteRole` denials and allows.

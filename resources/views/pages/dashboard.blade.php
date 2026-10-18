@@ -96,15 +96,18 @@ new #[Layout('layouts::app')] class extends Component
 <div class="space-y-6">
     <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <x-ui.page-header :title="__('dashboard.title')" :description="__('dashboard.welcome')" />
-        <div class="w-full sm:w-60">
-            <x-ui.select wire:model.live="academic_year_id" aria-label="{{ __('fees.academic_year') }}">
-                @foreach($this->years as $year)
-                    <option value="{{ $year->id }}">{{ $year->name }}</option>
-                @endforeach
-            </x-ui.select>
-        </div>
+        @can(\App\Enums\Permission::FeesView->value)
+            <div class="w-full sm:w-60">
+                <x-ui.select wire:model.live="academic_year_id" aria-label="{{ __('fees.academic_year') }}">
+                    @foreach($this->years as $year)
+                        <option value="{{ $year->id }}">{{ $year->name }}</option>
+                    @endforeach
+                </x-ui.select>
+            </div>
+        @endcan
     </div>
 
+    @can(\App\Enums\Permission::FeesView->value)
     <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <x-ui.card>
             <div class="text-xs font-semibold text-gray-500 uppercase dark:text-gray-400">{{ __('reports.grand_total') }}</div>
@@ -162,4 +165,5 @@ new #[Layout('layouts::app')] class extends Component
             @endif
         </x-ui.card>
     </div>
+    @endcan
 </div>

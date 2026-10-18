@@ -143,6 +143,8 @@ new #[Layout('layouts::app')] class extends Component
 
     public function update(): void
     {
+        Gate::authorize(Permission::StudentsManage->value);
+
         $student = $this->student;
         $student->update($this->form->data());
         $this->editing = false;
@@ -421,7 +423,9 @@ new #[Layout('layouts::app')] class extends Component
                                     <x-ui.badge :status="$enrollment->status->value" />
                                 </span>
                                 <span class="mt-1 block text-xs text-gray-500 dark:text-gray-400">
-                                    @if($hasTuition)<x-ui.money :minor="$balance['owed']" /> · {{ __('fees.total_due') }} · <x-ui.money :minor="$balance['paid']" /> · {{ __('payments.paid') }}@else{{ __('fees.errors.fees_not_set') }}@endif
+                                    @can(\App\Enums\Permission::FeesView->value)
+                                        @if($hasTuition)<x-ui.money :minor="$balance['owed']" /> · {{ __('fees.total_due') }} · <x-ui.money :minor="$balance['paid']" /> · {{ __('payments.paid') }}@else{{ __('fees.errors.fees_not_set') }}@endif
+                                    @endcan
                                 </span>
                             </span>
                             <svg class="h-5 w-5 shrink-0 text-gray-500 transition-transform dark:text-gray-400 @if($isOpen) rotate-180 @endif" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg>

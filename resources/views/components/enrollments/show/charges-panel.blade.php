@@ -176,7 +176,7 @@ new class extends Component
                         <td><x-ui.money :minor="$feeBalance['remaining']" /></td>
                         <td>
                             @if(! $charge->gradeFee->feeType->is_mandatory && ! $isEnded)
-                                @can(\App\Enums\Permission::FeesManage->value)
+                                @can(\App\Enums\Permission::EnrollmentsManage->value)
                                     <x-ui.button variant="ghost" size="sm" wire:click="removeOptional({{ $charge->grade_fee_id }})" loading-target="removeOptional" wire:loading.attr="disabled" :spinner="false" class="text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/30">{{ __('common.delete') }}</x-ui.button>
                                 @endcan
                             @endif
@@ -197,7 +197,7 @@ new class extends Component
                         @endforeach
                     </x-ui.select>
                 </x-ui.field>
-                @can(\App\Enums\Permission::FeesManage->value)
+                @can(\App\Enums\Permission::EnrollmentsManage->value)
                     <x-ui.button variant="secondary" size="sm" wire:click="addOptional" loading-target="addOptional" wire:loading.attr="disabled">{{ __('fees.add') }}</x-ui.button>
                 @endcan
             </div>
@@ -215,7 +215,7 @@ new class extends Component
                 <span aria-hidden="true">—</span>
                 <x-ui.money :minor="$appliedDiscount->amount_minor" />
                 @if(! $isEnded)
-                    @can(\App\Enums\Permission::FeesManage->value)
+                    @can(\App\Enums\Permission::EnrollmentsManage->value)
                         <x-ui.button variant="ghost" size="sm" wire:click="removeDiscount" loading-target="removeDiscount" wire:loading.attr="disabled" :spinner="false" class="text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/30">{{ __('fees.remove_discount') }}</x-ui.button>
                     @endcan
                 @endif
@@ -237,7 +237,7 @@ new class extends Component
                         @endforeach
                     </x-ui.select>
                 </x-ui.field>
-                @can(\App\Enums\Permission::FeesManage->value)
+                @can(\App\Enums\Permission::EnrollmentsManage->value)
                     <x-ui.button variant="secondary" size="sm" wire:click="applyDiscount" loading-target="applyDiscount" wire:loading.attr="disabled">{{ $appliedDiscount ? __('fees.replace_discount') : __('fees.apply_discount') }}</x-ui.button>
                 @endcan
             </div>

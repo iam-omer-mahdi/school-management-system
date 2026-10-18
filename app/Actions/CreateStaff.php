@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\Password;
 use Illuminate\Validation\ValidationException;
 
 final class CreateStaff
@@ -29,10 +30,16 @@ final class CreateStaff
     {
         Gate::authorize(Permission::StaffManage->value);
 
+        $passwordRules = ['required', 'string', 'min:8', 'confirmed'];
+        $defaults = Password::defaults();
+        if ($defaults !== null) {
+            $passwordRules[] = $defaults;
+        }
+
         $validated = Validator::make($data, [
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255'],
-            'password' => ['required', 'string', 'min:8', 'confirmed'],
+            'password' => $passwordRules,
             'roles' => ['required', 'array', 'min:1'],
             'roles.*' => ['string', Rule::exists('roles', 'name')],
         ], [], [

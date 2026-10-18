@@ -42,7 +42,7 @@ return new class extends Migration
         });
 
         Schema::table('schools', function (Blueprint $table): void {
-            $table->unique('code');
+            // No unique index: `code` now carries a school type, which repeats.
             $table->dropColumn('type');
         });
     }

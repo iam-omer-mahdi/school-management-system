@@ -54,10 +54,25 @@ final class UpdateStaffAccess
      */
     private function guardAgainstLockout(User $user, array $roles, bool $isActive): void
     {
-        $losesAdministrator = $user->hasRole(Role::Administrator->value)
-            && ! in_array(Role::Administrator->value, $roles, true);
+        // Self first, so a lone administrator gets the precise reason.
+        if (Auth::id() === $user->id && ! $isActive) {
+            throw ValidationException::withMessages([
+                'active' => __('staff.errors.self_deactivate'),
+            ]);
+        }
 
-        if ($losesAdministrator && User::query()->role(Role::Administrator->value)->count() <= 1) {
+        // Losing the role or switching the account off both end an
+        // administrator, so both need another *active* administrator to exist.
+        $losesAdministrator = $user->hasRole(Role::Administrator->value)
+            && (! in_array(Role::Administrator->value, $roles, true) || ! $isActive);
+
+        $anotherActiveAdministrator = User::query()
+            ->role(Role::Administrator->value)
+            ->where('is_active', true)
+            ->whereKeyNot($user->id)
+            ->exists();
+
+        if ($losesAdministrator && ! $anotherActiveAdministrator) {
             throw ValidationException::withMessages([
                 'roles' => __('staff.errors.last_administrator'),
             ]);
@@ -65,12 +80,6 @@ final class UpdateStaffAccess
 
         if (Auth::id() !== $user->id) {
             return;
-        }
-
-        if (! $isActive) {
-            throw ValidationException::withMessages([
-                'active' => __('staff.errors.self_deactivate'),
-            ]);
         }
 
         if (! $this->rolesGrantStaffManage($roles)) {

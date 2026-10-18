@@ -20,7 +20,7 @@ new #[Layout('layouts::print')] class extends Component
 
     public function mount(Enrollment $enrollment): void
     {
-        Gate::authorize(Permission::EnrollmentsView->value);
+        Gate::authorize(Permission::PaymentsView->value);
 
         $this->enrollmentId = $enrollment->id;
 

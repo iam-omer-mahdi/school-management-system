@@ -167,7 +167,7 @@ new #[Layout('layouts::print')] class extends Component
 
 @php
     $yearName = $academic_year_id ? AcademicYear::query()->whereKey($academic_year_id)->value('name') : null;
-    $schoolName = $school_id ? __('schools.'.((string) School::query()->whereKey($school_id)->value('name'))) : null;
+    $schoolName = $school_id ? (string) School::query()->whereKey($school_id)->value('name') : null;
     $gradeName = $grade_id ? __('schools.grade_number', ['number' => Grade::query()->whereKey($grade_id)->value('number')]) : null;
 @endphp
 

@@ -199,6 +199,29 @@ class StaffPageTest extends TestCase
         $this->assertTrue($admin->refresh()->hasRole(Role::Administrator->value));
     }
 
+    public function test_an_inactive_administrator_does_not_count_as_a_way_back_in(): void
+    {
+        $spare = $this->administrator();
+        $spare->update(['is_active' => false]);
+
+        $admin = $this->administrator();
+
+        // Someone who can manage staff without being an administrator, so the
+        // last-administrator guard is what stops them, not the self-lockout one.
+        $officerRole = SpatieRole::create(['name' => 'Staff Officer']);
+        $officerRole->syncPermissions([Permission::StaffManage->value]);
+        $officer = User::factory()->withRole('Staff Officer')->create();
+        $this->actingAs($officer);
+
+        Livewire::test('pages::staff.index')
+            ->call('editAccess', $admin->id)
+            ->set('editingActive', false)
+            ->call('updateAccess')
+            ->assertHasErrors('roles');
+
+        $this->assertTrue($admin->refresh()->is_active);
+    }
+
     public function test_an_administrator_cannot_remove_their_own_access_to_staff_and_roles(): void
     {
         $admin = $this->administrator();

@@ -314,7 +314,7 @@ new #[Layout('layouts::app')] class extends Component
             __('fees.academic_year') => $this->applied_academic_year_id
                 ? (string) AcademicYear::query()->whereKey($this->applied_academic_year_id)->value('name') : '',
             __('fees.school') => $this->applied_school_id
-                ? __('schools.'.((string) School::query()->whereKey($this->applied_school_id)->value('name'))) : __('reports.all_schools'),
+                ? (string) School::query()->whereKey($this->applied_school_id)->value('name') : __('reports.all_schools'),
             __('reports.status_filter') => $this->statusLabel,
             __('reports.generated_at') => now()->format('Y-m-d H:i'),
         ];
