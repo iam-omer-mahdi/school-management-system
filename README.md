@@ -35,7 +35,7 @@ Add screenshots here. Suggested set:
 
 ## Features
 
-Available now (Phase 1: Foundation):
+Available now:
 
 **Academic structure**
 - Schools, each with its own set of grades
@@ -56,6 +56,10 @@ Available now (Phase 1: Foundation):
 - Fee schedule per grade and academic year with an applied/skipped summary
 - Fees are charged per enrollment: only active and suspended enrollments receive new mandatory fees
 - Named discount catalog with percentage-based tuition discounts, snapshotted at apply time
+
+**Reports and exports**
+- Year summary, tuition vs other fees, outstanding call list, collections, discounts and forgone amounts, refunds and student accounts, filtered by academic year, school, grade and status
+- Native Excel export and printable views for every report, plus dashboard financial cards and offline charts
 
 **Accounts and security**
 - Email and password sign-in
@@ -84,29 +88,52 @@ Available now (Phase 1: Foundation):
 
 ### Requirements
 
-- PHP 8.5 with the extensions Laravel requires
+- PHP 8.5 with the extensions Laravel requires, including the MySQL driver (`pdo_mysql`)
 - The ZIP extension (`ext-zip`), used by Excel report exports to write `.xlsx` archives with PHP's `ZipArchive`
+- MySQL 8.4 (development, tests and production)
 - Composer
-- Node.js and bun
+- bun
 
 Enable `ext-zip` by installing the ZIP package for your PHP build (for example `php8.5-zip` on Debian/Ubuntu, or `docker-php-ext-install zip` in the official Docker images). `composer install` fails with a platform requirement error when the extension is missing.
 
 ### Installation
 
-```bash
-git clone https://github.com/iam-omer-mahdi/school-management-system.git
-cd school-management-system
+1. Clone the repository and install the dependencies:
 
-composer install
-bun install
+   ```bash
+   git clone https://github.com/iam-omer-mahdi/school-management-system.git
+   cd school-management-system
 
-cp .env.example .env
-php artisan key:generate
+   composer install
+   bun install
+   ```
 
-php artisan migrate --seed
+2. Copy the environment file and configure the database:
 
-bun run build
-```
+   ```bash
+   cp .env.example .env
+   ```
+
+   Create the development database (MySQL 8.4), for example with `mysql -u root -p`:
+
+   ```sql
+   CREATE DATABASE school_management CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+   ```
+
+   Connection settings live in `.env` (`DB_CONNECTION`, `DB_HOST`, `DB_PORT`, `DB_DATABASE`, `DB_USERNAME`, `DB_PASSWORD`); the defaults in `.env.example` match a local MySQL server on `127.0.0.1:3306`.
+
+3. Generate the application key and run the migrations and seeders:
+
+   ```bash
+   php artisan key:generate
+   php artisan migrate --seed
+   ```
+
+4. Build the front-end assets:
+
+   ```bash
+   bun run build
+   ```
 
 ### Run the app
 
@@ -118,28 +145,25 @@ Then open the URL printed in the terminal.
 
 ### Database
 
-MySQL 8.4 is required for local development, tests and production. Create both databases before migrating:
-
-```sql
-CREATE DATABASE school_management CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-CREATE DATABASE school_management_testing CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-```
-
-Connection settings live in `.env` (`DB_CONNECTION`, `DB_HOST`, `DB_PORT`, `DB_DATABASE`, `DB_USERNAME`, `DB_PASSWORD`); the test suite always uses `school_management_testing` and refuses to run against any other database.
-
 Migrations may be edited until the first production deployment; after that, add new migrations only.
 
-Back up production on a schedule (for example a nightly `mysqldump`) and test the restore regularly. Never run the test suite against the development or production database.
+Back up production on a schedule (for example a nightly `mysqldump`) and test the restore regularly.
 
 ### Demo account
 
-`php artisan migrate --seed` creates an initial administrator account (see `database/seeders/UserSeeder.php`). It exists for local development only. **Change the password immediately** and never run the seeder against a production database.
+`php artisan migrate --seed` creates the `finance@school.local` administrator for local development only (see `database/seeders/UserSeeder.php`). The password comes from `SEED_ADMIN_PASSWORD` in `.env`; an empty value falls back to a dev-only default in local and testing. **Change the password immediately** and never run the seeder against a production database.
 
 ### Email in development
 
 The default `.env.example` uses the `log` mailer, so password-reset and email-change codes are written to `storage/logs/laravel.log` instead of being sent. Configure a real SMTP provider in `.env` for production.
 
 ## Running the tests
+
+Create the dedicated testing database first, for example with `mysql -u root -p`:
+
+```sql
+CREATE DATABASE school_management_testing CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+```
 
 ```bash
 php artisan test
@@ -152,7 +176,7 @@ Code style:
 ./vendor/bin/pint          # fix
 ```
 
-The suite runs against a dedicated MySQL testing database (`school_management_testing`, recreated for every run) and covers authentication, the app shell, localization, school structure, academic years, student enrollment, password reset, email change and translated validation messages.
+The suite runs against that dedicated MySQL testing database (`school_management_testing`, recreated for every run) and refuses to run against any other database, so it can never touch development or production data. It covers authentication, the app shell, localization, the academic structure, students and enrollment, fees and discounts, payments, refunds, reports and translated validation messages.
 
 ## Architecture
 
