@@ -38,7 +38,7 @@ new #[Layout('layouts::app')] class extends Component
             ]);
         }
 
-        if (! Auth::attempt(['email' => $this->email, 'password' => $this->password], $this->remember)) {
+        if (! Auth::attempt(['email' => $this->email, 'password' => $this->password, 'is_active' => true], $this->remember)) {
             RateLimiter::hit($key);
 
             throw ValidationException::withMessages([

@@ -13,13 +13,18 @@ $feeLinks = [
 ];
 $tailLinks = [
     ['route' => 'reports.index', 'match' => 'reports.*', 'label' => __('reports.reports'), 'icon' => 'clipboard'],
+    ['route' => 'staff.index', 'match' => 'staff.*', 'label' => __('staff.title'), 'icon' => 'users', 'permission' => \App\Enums\Permission::StaffManage->value],
     ['route' => 'settings', 'match' => 'settings', 'label' => __('common.settings'), 'icon' => 'cog'],
 ];
 $drawerId = $drawerId ?? null;
+$visible = fn (array $links): array => array_values(array_filter(
+    $links,
+    fn (array $link): bool => ! isset($link['permission']) || (bool) auth()->user()?->can($link['permission'])
+));
 @endphp
 
 <nav class="flex flex-col gap-1" aria-label="{{ __('common.main_nav') }}">
-    @foreach($links as $link)
+    @foreach($visible($links) as $link)
         @php($isActive = request()->routeIs($link['match']))
         <a
             href="{{ route($link['route']) }}"
@@ -34,7 +39,7 @@ $drawerId = $drawerId ?? null;
     @endforeach
 
     <p class="mt-3 px-3 text-xs font-semibold tracking-wider text-gray-400 uppercase dark:text-gray-500">{{ __('common.fees') }}</p>
-    @foreach($feeLinks as $link)
+    @foreach($visible($feeLinks) as $link)
         @php($isActive = request()->routeIs($link['match']))
         <a
             href="{{ route($link['route']) }}"
@@ -47,7 +52,7 @@ $drawerId = $drawerId ?? null;
             <span class="truncate">{{ $link['label'] }}</span>
         </a>
     @endforeach
-    @foreach($tailLinks as $link)
+    @foreach($visible($tailLinks) as $link)
         @php($isActive = request()->routeIs($link['match']))
         <a
             href="{{ route($link['route']) }}"
