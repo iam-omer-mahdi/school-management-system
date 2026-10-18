@@ -4,6 +4,7 @@ use App\Livewire\Forms\StudentForm;
 use App\Models\AcademicYear;
 use App\Models\Grade;
 use App\Models\School;
+use Illuminate\Validation\Rule;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
@@ -51,9 +52,14 @@ new #[Layout('layouts::app')] class extends Component
 
         $this->validate([
             'school_id' => ['required', 'exists:schools,id'],
-            'grade_id' => ['required', 'exists:grades,id'],
+            'grade_id' => ['required', Rule::exists('grades', 'id')->where('school_id', $this->school_id)],
             'academic_year_id' => ['required', 'exists:academic_years,id'],
         ]);
+    }
+
+    public function updatedSchoolId(): void
+    {
+        $this->grade_id = null;
     }
 
     /** @return \Illuminate\Database\Eloquent\Collection<int, School> */

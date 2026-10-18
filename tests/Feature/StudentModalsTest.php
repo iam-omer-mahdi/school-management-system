@@ -156,6 +156,41 @@ class StudentModalsTest extends TestCase
         $this->assertSame(2, Enrollment::where('student_id', $student->id)->count());
     }
 
+    public function test_changing_school_clears_grade_on_enroll_form(): void
+    {
+        $this->actingAs(User::factory()->create());
+        [$grade] = $this->fixtures();
+
+        $other = School::factory()->create(['code' => 'high', 'name' => 'High']);
+
+        Livewire::test('pages::students.show', ['student' => Student::factory()->create()->id])
+            ->set('showEnroll', true)
+            ->set('school_id', $grade->school_id)
+            ->set('grade_id', $grade->id)
+            ->set('school_id', $other->id)
+            ->assertSet('grade_id', null);
+    }
+
+    public function test_enroll_rejects_grade_from_another_school(): void
+    {
+        $this->actingAs(User::factory()->create());
+        [$grade] = $this->fixtures();
+
+        $other = School::factory()->create(['code' => 'high', 'name' => 'High']);
+        $year = AcademicYear::factory()->create(['name' => '2031/2032', 'starts_on' => '2031-09-01', 'ends_on' => '2032-06-01']);
+        $student = Student::factory()->create();
+
+        Livewire::test('pages::students.show', ['student' => $student->id])
+            ->set('showEnroll', true)
+            ->set('school_id', $other->id)
+            ->set('grade_id', $grade->id)
+            ->set('academic_year_id', $year->id)
+            ->call('enroll')
+            ->assertHasErrors('grade_id');
+
+        $this->assertSame(0, Enrollment::where('student_id', $student->id)->count());
+    }
+
     public function test_status_group_labels_current_and_disables_it(): void
     {
         $this->actingAs(User::factory()->create());

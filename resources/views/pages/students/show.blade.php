@@ -10,6 +10,7 @@ use App\Models\Enrollment;
 use App\Models\Grade;
 use App\Models\School;
 use App\Models\Student;
+use Illuminate\Validation\Rule;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Locked;
@@ -148,7 +149,7 @@ new #[Layout('layouts::app')] class extends Component
     public function enroll(EnrollStudent $action): void
     {
         $this->validate([
-            'grade_id' => ['required', 'exists:grades,id'],
+            'grade_id' => ['required', Rule::exists('grades', 'id')->where('school_id', $this->school_id)],
             'academic_year_id' => ['required', 'exists:academic_years,id'],
         ]);
 
@@ -165,6 +166,11 @@ new #[Layout('layouts::app')] class extends Component
         $this->expandedEnrollment = $enrollment?->id;
         unset($this->enrollments, $this->latestEnrollment);
         session()->flash('status', __('students.enrolled'));
+    }
+
+    public function updatedSchoolId(): void
+    {
+        $this->grade_id = null;
     }
 
     public function openArchiveModal(): void

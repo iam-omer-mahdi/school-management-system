@@ -74,6 +74,43 @@ class StudentEnrollmentTest extends TestCase
         );
     }
 
+    public function test_changing_school_clears_grade_on_enroll_now_form(): void
+    {
+        $this->actingAs(User::factory()->create());
+
+        $grade = Grade::firstOrFail();
+        $other = Grade::query()->where('school_id', '!=', $grade->school_id)->firstOrFail();
+
+        Livewire::test('pages::students.create')
+            ->set('enrollNow', true)
+            ->set('school_id', $grade->school_id)
+            ->set('grade_id', $grade->id)
+            ->set('school_id', $other->school_id)
+            ->assertSet('grade_id', null);
+    }
+
+    public function test_enroll_now_rejects_grade_from_another_school(): void
+    {
+        $this->actingAs(User::factory()->create());
+
+        $grade = Grade::firstOrFail();
+        $other = Grade::query()->where('school_id', '!=', $grade->school_id)->firstOrFail();
+        $year = AcademicYear::factory()->create(['name' => '26/27']);
+
+        Livewire::test('pages::students.create')
+            ->set('form.name', 'Sara Ahmed')
+            ->set('form.phone', '0911111111')
+            ->set('enrollNow', true)
+            ->set('school_id', $other->school_id)
+            ->set('grade_id', $grade->id)
+            ->set('academic_year_id', $year->id)
+            ->call('save')
+            ->assertHasErrors('grade_id');
+
+        $this->assertSame(0, Student::count());
+        $this->assertSame(0, Enrollment::count());
+    }
+
     public function test_student_number_unique_auto_generated_not_editable(): void
     {
         $a = Student::factory()->create();
