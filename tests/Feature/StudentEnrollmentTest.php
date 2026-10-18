@@ -264,4 +264,29 @@ class StudentEnrollmentTest extends TestCase
 
         $this->assertLessThanOrEqual(15, $count, 'Student list should stay within bounded queries, got '.$count);
     }
+
+    /**
+     * A duplicate is caught by the table's unique key, not by a check-then-insert,
+     * so two simultaneous enrollments cannot slip past the guard and crash.
+     */
+    public function test_enrolling_a_student_twice_reports_already_enrolled(): void
+    {
+        $grade = Grade::firstOrFail();
+        $year = AcademicYear::factory()->create(['name' => '26/27']);
+        $student = Student::factory()->create();
+
+        app(EnrollStudent::class)->handle($student->id, $year->id, $grade->id);
+
+        try {
+            app(EnrollStudent::class)->handle($student->id, $year->id, $grade->id);
+            $this->fail('Expected ValidationException for a duplicate enrollment');
+        } catch (ValidationException $exception) {
+            $this->assertSame(
+                __('students.errors.already_enrolled'),
+                $exception->errors()['academic_year_id'][0]
+            );
+        }
+
+        $this->assertSame(1, Enrollment::query()->where('student_id', $student->id)->count());
+    }
 }

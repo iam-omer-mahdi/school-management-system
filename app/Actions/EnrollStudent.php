@@ -6,6 +6,7 @@ namespace App\Actions;
 
 use App\Models\Enrollment;
 use App\Models\Grade;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -52,23 +53,20 @@ final class EnrollStudent
                 ]);
             }
 
-            $exists = Enrollment::query()
-                ->where('student_id', $studentId)
-                ->where('academic_year_id', $academicYearId)
-                ->exists();
-
-            if ($exists) {
+            try {
+                $enrollment = Enrollment::query()->create([
+                    'student_id' => $studentId,
+                    'academic_year_id' => $academicYearId,
+                    'grade_id' => $gradeId,
+                    'status' => 'active',
+                ]);
+            } catch (UniqueConstraintViolationException) {
+                // Two calls can pass any pre-check at once; the unique key is
+                // the only race-free guard, so report its failure as validation.
                 throw ValidationException::withMessages([
                     'academic_year_id' => __('students.errors.already_enrolled'),
                 ]);
             }
-
-            $enrollment = Enrollment::query()->create([
-                'student_id' => $studentId,
-                'academic_year_id' => $academicYearId,
-                'grade_id' => $gradeId,
-                'status' => 'active',
-            ]);
 
             $this->mandatoryFees->handle($enrollment);
 
