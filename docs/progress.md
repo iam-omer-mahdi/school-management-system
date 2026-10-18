@@ -29,11 +29,12 @@ have no `wire:key` (Livewire 4 `smart_wire_keys` covers them).
 
 ## Resume here
 
-**Next action:** **T6b is done.** Continue with **T7** — the first-login flow: the middleware
-that sends flagged users to `pages::auth.first-login` (append it to the `web` group in
-`bootstrap/app.php`, next to `SetLocale`), the page itself (new password + the three security
-questions, then clear `must_change_password`), and setting that flag in
-`app/Console/Commands/ResetUserPassword.php`. Full task list and hashes: see **Ledger** below.
+**Next action:** **T7 is done.** Continue with **T8** — the Help page: `Route::livewire('/help',
+'pages::help')` open to every authenticated user, `lang/{en,ar}/help.php` as one structured
+array (sections → title, intro, steps, notes), a single Blade template rendering it, and a
+sidebar entry in `resources/views/layouts/nav-links.blade.php`. Then **T9** (guard every write
+Action and every page `mount()`), then **T10** (pint + full suite). Full task list and hashes:
+see **Ledger** below.
 
 Tasks 1–6 are on the branch. Run `git log --oneline -12` to see them; this file's ledger has
 the hashes and the rulings that matter.
@@ -224,3 +225,12 @@ Rulings made while executing:
   passed; full suite 499 passed; `SaveRole` covers create and rename, `DeleteRole` refuses a
   role anyone holds, Administrator keeps its name and `staff.manage`; `Role::create` throws
   Spatie's `RoleAlreadyExists` before the DB constraint, so both are caught).
+- Task 7 (first login): complete (commit `4f0df05`; tests `tests/Feature/FirstLoginTest.php`
+  → 11 passed; full suite 510 passed). `RequirePasswordChange` runs on every `web` request and
+  sends flagged accounts to `pages::auth.first-login`, allowing only the form, logout, the
+  locale switch and **Livewire's update endpoint** — that last one is mandatory, because a
+  Livewire form posts to `default-livewire.update` (in the `web` group), not to its own page.
+  The setup page clears the flag, sets the password and the three answers in one transaction;
+  an unflagged account is bounced off the page so it cannot become a password change without
+  knowing the old one. `user:reset-password` sets the flag too. The app layout shows the bare
+  card while the flag is on, so nobody clicks a sidebar of dead links.
