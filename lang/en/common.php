@@ -34,4 +34,5 @@ return [
     'open_menu' => 'Open menu',
     'close_menu' => 'Close menu',
     'theme_toggle' => 'Switch theme',
+    'show_password' => 'Show password',
 ];

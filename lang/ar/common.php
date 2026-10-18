@@ -34,4 +34,5 @@ return [
     'open_menu' => 'فتح القائمة',
     'close_menu' => 'إغلاق القائمة',
     'theme_toggle' => 'تبديل المظهر',
+    'show_password' => 'إظهار كلمة المرور',
 ];

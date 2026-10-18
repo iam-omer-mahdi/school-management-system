@@ -290,6 +290,44 @@ function focusInvalidAfterAction() {
 }
 
 /**
+ * Password visibility toggle ([data-password] input with a
+ * [data-password-toggle] button in its relative wrapper): one delegated
+ * click listener per wrapper survives morphs, and the visible state lives
+ * on the input element because morphs rewrite type="password" back from
+ * the server render after every blur/validation roundtrip.
+ */
+function initPasswordToggles() {
+    document.querySelectorAll('[data-password]').forEach((input) => {
+        if (!(input instanceof HTMLInputElement)) {
+            return;
+        }
+
+        const wrapper = input.parentElement;
+
+        if (wrapper && !wrapper._passwordToggleBound) {
+            wrapper._passwordToggleBound = true;
+
+            wrapper.addEventListener('click', (event) => {
+                if (!event.target.closest?.('[data-password-toggle]')) {
+                    return;
+                }
+
+                const shown = input.type === 'password';
+                input.type = shown ? 'text' : 'password';
+                input._passwordShown = !shown;
+                wrapper.querySelector('[data-password-toggle]')?.setAttribute('aria-pressed', String(!shown));
+            });
+        }
+
+        if (input._passwordShown === true && input.type === 'password') {
+            input.type = 'text';
+        }
+    });
+}
+
+window.initPasswordToggles = initPasswordToggles;
+
+/**
  * Dashboard charts (ApexCharts, bundled offline). Each [data-chart]
  * element carries its labels/series as JSON data attributes rendered
  * by Blade, so charts survive Livewire morphs: re-render after every
@@ -378,6 +416,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initFlowbite();
     initMonthPickers();
     initMoneyInputs();
+    initPasswordToggles();
     initModals();
     focusInvalidAfterAction();
     renderDashboardCharts();
@@ -391,6 +430,7 @@ document.addEventListener('livewire:navigated', () => {
     initFlowbite();
     initMonthPickers();
     initMoneyInputs();
+    initPasswordToggles();
     initModals();
     focusInvalidAfterAction();
     renderDashboardCharts();
@@ -405,6 +445,7 @@ function registerMonthPickerMorphHook() {
         window.Livewire.hook('morphed', () => {
             initMonthPickers();
             initMoneyInputs();
+            initPasswordToggles();
             initModals();
             focusInvalidAfterAction();
             renderDashboardCharts();
