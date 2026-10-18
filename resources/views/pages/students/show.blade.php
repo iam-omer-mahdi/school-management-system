@@ -256,14 +256,14 @@ new #[Layout('layouts::app')] class extends Component
                         <x-ui.field :label="__('students.name')" for="edit-name" required :error="$errors->first('form.name')">
                             <x-ui.input id="edit-name" type="text" wire:model.blur="form.name" :error="$errors->first('form.name')" required />
                         </x-ui.field>
-                        <x-ui.field :label="__('students.date_of_birth')" for="edit-dob">
-                            <x-ui.input id="edit-dob" type="date" wire:model.blur="form.date_of_birth" />
+                        <x-ui.field :label="__('students.date_of_birth')" for="edit-dob" :error="$errors->first('form.date_of_birth')">
+                            <x-ui.input id="edit-dob" type="date" wire:model.blur="form.date_of_birth" :error="$errors->first('form.date_of_birth')" :min="now()->subYears(\App\Livewire\Forms\StudentForm::MAX_AGE_YEARS)->toDateString()" :max="now()->subYears(\App\Livewire\Forms\StudentForm::MIN_AGE_YEARS)->toDateString()" />
                         </x-ui.field>
-                        <x-ui.field :label="__('students.mother_name')" for="edit-mother">
-                            <x-ui.input id="edit-mother" type="text" wire:model.blur="form.mother_name" />
+                        <x-ui.field :label="__('students.mother_name')" for="edit-mother" :error="$errors->first('form.mother_name')">
+                            <x-ui.input id="edit-mother" type="text" wire:model.blur="form.mother_name" :error="$errors->first('form.mother_name')" />
                         </x-ui.field>
-                        <x-ui.field :label="__('students.blood_type')" for="edit-blood">
-                            <x-ui.select id="edit-blood" wire:model.blur="form.blood_type">
+                        <x-ui.field :label="__('students.blood_type')" for="edit-blood" :error="$errors->first('form.blood_type')">
+                            <x-ui.select id="edit-blood" wire:model.blur="form.blood_type" :error="$errors->first('form.blood_type')">
                                 <option value="">—</option>
                                 @foreach(\App\Livewire\Forms\StudentForm::BLOOD_TYPES as $bloodType)
                                     <option value="{{ $bloodType }}">{{ $bloodType }}</option>
@@ -279,11 +279,11 @@ new #[Layout('layouts::app')] class extends Component
                         <x-ui.field :label="__('students.phone')" for="edit-phone" required :error="$errors->first('form.phone')">
                             <x-ui.input id="edit-phone" type="tel" wire:model.blur="form.phone" :error="$errors->first('form.phone')" required />
                         </x-ui.field>
-                        <x-ui.field :label="__('students.secondary_phone')" for="edit-secondary">
-                            <x-ui.input id="edit-secondary" type="tel" wire:model.blur="form.secondary_phone" />
+                        <x-ui.field :label="__('students.secondary_phone')" for="edit-secondary" :error="$errors->first('form.secondary_phone')">
+                            <x-ui.input id="edit-secondary" type="tel" wire:model.blur="form.secondary_phone" :error="$errors->first('form.secondary_phone')" />
                         </x-ui.field>
-                        <x-ui.field :label="__('students.home_address')" for="edit-address" class="sm:col-span-2">
-                            <x-ui.input id="edit-address" type="text" wire:model.blur="form.home_address" />
+                        <x-ui.field :label="__('students.home_address')" for="edit-address" class="sm:col-span-2" :error="$errors->first('form.home_address')">
+                            <x-ui.input id="edit-address" type="text" wire:model.blur="form.home_address" :error="$errors->first('form.home_address')" />
                         </x-ui.field>
                     </div>
                 </fieldset>
@@ -291,11 +291,11 @@ new #[Layout('layouts::app')] class extends Component
                     <legend class="text-sm font-semibold text-gray-900 dark:text-white">{{ __('students.section_guardian') }}</legend>
                     <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ __('students.section_guardian_hint') }}</p>
                     <div class="mt-5 grid grid-cols-1 gap-x-6 gap-y-5 sm:grid-cols-2">
-                        <x-ui.field :label="__('students.guardian_name')" for="edit-guardian">
-                            <x-ui.input id="edit-guardian" type="text" wire:model.blur="form.guardian_name" />
+                        <x-ui.field :label="__('students.guardian_name')" for="edit-guardian" :error="$errors->first('form.guardian_name')">
+                            <x-ui.input id="edit-guardian" type="text" wire:model.blur="form.guardian_name" :error="$errors->first('form.guardian_name')" />
                         </x-ui.field>
-                        <x-ui.field :label="__('students.guardian_relationship')" for="edit-guardian-relationship">
-                            <x-ui.input id="edit-guardian-relationship" type="text" wire:model.blur="form.guardian_relationship" />
+                        <x-ui.field :label="__('students.guardian_relationship')" for="edit-guardian-relationship" :error="$errors->first('form.guardian_relationship')">
+                            <x-ui.input id="edit-guardian-relationship" type="text" wire:model.blur="form.guardian_relationship" :error="$errors->first('form.guardian_relationship')" />
                         </x-ui.field>
                     </div>
                 </fieldset>

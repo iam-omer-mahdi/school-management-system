@@ -58,5 +58,7 @@ return [
         'archived_cannot_enroll' => 'Archived students cannot be enrolled. Restore first.',
         'already_enrolled' => 'Student is already enrolled in this academic year.',
         'number_unavailable' => 'A student number could not be assigned. Please try again.',
+        'date_of_birth_too_young' => 'The student must be at least :min years old.',
+        'date_of_birth_too_old' => 'The date of birth cannot be more than :max years ago.',
     ],
 ];

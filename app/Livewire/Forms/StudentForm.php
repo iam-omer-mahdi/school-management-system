@@ -6,12 +6,17 @@ namespace App\Livewire\Forms;
 
 use App\Actions\CreateStudent;
 use App\Models\Student;
+use Closure;
 use Livewire\Form;
 
 class StudentForm extends Form
 {
     /** @var list<string> */
     public const BLOOD_TYPES = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
+
+    public const MIN_AGE_YEARS = 5;
+
+    public const MAX_AGE_YEARS = 40;
 
     public string $name = '';
 
@@ -41,7 +46,7 @@ class StudentForm extends Form
             'home_address' => ['nullable', 'string', 'max:255'],
             'mother_name' => ['nullable', 'string', 'max:255'],
             'blood_type' => ['nullable', 'string', 'in:A+,A-,B+,B-,AB+,AB-,O+,O-'],
-            'date_of_birth' => ['nullable', 'date'],
+            'date_of_birth' => ['nullable', 'date', $this->dateOfBirthAgeRule()],
             'guardian_name' => ['nullable', 'string', 'max:255'],
             'guardian_relationship' => ['nullable', 'string', 'max:255'],
         ];
@@ -97,6 +102,26 @@ class StudentForm extends Form
         $this->date_of_birth = $student->date_of_birth?->format('Y-m-d');
         $this->guardian_name = $student->guardian_name;
         $this->guardian_relationship = $student->guardian_relationship;
+    }
+
+    /**
+     * A date of birth has to place the student inside the school-age
+     * window: at least MIN_AGE_YEARS and at most MAX_AGE_YEARS old.
+     * Both ends count as inside, and "YYYY-MM-DD" strings compare as text.
+     */
+    private function dateOfBirthAgeRule(): Closure
+    {
+        return function (string $attribute, mixed $value, Closure $fail): void {
+            if (! is_string($value) || ! preg_match('/^\d{4}-\d{2}-\d{2}$/', $value)) {
+                return;
+            }
+
+            if ($value > now()->subYears(self::MIN_AGE_YEARS)->toDateString()) {
+                $fail(__('students.errors.date_of_birth_too_young', ['min' => self::MIN_AGE_YEARS]));
+            } elseif ($value < now()->subYears(self::MAX_AGE_YEARS)->toDateString()) {
+                $fail(__('students.errors.date_of_birth_too_old', ['max' => self::MAX_AGE_YEARS]));
+            }
+        };
     }
 
     private function emptyToNull(?string $value): ?string

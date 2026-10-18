@@ -106,7 +106,7 @@ new #[Layout('layouts::app')] class extends Component
                         <x-ui.input id="name" type="text" wire:model.blur="form.name" :error="$errors->first('form.name')" required />
                     </x-ui.field>
                     <x-ui.field :label="__('students.date_of_birth')" for="date_of_birth" :error="$errors->first('form.date_of_birth')">
-                        <x-ui.input id="date_of_birth" type="date" wire:model.blur="form.date_of_birth" :error="$errors->first('form.date_of_birth')" />
+                        <x-ui.input id="date_of_birth" type="date" wire:model.blur="form.date_of_birth" :error="$errors->first('form.date_of_birth')" :min="now()->subYears(\App\Livewire\Forms\StudentForm::MAX_AGE_YEARS)->toDateString()" :max="now()->subYears(\App\Livewire\Forms\StudentForm::MIN_AGE_YEARS)->toDateString()" />
                     </x-ui.field>
                     <x-ui.field :label="__('students.mother_name')" for="mother_name" :error="$errors->first('form.mother_name')">
                         <x-ui.input id="mother_name" type="text" wire:model.blur="form.mother_name" :error="$errors->first('form.mother_name')" />

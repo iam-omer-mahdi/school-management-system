@@ -311,6 +311,14 @@ class ValidationTranslationsTest extends TestCase
         $birth->assertHasErrors(['form.date_of_birth']);
         $this->assertMessagesAreArabic($birth->errors());
 
+        $young = Livewire::test('pages::students.create')
+            ->set('form.name', 'Sara')
+            ->set('form.phone', '0700000000')
+            ->set('form.date_of_birth', now()->subYears(3)->toDateString())
+            ->call('save');
+        $young->assertHasErrors(['form.date_of_birth']);
+        $this->assertMessagesAreArabic($young->errors());
+
         $student = Student::query()->create([
             'student_number' => 'STU-000001',
             'name' => 'Sara',
