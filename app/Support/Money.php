@@ -75,13 +75,18 @@ final class Money
      */
     public static function format(int $amountMinor): string
     {
-        $grouped = number_format(intdiv($amountMinor, 100));
-        $cents = $amountMinor % 100;
+        // Abs() first: PHP keeps the sign on the remainder, so a negative
+        // amount would otherwise lose its cents ("-1250" instead of "-12.50").
+        $sign = $amountMinor < 0 ? '-' : '';
+        $absolute = abs($amountMinor);
+
+        $grouped = number_format(intdiv($absolute, 100));
+        $cents = $absolute % 100;
 
         $text = $cents > 0
             ? $grouped.'.'.str_pad((string) $cents, 2, '0', STR_PAD_LEFT)
             : $grouped;
 
-        return $text.' '.__('fees.currency');
+        return $sign.$text.' '.__('fees.currency');
     }
 }

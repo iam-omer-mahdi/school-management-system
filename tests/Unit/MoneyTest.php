@@ -82,6 +82,15 @@ class MoneyTest extends TestCase
         $this->assertSame('0 SDG', Money::format(0));
     }
 
+    public function test_format_keeps_the_sign_on_negative_amounts(): void
+    {
+        app()->setLocale('en');
+
+        $this->assertSame('-1,250 SDG', Money::format(-125000));
+        $this->assertSame('-1,250.50 SDG', Money::format(-125050));
+        $this->assertSame('-0.50 SDG', Money::format(-50));
+    }
+
     public function test_format_uses_arabic_label(): void
     {
         app()->setLocale('ar');
