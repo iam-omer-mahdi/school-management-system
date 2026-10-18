@@ -22,18 +22,25 @@ use Illuminate\Support\Str;
  * @property string $password
  * @property string|null $remember_token
  * @property string $display_locale
+ * @property bool $is_active
+ * @property bool $must_change_password
  * @property string|null $security_answer_1
  * @property string|null $security_answer_2
  * @property string|null $security_answer_3
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
-#[Fillable(['name', 'email', 'password', 'display_locale'])]
+#[Fillable(['name', 'email', 'password', 'display_locale', 'is_active', 'must_change_password'])]
 #[Hidden(['password', 'remember_token', 'security_answer_1', 'security_answer_2', 'security_answer_3'])]
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable;
+
+    protected $attributes = [
+        'is_active' => true,
+        'must_change_password' => false,
+    ];
 
     /**
      * Get the attributes that should be cast.
@@ -45,6 +52,8 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'is_active' => 'boolean',
+            'must_change_password' => 'boolean',
         ];
     }
 
