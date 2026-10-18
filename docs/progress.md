@@ -167,17 +167,37 @@ Pre-flight rulings (binding authority = §3 decisions over §4/§10 prose, which
   Cost if wrong: help mentions pages a user cannot open.
 - Ruling: `schools.name` stays `unique` (§10 default). Cost if wrong: two schools cannot share a name.
 
+Two further rulings made while executing:
+
+- Ruling: plan §7 steps 4 and 5 (the `schools.code` column change and the display/report
+  switch) are **one commit**, because §6 forbids them landing apart and neither half passes
+  the suite alone. Cost if wrong: a larger commit to review.
+- Ruling: `SchoolSeeder` writes schools and grades directly instead of going through the
+  guarded `CreateSchool` action — a seeder has no authenticated user, so the access check
+  would refuse it. The grade structure still comes from `SchoolType::gradeNumbers()`, so
+  there is only one definition of it. Cost if wrong: seed-time writes bypass `schools.manage`.
+
 ### Tasks
 
-| Task | Status |
-|---|---|
-| T1 install `spatie/laravel-permission`, publish migration + config | |
-| T2 migration `users.is_active`, `users.must_change_password` | |
-| T3 `App\Enums\Permission`, seed roles, promote existing users | |
-| T4 `SchoolType` enum + `schools.type` migration | |
-| T5 switch display + reports from `schools.code` to `schools.name` | |
-| T6 staff + roles page, nav, guards (D11) | |
-| T7 first-login middleware, page, `must_change_password` wiring | |
-| T8 help page + `lang/{en,ar}/help.php` + nav | |
-| T9 guard every Action and page `mount()` | |
-| T10 final: pint + full suite | |
+1. T1 install `spatie/laravel-permission`, publish migration + config
+2. T2 migration `users.is_active`, `users.must_change_password`
+3. T3 `App\Enums\Permission` + `App\Enums\Role`, seed them, promote existing users
+4. T4 `SchoolType` enum + `schools.type` migration + switch every reader to `schools.name`
+5. T5 schools admin page: add / rename / delete, auto-created grades, `schools.manage` guard
+6. T6 staff + roles page (D11): staff CRUD, role CRUD, permission matrix
+7. T7 first-login middleware + page, `must_change_password` wiring
+8. T8 help page + `lang/{en,ar}/help.php` + nav entry
+9. T9 guard every write Action and every page `mount()`
+10. T10 final: pint + full suite
+
+### Completion log
+
+- Task 1: complete (commit `59ea9b2`; verification: `php artisan migrate` then the five
+  Spatie tables present in `school_management`).
+- Task 2: complete (commit `781065b`; test `tests/Feature/StaffAccessTest.php` → 2 passed).
+- Task 3: complete (commit `4be0128`; test `tests/Feature/RolesAndPermissionsTest.php` → 6
+  passed; full suite 452 passed; dev database's single existing user promoted to
+  Administrator).
+- Task 4: complete (commit `b851da3`; tests `SchoolTypeTest`, `SchoolStructureTest`,
+  `ReportsQueriesTest` → 9 passed; full suite 456 passed; verified the migration reverses
+  and re-applies on the dev database with `type`/`name` intact).
