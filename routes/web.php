@@ -55,6 +55,8 @@ Route::middleware('auth')->group(function (): void {
 
     Route::livewire('/staff', 'pages::staff.index')->name('staff.index');
 
+    Route::livewire('/help', 'pages::help')->name('help');
+
     Route::livewire('/settings', 'pages::settings')->name('settings');
 
     Route::post('/logout', function (Request $request) {

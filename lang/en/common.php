@@ -10,6 +10,7 @@ return [
     'students' => 'Students',
     'fees' => 'Fees',
     'settings' => 'Settings',
+    'help' => 'Help',
     'logout' => 'Log out',
     'login' => 'Log in',
     'search' => 'Search',
