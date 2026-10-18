@@ -220,7 +220,7 @@ Rulings made while executing:
 - Task 6a (staff): complete (commit `05afe82`; test `tests/Feature/StaffPageTest.php` → 15
   passed; full suite 483 passed; the Staff link is filtered by `staff.manage`, deactivated
   users are refused at login through the credentials array).
-- Task 6b (roles): complete (commit `b34f619`; test `tests/Feature/RolesPageTest.php` → 16
+- Task 6b (roles): complete (commit `a2c81a4`; test `tests/Feature/RolesPageTest.php` → 16
   passed; full suite 499 passed; `SaveRole` covers create and rename, `DeleteRole` refuses a
   role anyone holds, Administrator keeps its name and `staff.manage`; `Role::create` throws
   Spatie's `RoleAlreadyExists` before the DB constraint, so both are caught).
