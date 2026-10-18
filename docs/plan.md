@@ -265,3 +265,17 @@ checks.
   records? (Default: reports included.)
 - Two schools sharing a name: `schools.name` is currently `unique`, so it would be rejected.
   Keep unique unless a real case appears.
+
+---
+
+## 11. Future work (agreed, not in this change)
+
+- **Finance must be able to manage discounts.** Today the discount and optional-fee writes
+  (`ApplyDiscountToEnrollment`, `RemoveEnrollmentDiscount`, `AddOptionalFeeToEnrollment`,
+  `RemoveOptionalFeeFromEnrollment`) sit under `enrollments.manage` per §5, while Finance holds
+  `fees.manage` — so Finance cannot apply or remove a discount. Two ways to close it: narrow —
+  move those actions (and the controls that call them) to `fees.manage`; broad — give Finance
+  `enrollments.manage`, which also lets it enroll students and change statuses. The narrow change
+  matches the request. Roles are database rows, so changing the seeded preset alone will not reach
+  existing installs: ship a data migration or have an administrator tick the permission on the
+  Roles page.
