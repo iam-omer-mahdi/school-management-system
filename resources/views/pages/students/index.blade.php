@@ -38,12 +38,6 @@ new #[Layout('layouts::app')] class extends Component
             ->orderBy('name')
             ->paginate(15);
     }
-
-    #[Computed]
-    public function queryCount(): int
-    {
-        return 1;
-    }
 };
 ?>
 
