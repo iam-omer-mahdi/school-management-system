@@ -26,7 +26,7 @@ new #[Layout('layouts::app')] class extends Component
                 'student:id,student_number,name,archived_at',
                 'academicYear:id,name,starts_on',
                 'grade:id,school_id,number',
-                'grade.school:id,code,name',
+                'grade.school:id,name',
                 'fees.gradeFee.feeType',
                 'fees.payments',
                 'discount',
@@ -79,7 +79,7 @@ new #[Layout('layouts::app')] class extends Component
         <dl class="grid grid-cols-1 gap-x-8 gap-y-5 text-sm sm:grid-cols-2">
             <div><dt class="text-gray-500 dark:text-gray-400">{{ __('students.student_number') }}</dt><dd class="mt-0.5 font-medium text-gray-900 dark:text-white"><a href="{{ route('students.show', $enrollment->student) }}" wire:navigate class="text-indigo-700 hover:underline focus:outline-none focus:ring-4 focus:ring-indigo-300 dark:text-indigo-400 dark:focus:ring-indigo-800">{{ $enrollment->student->student_number }}</a></dd></div>
             <div><dt class="text-gray-500 dark:text-gray-400">{{ __('students.name') }}</dt><dd class="mt-0.5 font-medium text-gray-900 dark:text-white"><a href="{{ route('students.show', $enrollment->student) }}" wire:navigate class="text-indigo-700 hover:underline focus:outline-none focus:ring-4 focus:ring-indigo-300 dark:text-indigo-400 dark:focus:ring-indigo-800">{{ $enrollment->student->name }}</a></dd></div>
-            <div><dt class="text-gray-500 dark:text-gray-400">{{ __('fees.school') }}</dt><dd class="mt-0.5 font-medium text-gray-900 dark:text-white">{{ __('schools.'.$enrollment->grade->school->code) }}</dd></div>
+            <div><dt class="text-gray-500 dark:text-gray-400">{{ __('fees.school') }}</dt><dd class="mt-0.5 font-medium text-gray-900 dark:text-white">{{ $enrollment->grade->school->name }}</dd></div>
             <div><dt class="text-gray-500 dark:text-gray-400">{{ __('fees.grade') }}</dt><dd class="mt-0.5 font-medium text-gray-900 dark:text-white">{{ __('schools.grade_number', ['number' => $enrollment->grade->number]) }}</dd></div>
             <div><dt class="text-gray-500 dark:text-gray-400">{{ __('fees.academic_year') }}</dt><dd class="mt-0.5 font-medium text-gray-900 dark:text-white">{{ $enrollment->academicYear->name }}</dd></div>
             <div><dt class="text-gray-500 dark:text-gray-400">{{ __('enrollments.status') }}</dt><dd class="mt-0.5 font-medium text-gray-900 dark:text-white">{{ __('enrollments.status_'.$enrollment->status->value) }}</dd></div>

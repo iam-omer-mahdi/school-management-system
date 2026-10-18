@@ -52,7 +52,7 @@
                     <td dir="ltr">{{ $item->phone }}</td>
                     <td dir="ltr">{{ $item->secondary_phone ?? '—' }}</td>
                     <td>{{ $item->guardian_name ?? '—' }}</td>
-                    <td>{{ __('schools.'.$item->school_code) }} {{ __('schools.grade_number', ['number' => $item->grade_number]) }}</td>
+                    <td>{{ $item->school_name }} {{ __('schools.grade_number', ['number' => $item->grade_number]) }}</td>
                     <td><x-ui.badge :status="$st" /></td>
                     <td class="text-end font-bold text-red-600 dark:text-red-400"><x-ui.money :minor="(int) $item->owed_minor" /></td>
                 </tr>

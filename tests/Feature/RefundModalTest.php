@@ -29,7 +29,7 @@ final class RefundModalTest extends TestCase
     /** @return array{Grade, AcademicYear} */
     private function fixtures(): array
     {
-        $school = School::factory()->create(['code' => 'test', 'name' => 'Test']);
+        $school = School::factory()->create(['name' => 'Test']);
         $grade = Grade::factory()->create(['school_id' => $school->id, 'number' => 1]);
         $year = AcademicYear::factory()->create(['name' => '2030/2031', 'starts_on' => '2030-09-01', 'ends_on' => '2031-06-01']);
 

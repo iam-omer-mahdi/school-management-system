@@ -153,7 +153,7 @@ final class ReportQueries
                 'students.secondary_phone',
                 'students.guardian_name',
                 'grades.number AS grade_number',
-                'schools.code AS school_code',
+                'schools.name AS school_name',
                 DB::raw("{$owed} AS owed_minor"),
             ])
             ->whereRaw($forceEmpty ? '0 = 1' : "{$owed} > 0")
@@ -236,13 +236,13 @@ final class ReportQueries
             ->select([
                 'grades.id AS grade_id',
                 'grades.number AS grade_number',
-                'schools.code AS school_code',
+                'schools.name AS school_name',
                 DB::raw('COUNT(enrollments.id) AS students_count'),
                 DB::raw("SUM({$closed}) AS forgone_minor"),
             ])
-            ->groupBy('grades.id', 'grades.number', 'schools.code')
+            ->groupBy('grades.id', 'grades.number', 'schools.name')
             ->havingRaw("SUM({$closed}) > 0")
-            ->orderBy('schools.code')
+            ->orderBy('schools.name')
             ->orderBy('grades.number')
             ->get();
     }
@@ -301,7 +301,7 @@ final class ReportQueries
                 'students.student_number',
                 'students.name AS student_name',
                 'grades.number AS grade_number',
-                'schools.code AS school_code',
+                'schools.name AS school_name',
                 DB::raw("{$closed} AS forgone_minor"),
             ])
             ->whereRaw("{$closed} > 0")
@@ -346,7 +346,7 @@ final class ReportQueries
             ->with([
                 'enrollment.student:id,student_number,name',
                 'enrollment.grade:id,school_id,number',
-                'enrollment.grade.school:id,code',
+                'enrollment.grade.school:id,name',
                 'enrollmentFee.gradeFee.feeType:id,name,system_key',
             ]);
 

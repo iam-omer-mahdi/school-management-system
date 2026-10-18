@@ -73,7 +73,7 @@ new #[Layout('layouts::app')] class extends Component
             ->with([
                 'academicYear:id,name,starts_on',
                 'grade:id,school_id,number',
-                'grade.school:id,code,name',
+                'grade.school:id,name',
                 'fees.gradeFee.feeType',
                 'fees.payments' => fn ($payments) => $payments->whereNull('voided_at')->select(['id', 'enrollment_id', 'enrollment_fee_id', 'amount_minor', 'voided_at']),
                 'discount',
@@ -87,7 +87,7 @@ new #[Layout('layouts::app')] class extends Component
     #[Computed]
     public function schools(): \Illuminate\Database\Eloquent\Collection
     {
-        return School::query()->select(['id', 'code', 'name'])->orderBy('id')->get();
+        return School::query()->select(['id', 'name'])->orderBy('id')->get();
     }
 
     /** @return \Illuminate\Database\Eloquent\Collection<int, Grade> */
@@ -359,7 +359,7 @@ new #[Layout('layouts::app')] class extends Component
                         <x-ui.select id="enroll-school" wire:model.live="school_id">
                             <option value="">—</option>
                             @foreach($this->schools as $school)
-                                <option value="{{ $school->id }}">{{ __('schools.'.$school->code) }}</option>
+                                <option value="{{ $school->id }}">{{ $school->name }}</option>
                             @endforeach
                         </x-ui.select>
                     </x-ui.field>
@@ -409,7 +409,7 @@ new #[Layout('layouts::app')] class extends Component
                                 <span class="flex flex-wrap items-center gap-x-3 gap-y-1">
                                     <span class="text-base font-semibold text-gray-900 dark:text-white">{{ $enrollment->academicYear->name }}</span>
                                     <span class="text-gray-400 dark:text-gray-500" aria-hidden="true">—</span>
-                                    <span class="text-gray-700 dark:text-gray-300">{{ __('schools.'.$enrollment->grade->school->code) }} {{ __('schools.grade_number', ['number' => $enrollment->grade->number]) }}</span>
+                                    <span class="text-gray-700 dark:text-gray-300">{{ $enrollment->grade->school->name }} {{ __('schools.grade_number', ['number' => $enrollment->grade->number]) }}</span>
                                     <x-ui.badge :status="$enrollment->status->value" />
                                 </span>
                                 <span class="mt-1 block text-xs text-gray-500 dark:text-gray-400">

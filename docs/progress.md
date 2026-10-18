@@ -140,3 +140,44 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done
 - Enforcement must sit inside Actions, not only in Blade or page mounts — Livewire methods
   are directly callable.
 - Do not add a per-user permission UI; Model A was chosen deliberately (D2/D5).
+
+---
+
+## Ledger — issue #12 execution
+
+Tracks `docs/plan.md` only. Branch `feature/roles-permissions`, cut from `main` at `138d1e2`.
+
+### Pre-flight: shared interfaces
+
+| Producer | Consumer | Produces vs. consumes | Finding |
+|---|---|---|---|
+| T3 permission enum | T6 roles page, T9 action guards | `App\Enums\Permission` names | aligned with §4.1 |
+| T4 `schools.type` | T5 display + report switch | column replacing `code` | T5 must land after T4 in one change (§6) |
+| T2 `must_change_password` | T6 staff page, `user:reset-password`, T7 middleware | the flag | aligned |
+| T6 role presets | T9 guards | which role may call which Action | §4.2 is the authority |
+
+Pre-flight rulings (binding authority = §3 decisions over §4/§10 prose, which is older):
+
+- Ruling: §4.3's "invite by email-code flow" text is stale; **D12 wins** — the Staff page sets
+  an initial password and flags `must_change_password`, no invite machinery.
+  Cost if wrong: one password field to delete.
+- Ruling: Read-only keeps `reports.view` (§10 open question, its stated default).
+  Cost if wrong: one checkbox to change.
+- Ruling: the Help page renders every section; no `@can` filtering (§4.6 marks it optional).
+  Cost if wrong: help mentions pages a user cannot open.
+- Ruling: `schools.name` stays `unique` (§10 default). Cost if wrong: two schools cannot share a name.
+
+### Tasks
+
+| Task | Status |
+|---|---|
+| T1 install `spatie/laravel-permission`, publish migration + config | |
+| T2 migration `users.is_active`, `users.must_change_password` | |
+| T3 `App\Enums\Permission`, seed roles, promote existing users | |
+| T4 `SchoolType` enum + `schools.type` migration | |
+| T5 switch display + reports from `schools.code` to `schools.name` | |
+| T6 staff + roles page, nav, guards (D11) | |
+| T7 first-login middleware, page, `must_change_password` wiring | |
+| T8 help page + `lang/{en,ar}/help.php` + nav | |
+| T9 guard every Action and page `mount()` | |
+| T10 final: pint + full suite | |

@@ -137,7 +137,7 @@ final class FinancialSummary
                 'enrollments.grade_id',
                 'grades.number AS grade_number',
                 'grades.school_id',
-                'schools.code AS school_code',
+                'schools.name AS school_name',
                 DB::raw('COALESCE(f.charged_minor, 0) AS charged_minor'),
                 DB::raw('COALESCE(d.discount_minor, 0) AS discount_minor'),
                 DB::raw('COALESCE(p.paid_minor, 0) AS paid_minor'),
@@ -165,7 +165,7 @@ final class FinancialSummary
 
     /**
      * @param  array{academic_year_id?: int|null, school_id?: int|null, grade_id?: int|null, statuses?: mixed}  $filters
-     * @return array{grades: Collection<int, array{grade_id: int, grade_number: int, school_id: int, school_code: string, count: int, by_status: array<string, int>, grand_total: int, current: int, remaining: int, still_owed: int, forgone: int, percent_paid: float|null}>, totals: array{count: int, by_status: array<string, int>, grand_total: int, current: int, remaining: int, still_owed: int, forgone: int, percent_paid: float|null}}
+     * @return array{grades: Collection<int, array{grade_id: int, grade_number: int, school_id: int, school_name: string, count: int, by_status: array<string, int>, grand_total: int, current: int, remaining: int, still_owed: int, forgone: int, percent_paid: float|null}>, totals: array{count: int, by_status: array<string, int>, grand_total: int, current: int, remaining: int, still_owed: int, forgone: int, percent_paid: float|null}}
      */
     public static function yearSummary(array $filters = []): array
     {
@@ -181,7 +181,7 @@ final class FinancialSummary
                     'grade_id' => $gid,
                     'grade_number' => (int) $row->getAttribute('grade_number'),
                     'school_id' => (int) $row->getAttribute('school_id'),
-                    'school_code' => (string) $row->getAttribute('school_code'),
+                    'school_name' => (string) $row->getAttribute('school_name'),
                 ];
                 $gradeTotals[$gid] = self::blankTotals();
             }

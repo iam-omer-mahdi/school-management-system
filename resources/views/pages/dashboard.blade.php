@@ -64,7 +64,7 @@ new #[Layout('layouts::app')] class extends Component
     $collected = [];
     $remaining = [];
     foreach ($gradeSum['grades'] as $g) {
-        $gradeLabels[] = __('schools.'.$g['school_code']).' '.__('schools.grade_number', ['number' => $g['grade_number']]);
+        $gradeLabels[] = $g['school_name'].' '.__('schools.grade_number', ['number' => $g['grade_number']]);
         $collected[] = round($g['current'] / 100, 2);
         $remaining[] = round($g['remaining'] / 100, 2);
     }

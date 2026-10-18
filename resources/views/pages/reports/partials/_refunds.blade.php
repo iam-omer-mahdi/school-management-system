@@ -28,7 +28,7 @@
                             {{ $r->enrollment->student->name }}
                         @endif
                     </td>
-                    <td>{{ __('schools.'.$r->enrollment->grade->school->code) }} {{ __('schools.grade_number', ['number' => $r->enrollment->grade->number]) }}</td>
+                    <td>{{ $r->enrollment->grade->school->name }} {{ __('schools.grade_number', ['number' => $r->enrollment->grade->number]) }}</td>
                     <td>{{ $r->enrollmentFee->gradeFee->feeType->isTuition() ? __('fees.tuition') : $r->enrollmentFee->gradeFee->feeType->name }}</td>
                     <td><x-ui.badge :status="$st" /></td>
                     <td>{{ $r->method === \App\Enums\PaymentMethod::Cash ? __('payments.cash') : __('payments.bank_transfer') }}</td>

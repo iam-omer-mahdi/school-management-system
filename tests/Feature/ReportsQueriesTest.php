@@ -29,7 +29,7 @@ class ReportsQueriesTest extends TestCase
     /** @return array{year: AcademicYear, grade: Grade} */
     private function seedFiveHundred(): array
     {
-        $school = School::factory()->create(['code' => 'perf', 'name' => 'Performance']);
+        $school = School::factory()->create(['name' => 'Performance']);
         $grade = Grade::factory()->create(['school_id' => $school->id, 'number' => 1]);
         $year = AcademicYear::factory()->create([
             'name' => '2030/2031', 'starts_on' => '2030-09-01', 'ends_on' => '2031-06-01',
@@ -149,6 +149,15 @@ class ReportsQueriesTest extends TestCase
 
         $summary = FinancialSummary::forSelection(['academic_year_id' => $year->id]);
         $this->assertSame(501, $summary['count']);
+    }
+
+    public function test_reports_label_grades_with_the_school_name(): void
+    {
+        ['year' => $year] = $this->seedFiveHundred();
+
+        $summary = FinancialSummary::yearSummary(['academic_year_id' => $year->id]);
+
+        $this->assertSame('Performance', $summary['grades'][0]['school_name']);
     }
 
     public function test_call_and_refund_totals_are_aggregated_not_loaded(): void

@@ -30,7 +30,7 @@ class StudentModalsTest extends TestCase
      */
     private function fixtures(): array
     {
-        $school = School::factory()->create(['code' => 'test', 'name' => 'Test']);
+        $school = School::factory()->create(['name' => 'Test']);
         $grade = Grade::factory()->create(['school_id' => $school->id, 'number' => 1]);
         $year = AcademicYear::factory()->create(['name' => '2030/2031', 'starts_on' => '2030-09-01', 'ends_on' => '2031-06-01']);
 
@@ -161,7 +161,7 @@ class StudentModalsTest extends TestCase
         $this->actingAs(User::factory()->create());
         [$grade] = $this->fixtures();
 
-        $other = School::factory()->create(['code' => 'high', 'name' => 'High']);
+        $other = School::factory()->create(['name' => 'High']);
 
         Livewire::test('pages::students.show', ['student' => Student::factory()->create()->id])
             ->set('showEnroll', true)
@@ -176,7 +176,7 @@ class StudentModalsTest extends TestCase
         $this->actingAs(User::factory()->create());
         [$grade] = $this->fixtures();
 
-        $other = School::factory()->create(['code' => 'high', 'name' => 'High']);
+        $other = School::factory()->create(['name' => 'High']);
         $year = AcademicYear::factory()->create(['name' => '2031/2032', 'starts_on' => '2031-09-01', 'ends_on' => '2032-06-01']);
         $student = Student::factory()->create();
 

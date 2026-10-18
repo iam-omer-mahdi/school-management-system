@@ -49,7 +49,7 @@ new #[Layout('layouts::print')] class extends Component
                 'student:id,student_number,name',
                 'academicYear:id,name',
                 'grade:id,school_id,number',
-                'grade.school:id,code,name',
+                'grade.school:id,name',
             ])
             ->findOrFail($this->enrollmentId);
     }
@@ -77,7 +77,7 @@ new #[Layout('layouts::print')] class extends Component
     <div class="flex items-start justify-between gap-3">
         <div>
             <h1 class="text-xl font-bold text-gray-900">{{ __('payments.receipt') }}</h1>
-            <p class="mt-1 text-sm text-gray-600">{{ __('schools.'.$enrollment->grade->school->code) }} {{ __('schools.grade_number', ['number' => $enrollment->grade->number]) }} · {{ $enrollment->academicYear->name }}</p>
+            <p class="mt-1 text-sm text-gray-600">{{ $enrollment->grade->school->name }} {{ __('schools.grade_number', ['number' => $enrollment->grade->number]) }} · {{ $enrollment->academicYear->name }}</p>
         </div>
         <div class="print-actions flex shrink-0 gap-2">
             <x-ui.button variant="primary" size="sm" onclick="window.print()" :spinner="false">{{ __('payments.print') }}</x-ui.button>

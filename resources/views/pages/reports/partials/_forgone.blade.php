@@ -14,7 +14,7 @@
         <tbody>
             @foreach($summary as $f)
                 <tr>
-                    <td>{{ __('schools.'.$f->school_code) }}</td>
+                    <td>{{ $f->school_name }}</td>
                     <td>{{ __('schools.grade_number', ['number' => $f->grade_number]) }}</td>
                     <td class="text-center">{{ $f->students_count }}</td>
                     <td class="text-end font-bold"><x-ui.money :minor="(int) $f->forgone_minor" /></td>
@@ -55,7 +55,7 @@
                             {{ $item->student_name }}
                         @endif
                     </td>
-                    <td>{{ __('schools.'.$item->school_code) }} {{ __('schools.grade_number', ['number' => $item->grade_number]) }}</td>
+                    <td>{{ $item->school_name }} {{ __('schools.grade_number', ['number' => $item->grade_number]) }}</td>
                     <td><x-ui.badge :status="$st" /></td>
                     <td class="text-end font-bold"><x-ui.money :minor="(int) $item->forgone_minor" /></td>
                 </tr>

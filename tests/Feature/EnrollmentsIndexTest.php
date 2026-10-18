@@ -59,7 +59,7 @@ class EnrollmentsIndexTest extends TestCase
     {
         $this->actingAs(User::factory()->create());
 
-        $school = School::factory()->create(['code' => 'test', 'name' => 'Test']);
+        $school = School::factory()->create(['name' => 'Test']);
         $grade = Grade::factory()->create(['school_id' => $school->id, 'number' => 1]);
         $year = $this->year(2030);
 
@@ -76,7 +76,7 @@ class EnrollmentsIndexTest extends TestCase
     {
         $this->actingAs(User::factory()->create());
 
-        $school = School::factory()->create(['code' => 'test', 'name' => 'Test']);
+        $school = School::factory()->create(['name' => 'Test']);
         $grade = Grade::factory()->create(['school_id' => $school->id, 'number' => 1]);
         $year = $this->year(2030);
 
@@ -98,9 +98,9 @@ class EnrollmentsIndexTest extends TestCase
     {
         $this->actingAs(User::factory()->create());
 
-        $schoolA = School::factory()->create(['code' => 'test-a', 'name' => 'A']);
+        $schoolA = School::factory()->create(['name' => 'A']);
         $gradeA = Grade::factory()->create(['school_id' => $schoolA->id, 'number' => 1]);
-        $schoolB = School::factory()->create(['code' => 'test-b', 'name' => 'B']);
+        $schoolB = School::factory()->create(['name' => 'B']);
         $gradeB = Grade::factory()->create(['school_id' => $schoolB->id, 'number' => 2]);
         $year = $this->year(2030);
         $otherYear = $this->year(2031);
@@ -176,7 +176,7 @@ class EnrollmentsIndexTest extends TestCase
     {
         $this->actingAs(User::factory()->create());
 
-        $school = School::factory()->create(['code' => 'test', 'name' => 'Test']);
+        $school = School::factory()->create(['name' => 'Test']);
         $grade = Grade::factory()->create(['school_id' => $school->id, 'number' => 1]);
         $year = $this->year(2030);
         $otherYear = $this->year(2031);
@@ -208,7 +208,7 @@ class EnrollmentsIndexTest extends TestCase
     {
         $this->actingAs(User::factory()->create());
 
-        $school = School::factory()->create(['code' => 'test', 'name' => 'Test']);
+        $school = School::factory()->create(['name' => 'Test']);
         $grade = Grade::factory()->create(['school_id' => $school->id, 'number' => 1]);
         $year = $this->year(2030);
         $otherYear = $this->year(2031);
@@ -230,9 +230,9 @@ class EnrollmentsIndexTest extends TestCase
     {
         $this->actingAs(User::factory()->create());
 
-        $schoolA = School::factory()->create(['code' => 'test-a', 'name' => 'A']);
+        $schoolA = School::factory()->create(['name' => 'A']);
         $gradeA = Grade::factory()->create(['school_id' => $schoolA->id, 'number' => 1]);
-        $schoolB = School::factory()->create(['code' => 'test-b', 'name' => 'B']);
+        $schoolB = School::factory()->create(['name' => 'B']);
         $gradeB = Grade::factory()->create(['school_id' => $schoolB->id, 'number' => 2]);
 
         $optionA = '<option value="'.$gradeA->id.'">'.__('schools.grade_number', ['number' => 1]).'</option>';
@@ -257,7 +257,7 @@ class EnrollmentsIndexTest extends TestCase
     {
         $this->actingAs(User::factory()->create());
 
-        $school = School::factory()->create(['code' => 'test', 'name' => 'Test']);
+        $school = School::factory()->create(['name' => 'Test']);
         $grade = Grade::factory()->create(['school_id' => $school->id, 'number' => 1]);
         $year = $this->year(2030);
 
@@ -287,7 +287,7 @@ class EnrollmentsIndexTest extends TestCase
     {
         $this->actingAs(User::factory()->create());
 
-        $school = School::factory()->create(['code' => 'test', 'name' => 'Test']);
+        $school = School::factory()->create(['name' => 'Test']);
         $grade = Grade::factory()->create(['school_id' => $school->id, 'number' => 1]);
         $year = $this->year(2030);
 
@@ -308,7 +308,7 @@ class EnrollmentsIndexTest extends TestCase
     {
         $this->actingAs(User::factory()->create());
 
-        $school = School::factory()->create(['code' => 'test', 'name' => 'Test']);
+        $school = School::factory()->create(['name' => 'Test']);
         $grade = Grade::factory()->create(['school_id' => $school->id, 'number' => 1]);
         $year = $this->year(2030);
 
@@ -337,7 +337,7 @@ class EnrollmentsIndexTest extends TestCase
     {
         $this->actingAs(User::factory()->create());
 
-        $school = School::factory()->create(['code' => 'test', 'name' => 'Test']);
+        $school = School::factory()->create(['name' => 'Test']);
         $grade = Grade::factory()->create(['school_id' => $school->id, 'number' => 1]);
         $year = $this->year(2030);
 
@@ -382,7 +382,7 @@ class EnrollmentsIndexTest extends TestCase
     {
         $this->actingAs(User::factory()->create());
 
-        $school = School::factory()->create(['code' => 'test', 'name' => 'Test']);
+        $school = School::factory()->create(['name' => 'Test']);
         $grade = Grade::factory()->create(['school_id' => $school->id, 'number' => 1]);
         $year = $this->year(2030);
 
@@ -417,7 +417,7 @@ class EnrollmentsIndexTest extends TestCase
     {
         $this->actingAs(User::factory()->create());
 
-        $school = School::factory()->create(['code' => 'perf', 'name' => 'Performance']);
+        $school = School::factory()->create(['name' => 'Performance']);
         $grade = Grade::factory()->create(['school_id' => $school->id, 'number' => 1]);
         $year = $this->year(2030);
 
@@ -514,7 +514,7 @@ class EnrollmentsIndexTest extends TestCase
     {
         $this->actingAs(User::factory()->create());
 
-        $school = School::factory()->create(['code' => 'test', 'name' => 'Test']);
+        $school = School::factory()->create(['name' => 'Test']);
         $grade = Grade::factory()->create(['school_id' => $school->id, 'number' => 1]);
         $year = $this->year(2030);
 
@@ -541,7 +541,7 @@ class EnrollmentsIndexTest extends TestCase
     {
         $this->actingAs(User::factory()->create());
 
-        $school = School::factory()->create(['code' => 'test', 'name' => 'Test']);
+        $school = School::factory()->create(['name' => 'Test']);
         $grade = Grade::factory()->create(['school_id' => $school->id, 'number' => 1]);
         $year = $this->year(2030);
 
@@ -594,7 +594,7 @@ class EnrollmentsIndexTest extends TestCase
     {
         $this->actingAs(User::factory()->create());
 
-        $school = School::factory()->create(['code' => 'test', 'name' => 'Test']);
+        $school = School::factory()->create(['name' => 'Test']);
         $grade = Grade::factory()->create(['school_id' => $school->id, 'number' => 1]);
         $year = $this->year(2030);
 
@@ -664,7 +664,7 @@ class EnrollmentsIndexTest extends TestCase
     {
         $this->actingAs(User::factory()->create());
 
-        $school = School::factory()->create(['code' => 'test', 'name' => 'Test']);
+        $school = School::factory()->create(['name' => 'Test']);
         $grade = Grade::factory()->create(['school_id' => $school->id, 'number' => 1]);
         $year = $this->year(2030);
 

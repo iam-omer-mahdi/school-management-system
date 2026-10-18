@@ -29,7 +29,7 @@ new #[Layout('layouts::app')] class extends Component
     #[Computed]
     public function schools(): \Illuminate\Database\Eloquent\Collection
     {
-        return School::query()->select(['id', 'code', 'name'])->orderBy('id')->get();
+        return School::query()->select(['id', 'name'])->orderBy('id')->get();
     }
 
     /** @return \Illuminate\Database\Eloquent\Collection<int, Grade> */
@@ -160,7 +160,7 @@ new #[Layout('layouts::app')] class extends Component
                     <x-ui.select id="set-fee-school" wire:model.live="school_id" :error="$errors->first('school_id')">
                         <option value="">—</option>
                         @foreach($this->schools as $school)
-                            <option value="{{ $school->id }}">{{ __('schools.'.$school->code) }}</option>
+                            <option value="{{ $school->id }}">{{ $school->name }}</option>
                         @endforeach
                     </x-ui.select>
                 </x-ui.field>

@@ -17,7 +17,7 @@
         <tbody>
             @foreach($summary['grades'] as $g)
                 <tr>
-                    <td>{{ __('schools.'.$g['school_code']) }}</td>
+                    <td>{{ $g['school_name'] }}</td>
                     <td>{{ __('schools.grade_number', ['number' => $g['grade_number']]) }}</td>
                     <td class="text-center">
                         <span class="font-medium">{{ $g['count'] }}</span>

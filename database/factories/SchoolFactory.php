@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Database\Factories;
 
+use App\Enums\SchoolType;
 use App\Models\School;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
@@ -20,7 +21,7 @@ class SchoolFactory extends Factory
     public function definition(): array
     {
         return [
-            'code' => fake()->unique()->slug(1),
+            'type' => SchoolType::Elementary,
             'name' => fake()->unique()->words(2, true),
         ];
     }

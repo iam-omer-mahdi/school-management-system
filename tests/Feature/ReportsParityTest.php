@@ -57,7 +57,7 @@ class ReportsParityTest extends TestCase
      */
     private function seedDataset(): array
     {
-        $school = School::factory()->create(['code' => 'elementary', 'name' => 'Elementary']);
+        $school = School::factory()->create(['name' => 'Elementary']);
         $grade1 = Grade::factory()->create(['school_id' => $school->id, 'number' => 1]);
         $grade2 = Grade::factory()->create(['school_id' => $school->id, 'number' => 2]);
         $grade3 = Grade::factory()->create(['school_id' => $school->id, 'number' => 3]);

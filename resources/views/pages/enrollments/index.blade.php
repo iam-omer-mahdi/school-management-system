@@ -108,7 +108,7 @@ new #[Layout('layouts::app')] class extends Component
             ->with([
                 'student:id,student_number,name,archived_at',
                 'grade:id,school_id,number',
-                'grade.school:id,code,name',
+                'grade.school:id,name',
                 'academicYear:id,name',
                 'fees:id,enrollment_id,grade_fee_id,amount_minor',
                 'fees.gradeFee:id,fee_type_id',
@@ -164,7 +164,7 @@ new #[Layout('layouts::app')] class extends Component
     #[Computed]
     public function schools(): \Illuminate\Database\Eloquent\Collection
     {
-        return School::query()->select(['id', 'code', 'name'])->orderBy('id')->get();
+        return School::query()->select(['id', 'name'])->orderBy('id')->get();
     }
 
     /** @return \Illuminate\Database\Eloquent\Collection<int, Grade> */
@@ -200,7 +200,7 @@ new #[Layout('layouts::app')] class extends Component
                 <x-ui.select id="enrollments-school" wire:model.live="school_id">
                     <option value="">—</option>
                     @foreach($this->schools as $school)
-                        <option value="{{ $school->id }}">{{ __('schools.'.$school->code) }}</option>
+                        <option value="{{ $school->id }}">{{ $school->name }}</option>
                     @endforeach
                 </x-ui.select>
             </x-ui.field>
@@ -290,7 +290,7 @@ new #[Layout('layouts::app')] class extends Component
                                     <x-ui.badge color="gray">{{ __('students.archived') }}</x-ui.badge>
                                 @endif
                             </td>
-                            <td>{{ __('schools.'.$enrollment->grade->school->code) }}</td>
+                            <td>{{ $enrollment->grade->school->name }}</td>
                             <td>{{ __('schools.grade_number', ['number' => $enrollment->grade->number]) }}</td>
                             <td>{{ $enrollment->academicYear->name }}</td>
                     <td><x-ui.badge :status="$enrollment->status->value" /></td>

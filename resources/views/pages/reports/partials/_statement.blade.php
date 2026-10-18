@@ -11,7 +11,7 @@
     @php($bal = \App\Support\EnrollmentBalance::forEnrollment($enr))
     <div class="mb-6 rounded border border-gray-300 p-3 dark:border-gray-600">
         <div class="mb-2 flex flex-wrap justify-between gap-2 border-b border-gray-200 pb-2 text-xs font-bold dark:border-gray-700">
-            <span>{{ $enr->academicYear->name }} · {{ __('schools.'.$enr->grade->school->code) }} {{ __('schools.grade_number', ['number' => $enr->grade->number]) }} ({{ __('enrollments.status_'.$enr->status->value) }})</span>
+            <span>{{ $enr->academicYear->name }} · {{ $enr->grade->school->name }} {{ __('schools.grade_number', ['number' => $enr->grade->number]) }} ({{ __('enrollments.status_'.$enr->status->value) }})</span>
             <span>{{ __('reports.still_owed') }}: <x-ui.money :minor="$bal['owed']" /></span>
         </div>
         <table class="report-table w-full text-xs">

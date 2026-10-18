@@ -12,7 +12,7 @@ new #[Layout('layouts::app')] class extends Component
     public function schools(): \Illuminate\Database\Eloquent\Collection
     {
         return School::query()
-            ->select(['id', 'code', 'name'])
+            ->select(['id', 'name'])
             ->with(['grades:id,school_id,number'])
             ->orderBy('id')
             ->get();
@@ -30,7 +30,7 @@ new #[Layout('layouts::app')] class extends Component
                         <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-indigo-100 text-indigo-600 dark:bg-indigo-900 dark:text-indigo-300">
                             <x-ui.icon name="cap" class="h-5 w-5" />
                         </span>
-                        <h2 class="text-base font-semibold text-gray-900 dark:text-white">{{ __('schools.'.$school->code) }}</h2>
+                        <h2 class="text-base font-semibold text-gray-900 dark:text-white">{{ $school->name }}</h2>
                     </div>
                 </x-slot:header>
                 <ul class="flex flex-wrap gap-1.5">

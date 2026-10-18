@@ -179,7 +179,7 @@ new #[Layout('layouts::app')] class extends Component
     #[Computed]
     public function schools(): Collection
     {
-        return School::query()->select(['id', 'code'])->orderBy('id')->get();
+        return School::query()->select(['id', 'name'])->orderBy('id')->get();
     }
 
     #[Computed]
@@ -310,7 +310,7 @@ new #[Layout('layouts::app')] class extends Component
             __('fees.academic_year') => $this->applied_academic_year_id
                 ? (string) AcademicYear::query()->whereKey($this->applied_academic_year_id)->value('name') : '',
             __('fees.school') => $this->applied_school_id
-                ? __('schools.'.((string) School::query()->whereKey($this->applied_school_id)->value('code'))) : __('reports.all_schools'),
+                ? __('schools.'.((string) School::query()->whereKey($this->applied_school_id)->value('name'))) : __('reports.all_schools'),
             __('reports.status_filter') => $this->statusLabel,
             __('reports.generated_at') => now()->format('Y-m-d H:i'),
         ];
@@ -407,7 +407,7 @@ new #[Layout('layouts::app')] class extends Component
                     <x-ui.select wire:model.live="school_id">
                         <option value="">{{ __('reports.all_schools') }}</option>
                         @foreach($this->schools as $school)
-                            <option value="{{ $school->id }}">{{ __('schools.'.$school->code) }}</option>
+                            <option value="{{ $school->id }}">{{ $school->name }}</option>
                         @endforeach
                     </x-ui.select>
                 </x-ui.field>

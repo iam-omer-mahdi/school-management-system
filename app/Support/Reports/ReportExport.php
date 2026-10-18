@@ -19,7 +19,7 @@ use stdClass;
 final class ReportExport
 {
     /**
-     * @param  array{grades: Collection<int, array{grade_id: int, grade_number: int, school_id: int, school_code: string, count: int, by_status: array<string, int>, grand_total: int, current: int, remaining: int, still_owed: int, forgone: int, percent_paid: float|null}>, totals: array{count: int, by_status: array<string, int>, grand_total: int, current: int, remaining: int, still_owed: int, forgone: int, percent_paid: float|null}}  $summary
+     * @param  array{grades: Collection<int, array{grade_id: int, grade_number: int, school_id: int, school_name: string, count: int, by_status: array<string, int>, grand_total: int, current: int, remaining: int, still_owed: int, forgone: int, percent_paid: float|null}>, totals: array{count: int, by_status: array<string, int>, grand_total: int, current: int, remaining: int, still_owed: int, forgone: int, percent_paid: float|null}}  $summary
      * @return array{columns: array<int, string>, rows: array<int, array<int, mixed>>, formats: array<int, string>}
      */
     public static function yearSummary(array $summary): array
@@ -38,7 +38,7 @@ final class ReportExport
 
         foreach ($summary['grades'] as $g) {
             $rows[] = [
-                __('schools.'.$g['school_code']),
+                $g['school_name'],
                 __('schools.grade_number', ['number' => $g['grade_number']]),
                 $g['count'],
                 ExcelExport::money($g['grand_total']),
@@ -121,7 +121,7 @@ final class ReportExport
             $rows[] = [
                 $item->student_number, $item->student_name, $item->phone,
                 $item->secondary_phone ?? '', $item->guardian_name ?? '',
-                __('schools.'.$item->school_code).' '.__('schools.grade_number', ['number' => $item->grade_number]),
+                $item->school_name.' '.__('schools.grade_number', ['number' => $item->grade_number]),
                 __('enrollments.status_'.$status),
                 ExcelExport::money((int) $item->owed_minor),
             ];
@@ -210,7 +210,7 @@ final class ReportExport
             $rows[] = [
                 $f->student_number,
                 $f->student_name,
-                __('schools.'.$f->school_code).' '.__('schools.grade_number', ['number' => $f->grade_number]),
+                $f->school_name.' '.__('schools.grade_number', ['number' => $f->grade_number]),
                 __('enrollments.status_'.$status),
                 ExcelExport::money((int) $f->forgone_minor),
             ];
@@ -244,7 +244,7 @@ final class ReportExport
                 $r->refunded_on?->format('Y-m-d') ?? '',
                 $r->enrollment->student->student_number,
                 $r->enrollment->student->name,
-                __('schools.'.$r->enrollment->grade->school->code).' '.__('schools.grade_number', ['number' => $r->enrollment->grade->number]),
+                $r->enrollment->grade->school->name.' '.__('schools.grade_number', ['number' => $r->enrollment->grade->number]),
                 $feeType->isTuition() ? __('fees.tuition') : $feeType->name,
                 __('enrollments.status_'.$r->enrollment->status->value),
                 $r->method === PaymentMethod::Cash ? __('payments.cash') : __('payments.bank_transfer'),
@@ -276,7 +276,7 @@ final class ReportExport
             $bal = $balances[$enr->id];
             $rows[] = [
                 $enr->academicYear->name,
-                __('schools.'.$enr->grade->school->code).' '.__('schools.grade_number', ['number' => $enr->grade->number]),
+                $enr->grade->school->name.' '.__('schools.grade_number', ['number' => $enr->grade->number]),
                 __('enrollments.status_'.$enr->status->value),
                 ExcelExport::money($bal['charged'] - $bal['discount']),
                 ExcelExport::money($bal['net_paid']),
