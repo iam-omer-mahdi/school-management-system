@@ -29,9 +29,9 @@ have no `wire:key` (Livewire 4 `smart_wire_keys` covers them).
 
 ## Resume here
 
-**Next action:** the branch is complete — T1–T10 plus the fresh-context review fixes. Choose how
-to integrate it (the owner's call: merge, PR, or leave it). Full task list and hashes: see
-**Ledger** below.
+**Next action:** none — the work was merged into `main` (fast-forward from
+`feature/roles-permissions`, which was then deleted) on 2026-10-18. Full task list and hashes:
+see **Ledger** below.
 
 Run `git log --oneline -12` to see the work; this file's ledger has the hashes and the rulings
 that matter.
