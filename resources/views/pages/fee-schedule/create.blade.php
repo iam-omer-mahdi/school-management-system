@@ -1,5 +1,7 @@
 <?php
 
+use App\Enums\Permission;
+use Illuminate\Support\Facades\Gate;
 use App\Actions\CreateGradeFee;
 use App\Enums\EnrollmentStatus;
 use App\Models\AcademicYear;
@@ -24,6 +26,11 @@ new #[Layout('layouts::app')] class extends Component
     public ?int $fee_type_id = null;
 
     public string $amount = '';
+
+    public function mount(): void
+    {
+        Gate::authorize(Permission::FeesManage->value);
+    }
 
     /** @return \Illuminate\Database\Eloquent\Collection<int, School> */
     #[Computed]

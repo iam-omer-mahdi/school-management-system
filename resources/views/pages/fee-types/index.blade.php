@@ -2,7 +2,9 @@
 
 use App\Actions\CreateFeeType;
 use App\Actions\DeleteFeeType;
+use App\Enums\Permission;
 use App\Models\FeeType;
+use Illuminate\Support\Facades\Gate;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
@@ -16,6 +18,11 @@ new #[Layout('layouts::app')] class extends Component
     public bool $is_mandatory = false;
 
     public ?int $deletingId = null;
+
+    public function mount(): void
+    {
+        Gate::authorize(Permission::FeesView->value);
+    }
 
     public function create(): void
     {
@@ -62,10 +69,12 @@ new #[Layout('layouts::app')] class extends Component
 <div class="space-y-5">
     <x-ui.page-header :title="__('fees.fee_types')">
         <x-slot:actions>
-            <x-ui.button variant="primary" size="sm" wire:click="create" :spinner="false">
-                <x-ui.icon name="plus" class="h-4 w-4" />
-                {{ __('fees.fee_type_create') }}
-            </x-ui.button>
+            @can(\App\Enums\Permission::FeesManage->value)
+                <x-ui.button variant="primary" size="sm" wire:click="create" :spinner="false">
+                    <x-ui.icon name="plus" class="h-4 w-4" />
+                    {{ __('fees.fee_type_create') }}
+                </x-ui.button>
+            @endcan
         </x-slot:actions>
     </x-ui.page-header>
 
@@ -109,7 +118,9 @@ new #[Layout('layouts::app')] class extends Component
                     </td>
                     <td>
                         @if(! $type->isTuition())
-                            <x-ui.button variant="ghost" size="sm" wire:click="confirmDelete({{ $type->id }})" :spinner="false" class="text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/30">{{ __('common.delete') }}</x-ui.button>
+                            @can(\App\Enums\Permission::FeesManage->value)
+                                <x-ui.button variant="ghost" size="sm" wire:click="confirmDelete({{ $type->id }})" :spinner="false" class="text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/30">{{ __('common.delete') }}</x-ui.button>
+                            @endcan
                         @endif
                     </td>
                 </tr>

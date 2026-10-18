@@ -83,11 +83,13 @@ new class extends Component
         <x-slot:header>
             <div class="flex items-center justify-between gap-2">
                 <h2 class="text-base font-semibold text-gray-900 dark:text-white">{{ __('payments.payment') }}</h2>
-                @if($this->paymentDisabledReason === null)
-                    <x-ui.button variant="primary" size="sm" wire:click="$dispatch('open-payment-modal')" :spinner="false"><x-ui.icon name="plus" class="h-4 w-4" />{{ __('payments.add_payment') }}</x-ui.button>
-                @elseif(! $isEnded)
-                    <x-ui.button variant="primary" size="sm" :spinner="false" disabled aria-disabled="true"><x-ui.icon name="plus" class="h-4 w-4" />{{ __('payments.add_payment') }}</x-ui.button>
-                @endif
+                @can(\App\Enums\Permission::PaymentsManage->value)
+                    @if($this->paymentDisabledReason === null)
+                        <x-ui.button variant="primary" size="sm" wire:click="$dispatch('open-payment-modal')" :spinner="false"><x-ui.icon name="plus" class="h-4 w-4" />{{ __('payments.add_payment') }}</x-ui.button>
+                    @elseif(! $isEnded)
+                        <x-ui.button variant="primary" size="sm" :spinner="false" disabled aria-disabled="true"><x-ui.icon name="plus" class="h-4 w-4" />{{ __('payments.add_payment') }}</x-ui.button>
+                    @endif
+                @endcan
             </div>
         </x-slot:header>
         @if($this->paymentDisabledReason !== null)
@@ -119,7 +121,9 @@ new class extends Component
                         @if($payment->isVoided())
                             <x-ui.badge color="red">{{ __('payments.void') }}: {{ $payment->void_reason }}</x-ui.badge>
                         @else
-                            <x-ui.button variant="ghost" size="sm" wire:click="requestVoid('payment', {{ $payment->id }})" :spinner="false" class="text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/30">{{ __('payments.void') }}</x-ui.button>
+                            @can(\App\Enums\Permission::PaymentsManage->value)
+                                <x-ui.button variant="ghost" size="sm" wire:click="requestVoid('payment', {{ $payment->id }})" :spinner="false" class="text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/30">{{ __('payments.void') }}</x-ui.button>
+                            @endcan
                         @endif
                     </li>
                 @endforeach

@@ -2,8 +2,10 @@
 
 use App\Actions\CreateDiscount;
 use App\Actions\DeleteDiscount;
+use App\Enums\Permission;
 use App\Models\Discount;
 use App\Support\Percent;
+use Illuminate\Support\Facades\Gate;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
@@ -17,6 +19,11 @@ new #[Layout('layouts::app')] class extends Component
     public string $percent = '';
 
     public ?int $deletingId = null;
+
+    public function mount(): void
+    {
+        Gate::authorize(Permission::FeesView->value);
+    }
 
     public function create(): void
     {
@@ -73,10 +80,12 @@ new #[Layout('layouts::app')] class extends Component
 <div class="space-y-5">
     <x-ui.page-header :title="__('fees.discounts')">
         <x-slot:actions>
-            <x-ui.button variant="primary" size="sm" wire:click="create" :spinner="false">
-                <x-ui.icon name="plus" class="h-4 w-4" />
-                {{ __('fees.discount_create') }}
-            </x-ui.button>
+            @can(\App\Enums\Permission::FeesManage->value)
+                <x-ui.button variant="primary" size="sm" wire:click="create" :spinner="false">
+                    <x-ui.icon name="plus" class="h-4 w-4" />
+                    {{ __('fees.discount_create') }}
+                </x-ui.button>
+            @endcan
         </x-slot:actions>
     </x-ui.page-header>
 
@@ -120,7 +129,9 @@ new #[Layout('layouts::app')] class extends Component
                     <td class="font-medium text-gray-900 dark:text-white">{{ $discount->name }}</td>
                     <td><x-ui.percent :bp="$discount->percent_bp" /></td>
                     <td>
-                        <x-ui.button variant="ghost" size="sm" wire:click="confirmDelete({{ $discount->id }})" :spinner="false" class="text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/30">{{ __('common.delete') }}</x-ui.button>
+                        @can(\App\Enums\Permission::FeesManage->value)
+                            <x-ui.button variant="ghost" size="sm" wire:click="confirmDelete({{ $discount->id }})" :spinner="false" class="text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/30">{{ __('common.delete') }}</x-ui.button>
+                        @endcan
                     </td>
                 </tr>
             @endforeach

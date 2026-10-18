@@ -1,5 +1,7 @@
 <?php
 
+use App\Enums\Permission;
+use Illuminate\Support\Facades\Gate;
 use App\Models\Enrollment;
 use App\Support\PaymentCalculation;
 use Livewire\Attributes\Computed;
@@ -15,6 +17,8 @@ new #[Layout('layouts::app')] class extends Component
 
     public function mount(Enrollment $enrollment): void
     {
+        Gate::authorize(Permission::EnrollmentsView->value);
+
         $this->enrollmentId = $enrollment->id;
     }
 
@@ -104,7 +108,9 @@ new #[Layout('layouts::app')] class extends Component
         </x-ui.card>
     @endif
 
-    <livewire:enrollments.show.status-panel :enrollment-id="$enrollment->id" wire:key="status-panel-{{ $enrollment->id }}" />
+    @can(\App\Enums\Permission::EnrollmentsManage->value)
+        <livewire:enrollments.show.status-panel :enrollment-id="$enrollment->id" wire:key="status-panel-{{ $enrollment->id }}" />
+    @endcan
 
     <livewire:enrollments.show.charges-panel :enrollment-id="$enrollment->id" wire:key="charges-panel-{{ $enrollment->id }}" />
 

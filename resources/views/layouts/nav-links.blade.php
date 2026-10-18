@@ -3,16 +3,16 @@ $links = [
     ['route' => 'dashboard', 'match' => 'dashboard', 'label' => __('common.dashboard'), 'icon' => 'home'],
     ['route' => 'schools.index', 'match' => 'schools.*', 'label' => __('common.schools'), 'icon' => 'cap'],
     ['route' => 'academic-years.index', 'match' => 'academic-years.*', 'label' => __('common.academic_years'), 'icon' => 'calendar'],
-    ['route' => 'students.index', 'match' => 'students.*', 'label' => __('common.students'), 'icon' => 'users'],
-    ['route' => 'enrollments.index', 'match' => 'enrollments.*', 'label' => __('enrollments.title'), 'icon' => 'clipboard'],
+    ['route' => 'students.index', 'match' => 'students.*', 'label' => __('common.students'), 'icon' => 'users', 'permission' => \App\Enums\Permission::StudentsView->value],
+    ['route' => 'enrollments.index', 'match' => 'enrollments.*', 'label' => __('enrollments.title'), 'icon' => 'clipboard', 'permission' => \App\Enums\Permission::EnrollmentsView->value],
 ];
 $feeLinks = [
-    ['route' => 'fee-types.index', 'match' => 'fee-types.*', 'label' => __('fees.fee_types'), 'icon' => 'tag'],
-    ['route' => 'fee-schedule.index', 'match' => 'fee-schedule.*', 'label' => __('fees.schedule'), 'icon' => 'calendar'],
-    ['route' => 'discounts.index', 'match' => 'discounts.*', 'label' => __('fees.discounts'), 'icon' => 'currency'],
+    ['route' => 'fee-types.index', 'match' => 'fee-types.*', 'label' => __('fees.fee_types'), 'icon' => 'tag', 'permission' => \App\Enums\Permission::FeesView->value],
+    ['route' => 'fee-schedule.index', 'match' => 'fee-schedule.*', 'label' => __('fees.schedule'), 'icon' => 'calendar', 'permission' => \App\Enums\Permission::FeesView->value],
+    ['route' => 'discounts.index', 'match' => 'discounts.*', 'label' => __('fees.discounts'), 'icon' => 'currency', 'permission' => \App\Enums\Permission::FeesView->value],
 ];
 $tailLinks = [
-    ['route' => 'reports.index', 'match' => 'reports.*', 'label' => __('reports.reports'), 'icon' => 'clipboard'],
+    ['route' => 'reports.index', 'match' => 'reports.*', 'label' => __('reports.reports'), 'icon' => 'clipboard', 'permission' => \App\Enums\Permission::ReportsView->value],
     ['route' => 'staff.index', 'match' => 'staff.*', 'label' => __('staff.title'), 'icon' => 'users', 'permission' => \App\Enums\Permission::StaffManage->value],
     ['route' => 'help', 'match' => 'help', 'label' => __('common.help'), 'icon' => 'help'],
     ['route' => 'settings', 'match' => 'settings', 'label' => __('common.settings'), 'icon' => 'cog'],
@@ -22,10 +22,13 @@ $visible = fn (array $links): array => array_values(array_filter(
     $links,
     fn (array $link): bool => ! isset($link['permission']) || (bool) auth()->user()?->can($link['permission'])
 ));
+$feeLinks = $visible($feeLinks);
+$links = $visible($links);
+$tailLinks = $visible($tailLinks);
 @endphp
 
 <nav class="flex flex-col gap-1" aria-label="{{ __('common.main_nav') }}">
-    @foreach($visible($links) as $link)
+    @foreach($links as $link)
         @php($isActive = request()->routeIs($link['match']))
         <a
             href="{{ route($link['route']) }}"
@@ -39,8 +42,10 @@ $visible = fn (array $links): array => array_values(array_filter(
         </a>
     @endforeach
 
-    <p class="mt-3 px-3 text-xs font-semibold tracking-wider text-gray-400 uppercase dark:text-gray-500">{{ __('common.fees') }}</p>
-    @foreach($visible($feeLinks) as $link)
+    @if($feeLinks)
+        <p class="mt-3 px-3 text-xs font-semibold tracking-wider text-gray-400 uppercase dark:text-gray-500">{{ __('common.fees') }}</p>
+    @endif
+    @foreach($feeLinks as $link)
         @php($isActive = request()->routeIs($link['match']))
         <a
             href="{{ route($link['route']) }}"
@@ -53,7 +58,7 @@ $visible = fn (array $links): array => array_values(array_filter(
             <span class="truncate">{{ $link['label'] }}</span>
         </a>
     @endforeach
-    @foreach($visible($tailLinks) as $link)
+    @foreach($tailLinks as $link)
         @php($isActive = request()->routeIs($link['match']))
         <a
             href="{{ route($link['route']) }}"

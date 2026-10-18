@@ -2,7 +2,7 @@
 
 Companion to `docs/plan.md` (the design and decisions). **Read `docs/plan.md` first.**
 
-Last updated: 2026-10-18 by the execution session (tasks 1–6b landed on `feature/roles-permissions`).
+Last updated: 2026-10-18 by the execution session (tasks 1–9b landed on `feature/roles-permissions`).
 
 ---
 
@@ -29,14 +29,11 @@ have no `wire:key` (Livewire 4 `smart_wire_keys` covers them).
 
 ## Resume here
 
-**Next action:** **T8 is done.** Continue with **T9** — the enforcement pass: `Gate::authorize`
-at the top of every write Action in `app/Actions/` (list in `docs/plan.md` §5), and the module
-`view` permission in each page's `mount()`. Expect real test churn: tests that call Actions or
-Livewire write methods as role-less factory users now need an Administrator (a factory state or
-a `TestCase` helper plus `permission` keys is the cheap way). Then **T10** (pint + full suite).
-Full task list and hashes: see **Ledger** below.
+**Next action:** **T9 is done.** Continue with **T10** — `vendor/bin/pint --dirty --format agent`,
+then the full suite (`php artisan test --compact`), then a fresh-context review of the branch and
+`finishing-a-development-branch`. Full task list and hashes: see **Ledger** below.
 
-Tasks 1–6 are on the branch. Run `git log --oneline -12` to see them; this file's ledger has
+Tasks 1–9 are on the branch. Run `git log --oneline -12` to see them; this file's ledger has
 the hashes and the rulings that matter.
 
 ## How to resume (any session, any model)
@@ -190,6 +187,17 @@ Rulings made while executing:
   Pest executes PHPUnit classes. Cost if wrong: two test styles side by side until converted.
 - Dropped from the roles page: "copy permissions from another role" (§4.3 prose). The matrix
   already starts from the presets and role creation is rare. Cost if wrong: one dropdown.
+- T9a: a factory user holds **Administrator** unless the test says otherwise (`UserFactory::configure()`),
+  and `withRole()` overrides it (`withRole()` with no arguments = no access at all). Most tests are
+  about what a module does, not about who may call it; the tests that *are* about access state their
+  role. Cost if wrong: a test that forgets `withRole()` will not notice a missing guard — but the
+  pages and actions are guarded, so it fails loudly anyway.
+- T9b: write controls are hidden per control, not per panel — a view-only account still sees the
+  payment and charge history that `payments.view`/`fees.view` entitle it to. Only the enrollment
+  status panel is hidden whole (it is nothing but a control). Cost if wrong: a read-only account
+  sees a card it cannot act on.
+- **Known gap (needs the owner's ruling):** academic-year create/edit/delete have no permission.
+  The plan's §5 Action list has no academic-year ability, so nothing gates them today.
 
 ### Tasks
 
@@ -238,3 +246,19 @@ Rulings made while executing:
   passed; full suite 515 passed). `/help` needs no permission, the sidebar link is unfiltered,
   and one template renders `lang/{en,ar}/help.php` — eleven sections, each with a title, an
   intro, ordered steps and notes. A test asserts both files cover the same sections.
+- Task 9a (action guards): complete (commit `f1c77c3`; test
+  `tests/Feature/ActionPermissionsTest.php` → 61 passed; full suite 576 passed). `Gate::authorize`
+  is the first statement of `handle()` in the 20 write Actions, before any query or validation, so
+  a refusal leaks nothing about the data. `UserFactory` gained the Administrator default and
+  `withRole()`; 15 test files that called an Action without signing anyone in got a `setUp()`
+  actor. Exempt: `GenerateStudentNumber` (writes nothing), the password/email OTP and
+  security-question actions (they run signed-out by design). The suite also fails if a new Action
+  ships without a guard. **Known gap:** academic-year writes have no permission (see the ruling).
+- Task 9b (page guards): complete (test `tests/Feature/PagePermissionsTest.php` → 19 passed; full
+  suite 595 passed). Every module page authorizes its `view` permission in `mount()`
+  (`students/create` and `fee-schedule/create` ask for `manage` — their only job is to write);
+  `/schools` stays open on purpose. The sidebar hides the links an account cannot use, and the
+  "Fees" heading hides with its links. Write controls are hidden from view-only accounts:
+  add-student, fee-type/discount/fee-schedule create and delete, student edit/archive/restore and
+  the enroll form, the add-payment, void and apply/remove-discount buttons, and the enrollment
+  status panel whole.

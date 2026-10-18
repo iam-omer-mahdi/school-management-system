@@ -1,5 +1,7 @@
 <?php
 
+use App\Enums\Permission;
+use Illuminate\Support\Facades\Gate;
 use App\Livewire\Forms\StudentForm;
 use App\Models\AcademicYear;
 use App\Models\Grade;
@@ -20,6 +22,11 @@ new #[Layout('layouts::app')] class extends Component
     public ?int $grade_id = null;
 
     public ?int $academic_year_id = null;
+
+    public function mount(): void
+    {
+        Gate::authorize(Permission::StudentsManage->value);
+    }
 
     public function save(): void
     {

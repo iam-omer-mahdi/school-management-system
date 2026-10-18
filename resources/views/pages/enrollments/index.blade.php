@@ -1,11 +1,13 @@
 <?php
 
 use App\Enums\EnrollmentStatus;
+use App\Enums\Permission;
 use App\Models\AcademicYear;
 use App\Models\Enrollment;
 use App\Models\Grade;
 use App\Models\School;
 use App\Models\Student;
+use Illuminate\Support\Facades\Gate;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Url;
@@ -41,6 +43,11 @@ new #[Layout('layouts::app')] class extends Component
     public ?int $applied_academic_year_id = null;
 
     public bool $applied = false;
+
+    public function mount(): void
+    {
+        Gate::authorize(Permission::EnrollmentsView->value);
+    }
 
     public function applyFilters(): void
     {
@@ -172,7 +179,7 @@ new #[Layout('layouts::app')] class extends Component
     public function grades(): \Illuminate\Database\Eloquent\Collection
     {
         if ($this->school_id === null) {
-            return new \Illuminate\Database\Eloquent\Collection();
+            return new \Illuminate\Database\Eloquent\Collection;
         }
 
         return Grade::query()

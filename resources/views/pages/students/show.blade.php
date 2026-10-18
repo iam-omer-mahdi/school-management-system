@@ -1,5 +1,7 @@
 <?php
 
+use App\Enums\Permission;
+use Illuminate\Support\Facades\Gate;
 use App\Actions\ArchiveStudent;
 use App\Actions\EnrollStudent;
 use App\Actions\RestoreStudent;
@@ -46,6 +48,8 @@ new #[Layout('layouts::app')] class extends Component
 
     public function mount(Student $student): void
     {
+        Gate::authorize(Permission::StudentsView->value);
+
         $this->studentId = $student->id;
         $this->form->fillFrom($student);
         $this->expandedEnrollment = Enrollment::query()
@@ -220,14 +224,16 @@ new #[Layout('layouts::app')] class extends Component
             <div class="flex items-center justify-between gap-3">
                 <h2 class="text-base font-semibold text-gray-900 dark:text-white">{{ __('students.details') }}</h2>
                 @if(! $editing)
-                    <div class="flex shrink-0 items-center gap-2">
-                        <x-ui.button variant="warning" size="sm" wire:click="$set('editing', true)" :spinner="false">{{ __('common.edit') }}</x-ui.button>
-                        @if(! $this->student->isArchived())
-                            <x-ui.button variant="danger" size="sm" wire:click="openArchiveModal" :spinner="false">{{ __('students.archive') }}</x-ui.button>
-                        @else
-                            <x-ui.button variant="secondary" size="sm" wire:click="$set('showRestoreModal', true)" :spinner="false">{{ __('students.restore') }}</x-ui.button>
-                        @endif
-                    </div>
+                    @can(\App\Enums\Permission::StudentsManage->value)
+                        <div class="flex shrink-0 items-center gap-2">
+                            <x-ui.button variant="warning" size="sm" wire:click="$set('editing', true)" :spinner="false">{{ __('common.edit') }}</x-ui.button>
+                            @if(! $this->student->isArchived())
+                                <x-ui.button variant="danger" size="sm" wire:click="openArchiveModal" :spinner="false">{{ __('students.archive') }}</x-ui.button>
+                            @else
+                                <x-ui.button variant="secondary" size="sm" wire:click="$set('showRestoreModal', true)" :spinner="false">{{ __('students.restore') }}</x-ui.button>
+                            @endif
+                        </div>
+                    @endcan
                 @endif
             </div>
         </x-slot:header>
@@ -339,10 +345,12 @@ new #[Layout('layouts::app')] class extends Component
         <x-slot:header>
             <div class="flex items-center justify-between gap-2">
                 <h2 class="text-base font-semibold text-gray-900 dark:text-white">{{ __('students.enrollments') }}</h2>
-                <x-ui.button variant="primary" size="sm" wire:click="$set('showEnroll', true)" :spinner="false">
-                    <x-ui.icon name="plus" class="h-4 w-4" />
-                    {{ __('students.enroll') }}
-                </x-ui.button>
+                @can(\App\Enums\Permission::EnrollmentsManage->value)
+                    <x-ui.button variant="primary" size="sm" wire:click="$set('showEnroll', true)" :spinner="false">
+                        <x-ui.icon name="plus" class="h-4 w-4" />
+                        {{ __('students.enroll') }}
+                    </x-ui.button>
+                @endcan
             </div>
         </x-slot:header>
         @if($showEnroll)

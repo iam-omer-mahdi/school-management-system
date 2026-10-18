@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Livewire\Reports;
 
+use App\Enums\Permission;
 use App\Models\AcademicYear;
 use App\Models\Grade;
 use App\Models\School;
@@ -11,6 +12,7 @@ use App\Models\Student;
 use App\Support\Reports\FinancialSummary;
 use App\Support\Reports\ReportQueries;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Gate;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
@@ -42,6 +44,8 @@ new #[Layout('layouts::print')] class extends Component
 
     public function mount(): void
     {
+        Gate::authorize(Permission::ReportsView->value);
+
         $this->tab = (string) request()->query('tab', 'year_summary');
         $academicYearId = request()->query('academic_year_id');
         $schoolId = request()->query('school_id');

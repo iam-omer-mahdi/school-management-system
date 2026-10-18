@@ -1,5 +1,7 @@
 <?php
 
+use App\Enums\Permission;
+use Illuminate\Support\Facades\Gate;
 use App\Actions\DeleteGradeFee;
 use App\Models\AcademicYear;
 use App\Models\Grade;
@@ -22,6 +24,11 @@ new #[Layout('layouts::app')] class extends Component
     public ?int $academic_year_id = null;
 
     public ?int $deletingId = null;
+
+    public function mount(): void
+    {
+        Gate::authorize(Permission::FeesView->value);
+    }
 
     /** @return \Illuminate\Database\Eloquent\Collection<int, School> */
     #[Computed]
@@ -102,10 +109,12 @@ new #[Layout('layouts::app')] class extends Component
 <div class="space-y-5">
     <x-ui.page-header :title="__('fees.schedule')">
         <x-slot:actions>
-            <x-ui.button href="{{ route('fee-schedule.create') }}" wire:navigate variant="primary" size="sm" :spinner="false">
-                <x-ui.icon name="plus" class="h-4 w-4" />
-                {{ __('fees.schedule_create') }}
-            </x-ui.button>
+            @can(\App\Enums\Permission::FeesManage->value)
+                <x-ui.button href="{{ route('fee-schedule.create') }}" wire:navigate variant="primary" size="sm" :spinner="false">
+                    <x-ui.icon name="plus" class="h-4 w-4" />
+                    {{ __('fees.schedule_create') }}
+                </x-ui.button>
+            @endcan
         </x-slot:actions>
     </x-ui.page-header>
 
@@ -173,7 +182,9 @@ new #[Layout('layouts::app')] class extends Component
                                 @endif
                             </td>
                             <td>
-                                <x-ui.button variant="ghost" size="sm" wire:click="confirmDelete({{ $fee->id }})" :spinner="false" class="text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/30">{{ __('common.delete') }}</x-ui.button>
+                                @can(\App\Enums\Permission::FeesManage->value)
+                                    <x-ui.button variant="ghost" size="sm" wire:click="confirmDelete({{ $fee->id }})" :spinner="false" class="text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/30">{{ __('common.delete') }}</x-ui.button>
+                                @endcan
                             </td>
                         </tr>
                     @endforeach

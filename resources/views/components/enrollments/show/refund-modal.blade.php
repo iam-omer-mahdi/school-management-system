@@ -169,9 +169,11 @@ new class extends Component
         <x-slot:header>
             <div class="flex items-center justify-between gap-2">
                 <h2 class="text-base font-semibold text-gray-900 dark:text-white">{{ __('payments.refunds') }}</h2>
-                @if($isEnded && $balance['refundable'] > 0)
-                    <x-ui.button variant="secondary" size="sm" wire:click="openRefundModal" :spinner="false">{{ __('payments.refund') }}</x-ui.button>
-                @endif
+                @can(\App\Enums\Permission::PaymentsManage->value)
+                    @if($isEnded && $balance['refundable'] > 0)
+                        <x-ui.button variant="secondary" size="sm" wire:click="openRefundModal" :spinner="false">{{ __('payments.refund') }}</x-ui.button>
+                    @endif
+                @endcan
             </div>
         </x-slot:header>
         <p class="flex flex-wrap items-center gap-2 text-sm">
@@ -201,7 +203,9 @@ new class extends Component
                         @if($refund->isVoided())
                             <x-ui.badge color="red">{{ __('payments.void') }}: {{ $refund->void_reason }}</x-ui.badge>
                         @else
-                            <x-ui.button variant="ghost" size="sm" wire:click="requestVoid('refund', {{ $refund->id }})" :spinner="false" class="text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/30">{{ __('payments.void') }}</x-ui.button>
+                            @can(\App\Enums\Permission::PaymentsManage->value)
+                                <x-ui.button variant="ghost" size="sm" wire:click="requestVoid('refund', {{ $refund->id }})" :spinner="false" class="text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/30">{{ __('payments.void') }}</x-ui.button>
+                            @endcan
                         @endif
                     </li>
                 @endforeach

@@ -1,5 +1,7 @@
 <?php
 
+use App\Enums\Permission;
+use Illuminate\Support\Facades\Gate;
 use App\Models\Enrollment;
 use App\Models\Payment;
 use Livewire\Attributes\Computed;
@@ -18,6 +20,8 @@ new #[Layout('layouts::print')] class extends Component
 
     public function mount(Enrollment $enrollment): void
     {
+        Gate::authorize(Permission::EnrollmentsView->value);
+
         $this->enrollmentId = $enrollment->id;
 
         $ids = collect(explode(',', (string) request()->query('payments', '')))

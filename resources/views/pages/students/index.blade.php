@@ -1,5 +1,7 @@
 <?php
 
+use App\Enums\Permission;
+use Illuminate\Support\Facades\Gate;
 use App\Models\Student;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
@@ -16,6 +18,11 @@ new #[Layout('layouts::app')] class extends Component
 
     #[Url]
     public string $archive = '';
+
+    public function mount(): void
+    {
+        Gate::authorize(Permission::StudentsView->value);
+    }
 
     public function updatedSearch(): void
     {
@@ -44,10 +51,12 @@ new #[Layout('layouts::app')] class extends Component
 <div class="space-y-5">
     <x-ui.page-header :title="__('students.title')">
         <x-slot:actions>
-            <x-ui.button href="{{ route('students.create') }}" wire:navigate variant="primary" size="sm" :spinner="false" class="w-full sm:w-auto">
-                <x-ui.icon name="plus" class="h-4 w-4" />
-                {{ __('students.create') }}
-            </x-ui.button>
+            @can(\App\Enums\Permission::StudentsManage->value)
+                <x-ui.button href="{{ route('students.create') }}" wire:navigate variant="primary" size="sm" :spinner="false" class="w-full sm:w-auto">
+                    <x-ui.icon name="plus" class="h-4 w-4" />
+                    {{ __('students.create') }}
+                </x-ui.button>
+            @endcan
         </x-slot:actions>
     </x-ui.page-header>
 

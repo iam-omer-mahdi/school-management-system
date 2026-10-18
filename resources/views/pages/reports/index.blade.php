@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Livewire\Reports;
 
 use App\Enums\EnrollmentStatus;
+use App\Enums\Permission;
 use App\Models\AcademicYear;
 use App\Models\FeeType;
 use App\Models\Grade;
@@ -15,6 +16,7 @@ use App\Support\Reports\FinancialSummary;
 use App\Support\Reports\ReportExport;
 use App\Support\Reports\ReportQueries;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Gate;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Url;
@@ -79,6 +81,8 @@ new #[Layout('layouts::app')] class extends Component
 
     public function mount(): void
     {
+        Gate::authorize(Permission::ReportsView->value);
+
         $this->academic_year_id ??= AcademicYear::query()->orderByDesc('starts_on')->value('id');
         $this->applyFilters();
     }
