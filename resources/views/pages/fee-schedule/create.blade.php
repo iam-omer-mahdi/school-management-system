@@ -1,6 +1,7 @@
 <?php
 
 use App\Actions\CreateGradeFee;
+use App\Enums\EnrollmentStatus;
 use App\Models\AcademicYear;
 use App\Models\Enrollment;
 use App\Models\FeeType;
@@ -68,14 +69,21 @@ new #[Layout('layouts::app')] class extends Component
             return ['applied' => 0, 'skipped' => 0];
         }
 
+        $counts = Enrollment::query()
+            ->where('grade_id', $this->grade_id)
+            ->where('academic_year_id', $this->academic_year_id)
+            ->selectRaw('status, COUNT(*) AS enrollments_count')
+            ->groupBy('status')
+            ->pluck('enrollments_count', 'status');
+
         $applied = 0;
         $skipped = 0;
 
-        foreach (Enrollment::query()->where('grade_id', $this->grade_id)->where('academic_year_id', $this->academic_year_id)->get(['status']) as $enrollment) {
-            if ($enrollment->isCharged()) {
-                $applied++;
+        foreach ($counts as $status => $count) {
+            if (EnrollmentStatus::tryFrom((string) $status)?->isCharged()) {
+                $applied += (int) $count;
             } else {
-                $skipped++;
+                $skipped += (int) $count;
             }
         }
 

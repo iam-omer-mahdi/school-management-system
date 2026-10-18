@@ -132,6 +132,27 @@ class FeesPagesTest extends TestCase
         $this->assertSame(0, $endedEnrollment->refresh()->fees()->count());
     }
 
+    public function test_schedule_create_preview_counts_charged_and_ended_enrollments(): void
+    {
+        $this->actingAs(User::factory()->create());
+
+        $grade = Grade::firstOrFail();
+        $year = AcademicYear::factory()->create(['name' => '30/31']);
+
+        app(EnrollStudent::class)->handle(Student::factory()->create()->id, $year->id, $grade->id);
+
+        $suspended = app(EnrollStudent::class)->handle(Student::factory()->create()->id, $year->id, $grade->id);
+        app(UpdateEnrollmentStatus::class)->handle($suspended, EnrollmentStatus::Suspended);
+
+        $ended = app(EnrollStudent::class)->handle(Student::factory()->create()->id, $year->id, $grade->id);
+        app(UpdateEnrollmentStatus::class)->handle($ended, EnrollmentStatus::Left);
+
+        Livewire::test('pages::fee-schedule.create')
+            ->set('grade_id', $grade->id)
+            ->set('academic_year_id', $year->id)
+            ->assertSee(__('fees.will_apply', ['applied' => 2, 'skipped' => 1]));
+    }
+
     public function test_set_fee_page_validates_grade_year_type_and_amount(): void
     {
         $this->actingAs(User::factory()->create());
