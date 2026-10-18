@@ -246,8 +246,8 @@ window.initModals = initModals;
 let lastAction = null;
 
 function trackWiredActions() {
-    const snapshot = (event) => {
-        const trigger = event.target instanceof Element ? event.target.closest('[wire\\:click],[wire\\:submit]') : null;
+    const snapshot = (event, selector) => {
+        const trigger = event.target instanceof Element ? event.target.closest(selector) : null;
         const root = trigger ? trigger.closest('[wire\\:id],[wire-id]') : null;
 
         if (!root) {
@@ -261,8 +261,11 @@ function trackWiredActions() {
         };
     };
 
-    document.addEventListener('click', snapshot, true);
-    document.addEventListener('submit', snapshot, true);
+    // Separate selectors: a plain click anywhere inside a wire:submit form is
+    // not an action (blur validation would otherwise steal focus); genuine
+    // form submissions arrive through the submit event.
+    document.addEventListener('click', (event) => snapshot(event, '[wire\\:click]'), true);
+    document.addEventListener('submit', (event) => snapshot(event, '[wire\\:submit]'), true);
 }
 
 trackWiredActions();
@@ -319,9 +322,15 @@ function initPasswordToggles() {
             });
         }
 
-        if (input._passwordShown === true && input.type === 'password') {
+        const shown = input._passwordShown === true;
+
+        if (shown && input.type === 'password') {
             input.type = 'text';
         }
+
+        // Morphs re-render both the type attribute and the button's
+        // aria-pressed from the server snapshot; restore both from state.
+        wrapper?.querySelector('[data-password-toggle]')?.setAttribute('aria-pressed', String(shown));
     });
 }
 
