@@ -262,7 +262,7 @@ Rulings made while executing:
   add-student, fee-type/discount/fee-schedule create and delete, student edit/archive/restore and
   the enroll form, the add-payment, void and apply/remove-discount buttons, and the enrollment
   status panel whole.
-- Task 10 (review pass): complete (commit `a9551d2`; full suite 606 passed / 2603 assertions; pint clean). A
+- Task 10 (review pass): complete (commit `6f13d36`; full suite 606 passed / 2603 assertions; pint clean). A
   fresh-context review of the whole branch found one Critical and four Important gaps, all fixed
   in their own commit:
   - **C1** `students/show::update()` had no guard: any `students.view` account could write PII
