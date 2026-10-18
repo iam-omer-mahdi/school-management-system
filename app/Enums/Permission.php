@@ -67,4 +67,50 @@ enum Permission: string
 
         return array_values($expanded);
     }
+
+    /**
+     * The same expansion for values posted from the Roles page. Values that
+     * are not permissions at all are dropped rather than trusted.
+     *
+     * @param  array<int, string>  $values
+     * @return array<int, string>
+     */
+    public static function expandValues(array $values): array
+    {
+        $cases = [];
+
+        foreach ($values as $value) {
+            $permission = self::tryFrom($value);
+
+            if ($permission !== null) {
+                $cases[] = $permission;
+            }
+        }
+
+        return array_map(
+            static fn (self $permission): string => $permission->value,
+            self::withImpliedViews($cases)
+        );
+    }
+
+    /**
+     * Every permission grouped by module, for the Roles page matrix:
+     * module => [view => case|null, manage => case|null]. A null is a module
+     * that has no such permission, which the page shows as "—".
+     *
+     * @return array<string, array{view: self|null, manage: self|null}>
+     */
+    public static function matrix(): array
+    {
+        $matrix = [];
+
+        foreach (self::cases() as $permission) {
+            [$module, $ability] = explode('.', $permission->value, 2);
+
+            $matrix[$module] ??= ['view' => null, 'manage' => null];
+            $matrix[$module][$ability] = $permission;
+        }
+
+        return $matrix;
+    }
 }

@@ -2,7 +2,7 @@
 
 Companion to `docs/plan.md` (the design and decisions). **Read `docs/plan.md` first.**
 
-Last updated: 2026-10-18 by the design session (nothing implemented yet).
+Last updated: 2026-10-18 by the execution session (tasks 1–6b landed on `feature/roles-permissions`).
 
 ---
 
@@ -29,10 +29,14 @@ have no `wire:key` (Livewire 4 `smart_wire_keys` covers them).
 
 ## Resume here
 
-**Next action:** implement step 1 of the migration outline in `docs/plan.md` §7 —
-`composer require spatie/laravel-permission` and publish its migration.
+**Next action:** **T6b is done.** Continue with **T7** — the first-login flow: the middleware
+that sends flagged users to `pages::auth.first-login` (append it to the `web` group in
+`bootstrap/app.php`, next to `SetLocale`), the page itself (new password + the three security
+questions, then clear `must_change_password`), and setting that flag in
+`app/Console/Commands/ResetUserPassword.php`. Full task list and hashes: see **Ledger** below.
 
-Nothing has been written to the app yet. The design is approved; implementation has not started.
+Tasks 1–6 are on the branch. Run `git log --oneline -12` to see them; this file's ledger has
+the hashes and the rulings that matter.
 
 ## How to resume (any session, any model)
 
@@ -167,7 +171,7 @@ Pre-flight rulings (binding authority = §3 decisions over §4/§10 prose, which
   Cost if wrong: help mentions pages a user cannot open.
 - Ruling: `schools.name` stays `unique` (§10 default). Cost if wrong: two schools cannot share a name.
 
-Two further rulings made while executing:
+Rulings made while executing:
 
 - Ruling: plan §7 steps 4 and 5 (the `schools.code` column change and the display/report
   switch) are **one commit**, because §6 forbids them landing apart and neither half passes
@@ -176,6 +180,15 @@ Two further rulings made while executing:
   guarded `CreateSchool` action — a seeder has no authenticated user, so the access check
   would refuse it. The grade structure still comes from `SchoolType::gradeNumbers()`, so
   there is only one definition of it. Cost if wrong: seed-time writes bypass `schools.manage`.
+- Ruling: the suite is moving to **Pest** (owner's request), because it runs the same engine
+  but needs far less ceremony. Pest 4 could only be installed by downgrading
+  `phpunit/phpunit` 12.5.40 → 12.5.33 (`-W`); Pest caps at 12.5.33, and `laravel/pao` — already
+  a dependency, it produces the `--compact` output — refuses any Pest below 4.6.3. New and
+  in-flight tests are written in Pest; the pre-existing PHPUnit files are untouched (the
+  skill says not to rewrite tests that follow the current convention) and still run, since
+  Pest executes PHPUnit classes. Cost if wrong: two test styles side by side until converted.
+- Dropped from the roles page: "copy permissions from another role" (§4.3 prose). The matrix
+  already starts from the presets and role creation is rare. Cost if wrong: one dropdown.
 
 ### Tasks
 
@@ -201,3 +214,13 @@ Two further rulings made while executing:
 - Task 4: complete (commit `b851da3`; tests `SchoolTypeTest`, `SchoolStructureTest`,
   `ReportsQueriesTest` → 9 passed; full suite 456 passed; verified the migration reverses
   and re-applies on the dev database with `type`/`name` intact).
+- Task 5: complete (commit `f7ab66a`; test `tests/Feature/SchoolsAdminTest.php` → 12 passed;
+  full suite 467 passed; `/schools` stays readable by every signed-in user — only writes need
+  `schools.manage`, recorded as an open question in `docs/plan.md` §10).
+- Task 6a (staff): complete (commit `05afe82`; test `tests/Feature/StaffPageTest.php` → 15
+  passed; full suite 483 passed; the Staff link is filtered by `staff.manage`, deactivated
+  users are refused at login through the credentials array).
+- Task 6b (roles): complete (commit `b34f619`; test `tests/Feature/RolesPageTest.php` → 16
+  passed; full suite 499 passed; `SaveRole` covers create and rename, `DeleteRole` refuses a
+  role anyone holds, Administrator keeps its name and `staff.manage`; `Role::create` throws
+  Spatie's `RoleAlreadyExists` before the DB constraint, so both are caught).

@@ -1,6 +1,8 @@
 <?php
 
 use App\Actions\CreateStaff;
+use App\Actions\DeleteRole;
+use App\Actions\SaveRole;
 use App\Actions\UpdateStaffAccess;
 use App\Enums\Permission;
 use App\Enums\Role;
@@ -32,6 +34,17 @@ new #[Layout('layouts::app')] class extends Component
     public array $editingRoles = [];
 
     public bool $editingActive = true;
+
+    public bool $showRoleForm = false;
+
+    public ?int $editingRoleId = null;
+
+    public string $roleName = '';
+
+    /** @var array<int, string> */
+    public array $selectedPermissions = [];
+
+    public ?int $deletingRoleId = null;
 
     public function mount(): void
     {
@@ -80,6 +93,62 @@ new #[Layout('layouts::app')] class extends Component
         session()->flash('status', __('staff.updated'));
     }
 
+    public function newRole(): void
+    {
+        $this->reset(['showForm', 'editingRoleId', 'deletingRoleId', 'roleName']);
+        $this->selectedPermissions = [];
+        $this->showRoleForm = true;
+    }
+
+    public function editRole(int $id): void
+    {
+        $this->reset(['showForm', 'deletingRoleId']);
+
+        $role = SpatieRole::query()->with('permissions:id,name')->findOrFail($id);
+
+        $this->editingRoleId = $role->id;
+        $this->roleName = $role->name;
+        $this->selectedPermissions = $role->permissions->pluck('name')->all();
+        $this->showRoleForm = true;
+    }
+
+    public function saveRole(SaveRole $action): void
+    {
+        $action->handle($this->editingRoleId, [
+            'name' => $this->roleName,
+            'permissions' => $this->selectedPermissions,
+        ]);
+
+        $this->reset(['showRoleForm', 'editingRoleId', 'roleName', 'selectedPermissions']);
+        unset($this->roles);
+        session()->flash('status', __('staff.role_saved'));
+    }
+
+    public function confirmDeleteRole(int $id): void
+    {
+        $this->reset(['showForm', 'showRoleForm', 'editingRoleId']);
+
+        $this->deletingRoleId = $id;
+    }
+
+    public function deleteRole(DeleteRole $action): void
+    {
+        $action->handle((int) $this->deletingRoleId);
+
+        $this->reset('deletingRoleId');
+        unset($this->roles);
+        session()->flash('status', __('staff.role_deleted'));
+    }
+
+    /**
+     * Ticking Manage ticks View with it, so a role can never change data it
+     * cannot read (plan D4).
+     */
+    public function updatedSelectedPermissions(): void
+    {
+        $this->selectedPermissions = Permission::expandValues($this->selectedPermissions);
+    }
+
     /** @return \Illuminate\Database\Eloquent\Collection<int, User> */
     #[Computed]
     public function staff(): \Illuminate\Database\Eloquent\Collection
@@ -95,7 +164,11 @@ new #[Layout('layouts::app')] class extends Component
     #[Computed]
     public function roles(): \Illuminate\Database\Eloquent\Collection
     {
-        return SpatieRole::query()->select(['id', 'name'])->orderBy('name')->get();
+        return SpatieRole::query()
+            ->select(['id', 'name'])
+            ->withCount(['users', 'permissions'])
+            ->orderBy('name')
+            ->get();
     }
 
     /**
@@ -195,6 +268,79 @@ new #[Layout('layouts::app')] class extends Component
         @endforeach
     </x-ui.table>
 
+    <x-ui.card :title="__('staff.roles_title')" :description="__('staff.roles_hint')">
+        <x-slot:footer>
+            <x-ui.button variant="secondary" size="sm" wire:click="newRole" :spinner="false">
+                <x-ui.icon name="plus" class="h-4 w-4" />
+                {{ __('staff.new_role') }}
+            </x-ui.button>
+        </x-slot:footer>
+        <x-ui.table>
+            <x-slot:head>
+                <th>{{ __('staff.role_name') }}</th>
+                <th>{{ __('staff.staff') }}</th>
+                <th>{{ __('staff.permissions') }}</th>
+                <th>{{ __('common.actions') }}</th>
+            </x-slot:head>
+            @foreach($this->roles as $role)
+                <tr wire:key="role-{{ $role->id }}">
+                    <td class="font-medium text-gray-900 dark:text-white">{{ $role->name }}</td>
+                    <td>{{ trans_choice('staff.users_count', $role->users_count) }}</td>
+                    <td>{{ trans_choice('staff.permissions_count', $role->permissions_count) }}</td>
+                    <td>
+                        <div class="flex gap-1">
+                            <x-ui.button variant="ghost" size="sm" wire:click="editRole({{ $role->id }})" :spinner="false">{{ __('common.edit') }}</x-ui.button>
+                            <x-ui.button variant="ghost" size="sm" wire:click="confirmDeleteRole({{ $role->id }})" :spinner="false" class="text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/30">{{ __('common.delete') }}</x-ui.button>
+                        </div>
+                    </td>
+                </tr>
+            @endforeach
+        </x-ui.table>
+    </x-ui.card>
+
+    @if($showRoleForm)
+        <x-ui.card :title="$editingRoleId ? __('staff.edit_role') : __('staff.new_role')">
+            <form wire:submit="saveRole" class="space-y-4">
+                <x-ui.field :label="__('staff.role_name')" for="role-name" required :error="$errors->first('name')">
+                    <x-ui.input id="role-name" type="text" wire:model.blur="roleName" :error="$errors->first('name')" required autocomplete="off" />
+                </x-ui.field>
+                <x-ui.field :label="__('staff.permissions')" required :error="$errors->first('permissions')">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm">
+                            <thead>
+                                <tr class="text-start text-gray-500 dark:text-gray-400">
+                                    <th class="py-2 text-start font-medium">{{ __('staff.module') }}</th>
+                                    <th class="py-2 text-start font-medium">{{ __('staff.view') }}</th>
+                                    <th class="py-2 text-start font-medium">{{ __('staff.manage') }}</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach(Permission::matrix() as $module => $columns)
+                                    <tr wire:key="permission-module-{{ $module }}" class="border-t border-gray-100 dark:border-gray-700">
+                                        <td class="py-2">{{ __('staff.modules.'.$module) }}</td>
+                                        @foreach(['view', 'manage'] as $ability)
+                                            <td class="py-2">
+                                                @if($columns[$ability])
+                                                    <x-ui.checkbox wire:model.live="selectedPermissions" value="{{ $columns[$ability]->value }}" />
+                                                @else
+                                                    <span class="text-gray-400">—</span>
+                                                @endif
+                                            </td>
+                                        @endforeach
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                </x-ui.field>
+                <div class="flex flex-wrap gap-2">
+                    <x-ui.button type="submit" variant="primary" loading-target="saveRole" wire:loading.attr="disabled">{{ __('common.save') }}</x-ui.button>
+                    <x-ui.button type="button" variant="secondary" wire:click="$set('showRoleForm', false)" :spinner="false">{{ __('common.cancel') }}</x-ui.button>
+                </div>
+            </form>
+        </x-ui.card>
+    @endif
+
     @if($editingId)
         <x-ui.modal :title="__('staff.edit_access_title')" close="$set('editingId', null)">
             <div class="space-y-4">
@@ -212,6 +358,19 @@ new #[Layout('layouts::app')] class extends Component
             <x-slot:footer>
                 <x-ui.button variant="secondary" wire:click="$set('editingId', null)" :spinner="false">{{ __('common.cancel') }}</x-ui.button>
                 <x-ui.button variant="primary" wire:click="updateAccess" loading-target="updateAccess" wire:loading.attr="disabled">{{ __('common.save') }}</x-ui.button>
+            </x-slot:footer>
+        </x-ui.modal>
+    @endif
+
+    @if($deletingRoleId)
+        <x-ui.modal :title="__('common.confirm_title')" close="$set('deletingRoleId', null)">
+            <p>{{ __('staff.confirm_delete_role') }}</p>
+            @if($errors->first('role'))
+                <div class="mt-3"><x-ui.alert type="error">{{ $errors->first('role') }}</x-ui.alert></div>
+            @endif
+            <x-slot:footer>
+                <x-ui.button variant="secondary" wire:click="$set('deletingRoleId', null)" :spinner="false">{{ __('common.cancel') }}</x-ui.button>
+                <x-ui.button variant="danger" wire:click="deleteRole" loading-target="deleteRole" wire:loading.attr="disabled">{{ __('common.delete') }}</x-ui.button>
             </x-slot:footer>
         </x-ui.modal>
     @endif
