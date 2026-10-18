@@ -13,6 +13,7 @@ use App\Models\EnrollmentFee;
 use App\Models\FeeType;
 use App\Models\Grade;
 use App\Models\Payment;
+use App\Models\Refund;
 use App\Models\School;
 use App\Models\Student;
 use App\Support\Reports\FinancialSummary;
@@ -148,5 +149,38 @@ class ReportsQueriesTest extends TestCase
 
         $summary = FinancialSummary::forSelection(['academic_year_id' => $year->id]);
         $this->assertSame(501, $summary['count']);
+    }
+
+    public function test_call_and_refund_totals_are_aggregated_not_loaded(): void
+    {
+        ['year' => $year] = $this->seedFiveHundred();
+        $filters = ['academic_year_id' => $year->id];
+
+        $rows = ReportQueries::callListQuery($filters)->get(['owed_minor']);
+
+        $this->assertSame(
+            ['count' => $rows->count(), 'owed' => (int) $rows->sum('owed_minor')],
+            ReportQueries::callListTotals($filters)
+        );
+        $this->assertSame(['count' => 500, 'owed' => 45000000], ReportQueries::callListTotals($filters));
+        $this->assertLessThanOrEqual(1, $this->countQueries(
+            fn () => ReportQueries::callListTotals($filters)
+        ), 'callListTotals');
+
+        $now = now();
+
+        Refund::query()->insert(Enrollment::query()->limit(2)->pluck('id')->map(fn (int $enrollmentId): array => [
+            'enrollment_id' => $enrollmentId,
+            'enrollment_fee_id' => EnrollmentFee::query()->where('enrollment_id', $enrollmentId)->value('id'),
+            'amount_minor' => 2500, 'method' => 'cash', 'transaction_number' => null,
+            'refunded_on' => '2030-10-02', 'note' => '',
+            'voided_at' => null, 'void_reason' => null,
+            'created_at' => $now, 'updated_at' => $now,
+        ])->all());
+
+        $this->assertSame(['count' => 2, 'amount' => 5000], ReportQueries::refundsTotals($filters));
+        $this->assertLessThanOrEqual(2, $this->countQueries(
+            fn () => ReportQueries::refundsTotals($filters)
+        ), 'refundsTotals');
     }
 }

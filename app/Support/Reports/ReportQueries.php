@@ -172,6 +172,23 @@ final class ReportQueries
     }
 
     /**
+     * The call list's count and owed total, aggregated in SQL. The page only
+     * shows one page of rows, so loading every matching row to add them up
+     * costs a full table read per request.
+     *
+     * @return array{count: int, owed: int}
+     */
+    public static function callListTotals(array $filters = []): array
+    {
+        $totals = DB::query()
+            ->fromSub(self::callListQuery($filters), 'call_list')
+            ->selectRaw('COUNT(*) AS rows_count, COALESCE(SUM(owed_minor), 0) AS owed_minor')
+            ->first();
+
+        return ['count' => (int) $totals->rows_count, 'owed' => (int) $totals->owed_minor];
+    }
+
+    /**
      * Forgone by leavers grouped by grade. Only ended enrollments with a
      * positive closed_without_payment appear.
      *
@@ -347,6 +364,22 @@ final class ReportQueries
         }
 
         return $query->orderByDesc('refunds.refunded_on')->orderByDesc('refunds.id');
+    }
+
+    /**
+     * The refund list's count and total, aggregated in SQL instead of
+     * loading every matching refund row to add them up.
+     *
+     * @return array{count: int, amount: int}
+     */
+    public static function refundsTotals(array $filters = []): array
+    {
+        $totals = DB::query()
+            ->fromSub(self::refundsQuery($filters), 'refunds_list')
+            ->selectRaw('COUNT(*) AS rows_count, COALESCE(SUM(amount_minor), 0) AS refunded_minor')
+            ->first();
+
+        return ['count' => (int) $totals->rows_count, 'amount' => (int) $totals->refunded_minor];
     }
 
     /**

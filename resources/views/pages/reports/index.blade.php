@@ -235,9 +235,7 @@ new #[Layout('layouts::app')] class extends Component
     #[Computed]
     public function callListTotals(): array
     {
-        $rows = ReportQueries::callListQuery($this->reportFilters())->get(['owed_minor']);
-
-        return ['count' => $rows->count(), 'owed' => (int) $rows->sum('owed_minor')];
+        return ReportQueries::callListTotals($this->reportFilters());
     }
 
     #[Computed]
@@ -273,9 +271,7 @@ new #[Layout('layouts::app')] class extends Component
     #[Computed]
     public function refundsTotals(): array
     {
-        $rows = ReportQueries::refundsQuery($this->datedFilters())->get(['refunds.amount_minor']);
-
-        return ['count' => $rows->count(), 'amount' => (int) $rows->sum('amount_minor')];
+        return ReportQueries::refundsTotals($this->datedFilters());
     }
 
     #[Computed]
