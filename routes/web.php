@@ -54,6 +54,8 @@ Route::middleware('auth')->group(function (): void {
     Route::livewire('/reports/print', 'pages::reports.print')->name('reports.print');
 
     Route::livewire('/staff', 'pages::staff.index')->name('staff.index');
+    Route::livewire('/staff/roles/create', 'pages::staff.roles.create')->name('staff.roles.create');
+    Route::livewire('/staff/roles/{role}/edit', 'pages::staff.roles.edit')->name('staff.roles.edit');
 
     Route::livewire('/help', 'pages::help')->name('help');
 

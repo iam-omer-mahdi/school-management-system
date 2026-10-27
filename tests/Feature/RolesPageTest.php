@@ -47,7 +47,7 @@ test('the list shows the roles with their counts', function () {
 test('the matrix offers every permission', function () {
     $this->actingAs(makeAdministrator());
 
-    $component = Livewire::test('pages::staff.index')->call('newRole');
+    $component = Livewire::test('pages::staff.roles.create');
 
     foreach (Permission::cases() as $permission) {
         $component->assertSee($permission->value);
@@ -59,12 +59,12 @@ test('the matrix offers every permission', function () {
 test('an administrator can create a role', function () {
     $this->actingAs(makeAdministrator());
 
-    Livewire::test('pages::staff.index')
-        ->call('newRole')
+    Livewire::test('pages::staff.roles.create')
         ->set('roleName', 'Gatekeeper')
         ->set('selectedPermissions', [Permission::StudentsView->value])
-        ->call('saveRole')
-        ->assertHasNoErrors();
+        ->call('save')
+        ->assertHasNoErrors()
+        ->assertRedirect(route('staff.index'));
 
     $role = findRole('Gatekeeper');
 
@@ -74,11 +74,10 @@ test('an administrator can create a role', function () {
 test('a role name must be unique', function () {
     $this->actingAs(makeAdministrator());
 
-    Livewire::test('pages::staff.index')
-        ->call('newRole')
+    Livewire::test('pages::staff.roles.create')
         ->set('roleName', Role::Registrar->value)
         ->set('selectedPermissions', [Permission::StudentsView->value])
-        ->call('saveRole')
+        ->call('save')
         ->assertHasErrors('name');
 
     expect(SpatieRole::query()->count())->toBe(4);
@@ -87,11 +86,10 @@ test('a role name must be unique', function () {
 test('a role needs at least one permission', function () {
     $this->actingAs(makeAdministrator());
 
-    Livewire::test('pages::staff.index')
-        ->call('newRole')
+    Livewire::test('pages::staff.roles.create')
         ->set('roleName', 'Empty')
         ->set('selectedPermissions', [])
-        ->call('saveRole')
+        ->call('save')
         ->assertHasErrors('permissions');
 
     expect(SpatieRole::query()->where('name', 'Empty')->exists())->toBeFalse();
@@ -100,8 +98,7 @@ test('a role needs at least one permission', function () {
 test('ticking manage ticks view', function () {
     $this->actingAs(makeAdministrator());
 
-    Livewire::test('pages::staff.index')
-        ->call('newRole')
+    Livewire::test('pages::staff.roles.create')
         ->set('selectedPermissions', [Permission::StudentsManage->value])
         ->assertSet('selectedPermissions', [Permission::StudentsManage->value, Permission::StudentsView->value]);
 });
@@ -109,11 +106,10 @@ test('ticking manage ticks view', function () {
 test('a saved role gains the views its manages imply', function () {
     $this->actingAs(makeAdministrator());
 
-    Livewire::test('pages::staff.index')
-        ->call('newRole')
+    Livewire::test('pages::staff.roles.create')
         ->set('roleName', 'Enroller')
         ->set('selectedPermissions', [Permission::EnrollmentsManage->value])
-        ->call('saveRole')
+        ->call('save')
         ->assertHasNoErrors();
 
     $role = findRole('Enroller');
@@ -125,11 +121,11 @@ test('a saved role gains the views its manages imply', function () {
 test('an administrator can change a roles permissions', function () {
     $this->actingAs(makeAdministrator());
 
-    Livewire::test('pages::staff.index')
-        ->call('editRole', findRole(Role::ReadOnly->value)->id)
+    Livewire::test('pages::staff.roles.edit', ['role' => findRole(Role::ReadOnly->value)->id])
         ->set('selectedPermissions', [Permission::StudentsView->value])
-        ->call('saveRole')
-        ->assertHasNoErrors();
+        ->call('save')
+        ->assertHasNoErrors()
+        ->assertRedirect(route('staff.index'));
 
     expect(findRole(Role::ReadOnly->value)->permissions->pluck('name')->all())
         ->toBe([Permission::StudentsView->value]);
@@ -138,10 +134,9 @@ test('an administrator can change a roles permissions', function () {
 test('an administrator can rename a role', function () {
     $this->actingAs(makeAdministrator());
 
-    Livewire::test('pages::staff.index')
-        ->call('editRole', findRole(Role::Registrar->value)->id)
+    Livewire::test('pages::staff.roles.edit', ['role' => findRole(Role::Registrar->value)->id])
         ->set('roleName', 'Admissions')
-        ->call('saveRole')
+        ->call('save')
         ->assertHasNoErrors();
 
     $this->assertDatabaseHas('roles', ['name' => 'Admissions']);
@@ -152,10 +147,9 @@ test('the administrator role cannot be renamed', function () {
     $this->actingAs(makeStaffOfficer());
     $administrator = findRole(Role::Administrator->value);
 
-    Livewire::test('pages::staff.index')
-        ->call('editRole', $administrator->id)
+    Livewire::test('pages::staff.roles.edit', ['role' => $administrator->id])
         ->set('roleName', 'Boss')
-        ->call('saveRole')
+        ->call('save')
         ->assertHasErrors(['name' => __('staff.errors.administrator_protected')]);
 
     $this->assertDatabaseHas('roles', ['id' => $administrator->id, 'name' => Role::Administrator->value]);
@@ -164,10 +158,9 @@ test('the administrator role cannot be renamed', function () {
 test('the administrator role must keep staff access', function () {
     $this->actingAs(makeStaffOfficer());
 
-    Livewire::test('pages::staff.index')
-        ->call('editRole', findRole(Role::Administrator->value)->id)
+    Livewire::test('pages::staff.roles.edit', ['role' => findRole(Role::Administrator->value)->id])
         ->set('selectedPermissions', [Permission::StudentsView->value])
-        ->call('saveRole')
+        ->call('save')
         ->assertHasErrors(['permissions' => __('staff.errors.administrator_keeps_staff')]);
 
     expect(findRole(Role::Administrator->value)->hasPermissionTo(Permission::StaffManage->value))->toBeTrue();
@@ -213,13 +206,32 @@ test('an unused role can be deleted', function () {
 test('a user cannot strip their own staff access through a role', function () {
     $this->actingAs(makeStaffOfficer());
 
-    Livewire::test('pages::staff.index')
-        ->call('editRole', findRole('Staff Officer')->id)
+    Livewire::test('pages::staff.roles.edit', ['role' => findRole('Staff Officer')->id])
         ->set('selectedPermissions', [Permission::StudentsView->value])
-        ->call('saveRole')
+        ->call('save')
         ->assertHasErrors(['permissions' => __('staff.errors.self_lockout')]);
 
     expect(findRole('Staff Officer')->hasPermissionTo(Permission::StaffManage->value))->toBeTrue();
+});
+
+test('the staff page links to the role pages', function () {
+    $this->actingAs(makeAdministrator());
+
+    Livewire::test('pages::staff.index')
+        ->assertSee(route('staff.roles.create'))
+        ->assertSee(route('staff.roles.edit', findRole(Role::ReadOnly->value)));
+});
+
+test('the role pages are closed to users without staff manage', function () {
+    $this->actingAs(User::factory()->withRole()->create());
+
+    $this->get(route('staff.roles.create'))->assertForbidden();
+    $this->get(route('staff.roles.edit', findRole(Role::ReadOnly->value)))->assertForbidden();
+
+    $this->actingAs(makeAdministrator());
+
+    $this->get(route('staff.roles.create'))->assertOk();
+    $this->get(route('staff.roles.edit', findRole(Role::ReadOnly->value)))->assertOk();
 });
 
 test('the role actions are closed to users without staff manage', function () {
