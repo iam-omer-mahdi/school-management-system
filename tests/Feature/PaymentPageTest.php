@@ -23,6 +23,7 @@ use App\Models\Refund;
 use App\Models\School;
 use App\Models\Student;
 use App\Models\User;
+use App\Support\BusinessDate;
 use App\Support\Money;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -830,7 +831,7 @@ class PaymentPageTest extends TestCase
         $page->set('form.date', '2999-01-01')
             ->call('savePayment')
             ->assertHasErrors(['paid_on'])
-            ->assertSee(__('validation.before_or_equal', ['attribute' => __('payments.paid_on'), 'date' => date('Y-m-d')]), false);
+            ->assertSee(__('validation.before_or_equal', ['attribute' => __('payments.paid_on'), 'date' => BusinessDate::today()]), false);
 
         $this->assertSame(0, Payment::query()->where('enrollment_id', $enrollment->id)->count());
     }
@@ -859,7 +860,7 @@ class PaymentPageTest extends TestCase
         $page->set('form.date', '2999-01-01')
             ->call('saveRefund')
             ->assertHasErrors(['refunded_on'])
-            ->assertSee(__('validation.before_or_equal', ['attribute' => __('payments.refunded_on'), 'date' => date('Y-m-d')]), false);
+            ->assertSee(__('validation.before_or_equal', ['attribute' => __('payments.refunded_on'), 'date' => BusinessDate::today()]), false);
 
         $this->assertSame(0, Refund::query()->where('enrollment_id', $enrollment->id)->count());
     }
