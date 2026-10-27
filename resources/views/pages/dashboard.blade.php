@@ -93,11 +93,11 @@ new #[Layout('layouts::app')] class extends Component
     }
 @endphp
 
-<div class="space-y-6">
+<div class="space-y-8 lg:space-y-10">
     <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <x-ui.page-header :title="__('dashboard.title')" :description="__('dashboard.welcome')" />
         @can(\App\Enums\Permission::FeesView->value)
-            <div class="w-full sm:w-60">
+            <div class="w-full sm:w-64">
                 <x-ui.select wire:model.live="academic_year_id" aria-label="{{ __('fees.academic_year') }}">
                     @foreach($this->years as $year)
                         <option value="{{ $year->id }}">{{ $year->name }}</option>
@@ -108,30 +108,30 @@ new #[Layout('layouts::app')] class extends Component
     </div>
 
     @can(\App\Enums\Permission::FeesView->value)
-    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <x-ui.card>
-            <div class="text-xs font-semibold text-muted uppercase ">{{ __('reports.grand_total') }}</div>
-            <div class="mt-2 text-2xl font-bold text-ink "><x-ui.money :minor="$sum['grand_total']" /></div>
+            <div class="text-[11px] font-semibold tracking-wider text-muted uppercase ">{{ __('reports.grand_total') }}</div>
+            <div class="mt-2 text-2xl font-semibold tracking-tight text-ink "><x-ui.money :minor="$sum['grand_total']" /></div>
             <div class="mt-1 text-xs text-muted ">{{ $sum['count'] }} {{ __('reports.enrollments_count') }}</div>
         </x-ui.card>
         <x-ui.card>
-            <div class="text-xs font-semibold text-positive uppercase ">{{ __('reports.current') }}</div>
-            <div class="mt-2 text-2xl font-bold text-positive "><x-ui.money :minor="$sum['current']" /></div>
+            <div class="text-[11px] font-semibold tracking-wider text-positive uppercase ">{{ __('reports.current') }}</div>
+            <div class="mt-2 text-2xl font-semibold tracking-tight text-positive "><x-ui.money :minor="$sum['current']" /></div>
             <div class="mt-1 text-xs text-muted ">{{ $sum['percent_paid'] !== null ? number_format($sum['percent_paid'], 1).'%' : '—' }} {{ __('reports.percent_paid') }}</div>
         </x-ui.card>
         <x-ui.card>
-            <div class="text-xs font-semibold text-warning uppercase ">{{ __('reports.still_owed') }}</div>
-            <div class="mt-2 text-2xl font-bold text-warning "><x-ui.money :minor="$sum['still_owed']" /></div>
+            <div class="text-[11px] font-semibold tracking-wider text-warning uppercase ">{{ __('reports.still_owed') }}</div>
+            <div class="mt-2 text-2xl font-semibold tracking-tight text-warning "><x-ui.money :minor="$sum['still_owed']" /></div>
             <div class="mt-1 text-xs text-muted ">{{ __('reports.preset_charged') }}</div>
         </x-ui.card>
         <x-ui.card>
-            <div class="text-xs font-semibold text-negative uppercase ">{{ __('reports.forgone') }}</div>
-            <div class="mt-2 text-2xl font-bold text-negative "><x-ui.money :minor="$sum['forgone']" /></div>
+            <div class="text-[11px] font-semibold tracking-wider text-negative uppercase ">{{ __('reports.forgone') }}</div>
+            <div class="mt-2 text-2xl font-semibold tracking-tight text-negative "><x-ui.money :minor="$sum['forgone']" /></div>
             <div class="mt-1 text-xs text-muted ">{{ __('reports.preset_ended') }}</div>
         </x-ui.card>
     </div>
 
-    <div class="grid grid-cols-1 gap-5 lg:grid-cols-2">
+    <div class="grid grid-cols-1 gap-5 xl:grid-cols-2">
         <x-ui.card>
             <h3 class="mb-4 text-sm font-bold text-ink ">{{ __('reports.year_summary') }}</h3>
             @if($gradeLabels === [])

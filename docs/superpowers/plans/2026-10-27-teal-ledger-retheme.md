@@ -324,7 +324,7 @@ Keep `dark:hidden` / `dark:block` and any non-colour dark variant.
 
 ### Task 5 — Dashboard hierarchy
 
-**Status:** pending
+**Status:** done
 
 **Files**
 
@@ -347,7 +347,7 @@ Keep `dark:hidden` / `dark:block` and any non-colour dark variant.
 
 **Verification**
 
-- `php artisan test --compact tests/Feature/DashboardTest.php`
+- `php artisan test --compact tests/Feature/ReportsParityTest.php --filter=test_dashboard_renders_year_selector_and_charts`
 - `bun run build`
 
 **Commit**
