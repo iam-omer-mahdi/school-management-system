@@ -1,5 +1,5 @@
 {{-- Discounts by snapshot name. Expects $discounts (collection). --}}
-<div class="overflow-x-auto rounded-lg border border-gray-700 dark:border-gray-600">
+<div class="overflow-x-auto rounded-sm border border-line ">
     <table class="report-table w-full text-sm">
         <thead>
             <tr>

@@ -226,20 +226,20 @@ new class extends Component
                     <x-ui.field :label="$charge->gradeFee->feeType->isTuition() ? __('fees.tuition') : $charge->gradeFee->feeType->name" for="pay-alloc-{{ $charge->grade_fee_id }}">
                         <div class="flex items-center gap-3">
                             <x-ui.input id="pay-alloc-{{ $charge->grade_fee_id }}" type="text" wire:model.live.debounce.500ms="form.alloc.{{ $charge->grade_fee_id }}" inputmode="decimal" dir="ltr" autocomplete="off" class="font-mono" data-money :disabled="$feeRemaining <= 0" />
-                            <span class="shrink-0 text-xs text-gray-500 dark:text-gray-400"><x-ui.money :minor="max(0, $feeRemaining)" /></span>
+                            <span class="shrink-0 text-xs text-muted "><x-ui.money :minor="max(0, $feeRemaining)" /></span>
                         </div>
                     </x-ui.field>
                 @endforeach
                 <p class="flex flex-wrap items-center gap-2 text-sm">
-                    <span class="text-gray-500 dark:text-gray-400">{{ __('payments.unallocated') }}:</span>
+                    <span class="text-muted ">{{ __('payments.unallocated') }}:</span>
                     @if($this->payUnallocated === null)
-                        <span class="text-gray-500 dark:text-gray-400">—</span>
+                        <span class="text-muted ">—</span>
                     @else
                         <x-ui.money :minor="max(0, $this->payUnallocated)" />
                     @endif
                 </p>
                 @if($this->payBlockReason !== null)
-                    <p class="text-sm text-amber-700 dark:text-amber-400">{{ $this->payBlockReason }}</p>
+                    <p class="text-sm text-warning ">{{ $this->payBlockReason }}</p>
                 @endif
             </form>
             <x-slot:footer>

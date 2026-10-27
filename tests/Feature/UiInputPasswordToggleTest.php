@@ -13,7 +13,7 @@ class UiInputPasswordToggleTest extends TestCase
 
         $this->assertStringContainsString('data-password-toggle', $html);
         $this->assertStringContainsString('aria-pressed="false"', $html);
-        $this->assertStringContainsString('pe-9', $html);
+        $this->assertStringContainsString('pe-11', $html);
     }
 
     public function test_other_inputs_do_not_render_a_toggle(): void

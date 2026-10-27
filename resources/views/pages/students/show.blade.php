@@ -224,7 +224,7 @@ new #[Layout('layouts::app')] class extends Component
     <x-ui.card>
         <x-slot:header>
             <div class="flex items-center justify-between gap-3">
-                <h2 class="text-base font-semibold text-gray-900 dark:text-white">{{ __('students.details') }}</h2>
+                <h2 class="text-base font-semibold text-ink ">{{ __('students.details') }}</h2>
                 @if(! $editing)
                     @can(\App\Enums\Permission::StudentsManage->value)
                         <div class="flex shrink-0 items-center gap-2">
@@ -241,14 +241,14 @@ new #[Layout('layouts::app')] class extends Component
         </x-slot:header>
         @if(! $editing)
             <dl class="grid grid-cols-1 gap-x-8 gap-y-5 text-sm sm:grid-cols-2">
-                <div><dt class="text-gray-500 dark:text-gray-400">{{ __('students.student_number') }}</dt><dd class="mt-0.5 font-medium text-gray-900 dark:text-white">{{ $this->student->student_number }}</dd></div>
-                <div><dt class="text-gray-500 dark:text-gray-400">{{ __('students.name') }}</dt><dd class="mt-0.5 font-medium text-gray-900 dark:text-white">{{ $this->student->name }}</dd></div>
-                <div><dt class="text-gray-500 dark:text-gray-400">{{ __('students.phone') }}</dt><dd class="mt-0.5 font-medium text-gray-900 dark:text-white">{{ $this->student->phone }}</dd></div>
-                <div><dt class="text-gray-500 dark:text-gray-400">{{ __('students.secondary_phone') }}</dt><dd class="mt-0.5 font-medium text-gray-900 dark:text-white">{{ $this->student->secondary_phone }}</dd></div>
-                <div><dt class="text-gray-500 dark:text-gray-400">{{ __('students.mother_name') }}</dt><dd class="mt-0.5 font-medium text-gray-900 dark:text-white">{{ $this->student->mother_name }}</dd></div>
-                <div><dt class="text-gray-500 dark:text-gray-400">{{ __('students.home_address') }}</dt><dd class="mt-0.5 font-medium text-gray-900 dark:text-white">{{ $this->student->home_address }}</dd></div>
-                <div><dt class="text-gray-500 dark:text-gray-400">{{ __('students.guardian_name') }}</dt><dd class="mt-0.5 font-medium text-gray-900 dark:text-white">{{ $this->student->guardian_name }}</dd></div>
-                <div><dt class="text-gray-500 dark:text-gray-400">{{ __('students.guardian_relationship') }}</dt><dd class="mt-0.5 font-medium text-gray-900 dark:text-white">{{ $this->student->guardian_relationship }}</dd></div>
+                <div><dt class="text-muted ">{{ __('students.student_number') }}</dt><dd class="mt-0.5 font-medium text-ink ">{{ $this->student->student_number }}</dd></div>
+                <div><dt class="text-muted ">{{ __('students.name') }}</dt><dd class="mt-0.5 font-medium text-ink ">{{ $this->student->name }}</dd></div>
+                <div><dt class="text-muted ">{{ __('students.phone') }}</dt><dd class="mt-0.5 font-medium text-ink ">{{ $this->student->phone }}</dd></div>
+                <div><dt class="text-muted ">{{ __('students.secondary_phone') }}</dt><dd class="mt-0.5 font-medium text-ink ">{{ $this->student->secondary_phone }}</dd></div>
+                <div><dt class="text-muted ">{{ __('students.mother_name') }}</dt><dd class="mt-0.5 font-medium text-ink ">{{ $this->student->mother_name }}</dd></div>
+                <div><dt class="text-muted ">{{ __('students.home_address') }}</dt><dd class="mt-0.5 font-medium text-ink ">{{ $this->student->home_address }}</dd></div>
+                <div><dt class="text-muted ">{{ __('students.guardian_name') }}</dt><dd class="mt-0.5 font-medium text-ink ">{{ $this->student->guardian_name }}</dd></div>
+                <div><dt class="text-muted ">{{ __('students.guardian_relationship') }}</dt><dd class="mt-0.5 font-medium text-ink ">{{ $this->student->guardian_relationship }}</dd></div>
             </dl>
         @else
             <form wire:submit="update" class="space-y-8">
@@ -258,8 +258,8 @@ new #[Layout('layouts::app')] class extends Component
                     </x-ui.field>
                 </div>
                 <fieldset>
-                    <legend class="text-sm font-semibold text-gray-900 dark:text-white">{{ __('students.section_basic') }}</legend>
-                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ __('students.section_basic_hint') }}</p>
+                    <legend class="text-sm font-semibold text-ink ">{{ __('students.section_basic') }}</legend>
+                    <p class="mt-1 text-sm text-muted ">{{ __('students.section_basic_hint') }}</p>
                     <div class="mt-5 grid grid-cols-1 gap-x-6 gap-y-5 sm:grid-cols-2">
                         <x-ui.field :label="__('students.name')" for="edit-name" required :error="$errors->first('form.name')">
                             <x-ui.input id="edit-name" type="text" wire:model.blur="form.name" :error="$errors->first('form.name')" required />
@@ -280,9 +280,9 @@ new #[Layout('layouts::app')] class extends Component
                         </x-ui.field>
                     </div>
                 </fieldset>
-                <fieldset class="border-t border-gray-200 pt-7 dark:border-gray-700">
-                    <legend class="text-sm font-semibold text-gray-900 dark:text-white">{{ __('students.section_contact') }}</legend>
-                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ __('students.section_contact_hint') }}</p>
+                <fieldset class="border-t border-line pt-7 ">
+                    <legend class="text-sm font-semibold text-ink ">{{ __('students.section_contact') }}</legend>
+                    <p class="mt-1 text-sm text-muted ">{{ __('students.section_contact_hint') }}</p>
                     <div class="mt-5 grid grid-cols-1 gap-x-6 gap-y-5 sm:grid-cols-2">
                         <x-ui.field :label="__('students.phone')" for="edit-phone" required :error="$errors->first('form.phone')">
                             <x-ui.input id="edit-phone" type="tel" wire:model.blur="form.phone" :error="$errors->first('form.phone')" required />
@@ -295,9 +295,9 @@ new #[Layout('layouts::app')] class extends Component
                         </x-ui.field>
                     </div>
                 </fieldset>
-                <fieldset class="border-t border-gray-200 pt-7 dark:border-gray-700">
-                    <legend class="text-sm font-semibold text-gray-900 dark:text-white">{{ __('students.section_guardian') }}</legend>
-                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ __('students.section_guardian_hint') }}</p>
+                <fieldset class="border-t border-line pt-7 ">
+                    <legend class="text-sm font-semibold text-ink ">{{ __('students.section_guardian') }}</legend>
+                    <p class="mt-1 text-sm text-muted ">{{ __('students.section_guardian_hint') }}</p>
                     <div class="mt-5 grid grid-cols-1 gap-x-6 gap-y-5 sm:grid-cols-2">
                         <x-ui.field :label="__('students.guardian_name')" for="edit-guardian" :error="$errors->first('form.guardian_name')">
                             <x-ui.input id="edit-guardian" type="text" wire:model.blur="form.guardian_name" :error="$errors->first('form.guardian_name')" />
@@ -307,7 +307,7 @@ new #[Layout('layouts::app')] class extends Component
                         </x-ui.field>
                     </div>
                 </fieldset>
-                <div class="flex flex-col-reverse gap-3 border-t border-gray-200 pt-6 sm:flex-row sm:justify-end dark:border-gray-700">
+                <div class="flex flex-col-reverse gap-3 border-t border-line pt-6 sm:flex-row sm:justify-end ">
                     <x-ui.button type="button" variant="secondary" wire:click="$set('editing', false)" :spinner="false">{{ __('common.cancel') }}</x-ui.button>
                     <x-ui.button type="submit" variant="primary" loading-target="update" wire:loading.attr="disabled">{{ __('common.save') }}</x-ui.button>
                 </div>
@@ -346,7 +346,7 @@ new #[Layout('layouts::app')] class extends Component
     <x-ui.card>
         <x-slot:header>
             <div class="flex items-center justify-between gap-2">
-                <h2 class="text-base font-semibold text-gray-900 dark:text-white">{{ __('students.enrollments') }}</h2>
+                <h2 class="text-base font-semibold text-ink ">{{ __('students.enrollments') }}</h2>
                 @can(\App\Enums\Permission::EnrollmentsManage->value)
                     <x-ui.button variant="primary" size="sm" wire:click="$set('showEnroll', true)" :spinner="false">
                         <x-ui.icon name="plus" class="h-4 w-4" />
@@ -356,10 +356,10 @@ new #[Layout('layouts::app')] class extends Component
             </div>
         </x-slot:header>
         @if($showEnroll)
-            <form wire:submit="enroll" class="mb-6 space-y-6 rounded-xl border border-gray-200 bg-gray-50 p-5 sm:p-6 dark:border-gray-600 dark:bg-gray-700/40">
+            <form wire:submit="enroll" class="mb-6 space-y-6 rounded-sm border border-line bg-surface-raised p-5 sm:p-6 ">
                 <div>
-                    <h3 class="text-sm font-semibold text-gray-900 dark:text-white">{{ __('students.enroll_title') }}</h3>
-                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ __('students.school') }} · {{ __('students.grade') }} · {{ __('students.academic_year') }}</p>
+                    <h3 class="text-sm font-semibold text-ink ">{{ __('students.enroll_title') }}</h3>
+                    <p class="mt-1 text-sm text-muted ">{{ __('students.school') }} · {{ __('students.grade') }} · {{ __('students.academic_year') }}</p>
                 </div>
                 @if($this->latestEnrollment && $this->latestEnrollment->status === \App\Enums\EnrollmentStatus::Expelled)
                     <x-ui.alert type="warning">{{ __('students.expelled_warning') }}</x-ui.alert>
@@ -390,15 +390,15 @@ new #[Layout('layouts::app')] class extends Component
                         </x-ui.select>
                     </x-ui.field>
                 </div>
-                <div class="flex flex-col-reverse gap-3 border-t border-gray-200 pt-5 sm:flex-row sm:justify-end dark:border-gray-600">
+                <div class="flex flex-col-reverse gap-3 border-t border-line pt-5 sm:flex-row sm:justify-end ">
                     <x-ui.button type="button" variant="secondary" wire:click="$set('showEnroll', false)" :spinner="false">{{ __('common.cancel') }}</x-ui.button>
                     <x-ui.button type="submit" variant="primary" loading-target="enroll" wire:loading.attr="disabled">{{ __('students.enroll') }}</x-ui.button>
                 </div>
-                @error('student_id')<p class="text-sm text-red-600" role="alert">{{ $message }}</p>@enderror
+                @error('student_id')<p class="text-sm text-negative" role="alert">{{ $message }}</p>@enderror
             </form>
         @endif
         @if($this->enrollments->isEmpty())
-            <p class="text-sm text-gray-600 dark:text-gray-400">{{ __('students.no_enrollments') }}</p>
+            <p class="text-sm text-muted ">{{ __('students.no_enrollments') }}</p>
         @else
             <ul class="space-y-4 text-sm">
                 @foreach($this->enrollments as $enrollment)
@@ -407,32 +407,32 @@ new #[Layout('layouts::app')] class extends Component
                         $hasTuition = collect($balance['fees'])->contains(fn (array $fee): bool => $fee['is_tuition']);
                         $isOpen = $this->expandedEnrollment === $enrollment->id;
                     @endphp
-                    <li wire:key="enrollment-{{ $enrollment->id }}" class="rounded-xl border border-gray-200 bg-gray-50 dark:border-gray-600 dark:bg-gray-700/40">
+                    <li wire:key="enrollment-{{ $enrollment->id }}" class="rounded-sm border border-line bg-surface-raised ">
                         <button
                             type="button"
                             wire:click="toggleExpanded({{ $enrollment->id }})"
                             aria-expanded="{{ $isOpen ? 'true' : 'false' }}"
                             aria-controls="enrollment-body-{{ $enrollment->id }}"
-                            class="flex w-full cursor-pointer items-center gap-x-3 gap-y-2 p-5 text-start focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-inset sm:px-6 dark:focus:ring-indigo-400"
+                            class="flex w-full cursor-pointer items-center gap-x-3 gap-y-2 p-5 text-start focus:outline-none focus:ring-2 focus:ring-focus focus:ring-inset sm:px-6 "
                         >
                             <span class="min-w-0 flex-1">
                                 <span class="flex flex-wrap items-center gap-x-3 gap-y-1">
-                                    <span class="text-base font-semibold text-gray-900 dark:text-white">{{ $enrollment->academicYear->name }}</span>
-                                    <span class="text-gray-400 dark:text-gray-500" aria-hidden="true">—</span>
-                                    <span class="text-gray-700 dark:text-gray-300">{{ $enrollment->grade->school->name }} {{ __('schools.grade_number', ['number' => $enrollment->grade->number]) }}</span>
+                                    <span class="text-base font-semibold text-ink ">{{ $enrollment->academicYear->name }}</span>
+                                    <span class="text-subtle " aria-hidden="true">—</span>
+                                    <span class="text-muted ">{{ $enrollment->grade->school->name }} {{ __('schools.grade_number', ['number' => $enrollment->grade->number]) }}</span>
                                     <x-ui.badge :status="$enrollment->status->value" />
                                 </span>
-                                <span class="mt-1 block text-xs text-gray-500 dark:text-gray-400">
+                                <span class="mt-1 block text-xs text-muted ">
                                     @can(\App\Enums\Permission::FeesView->value)
                                         @if($hasTuition)<x-ui.money :minor="$balance['owed']" /> · {{ __('fees.total_due') }} · <x-ui.money :minor="$balance['paid']" /> · {{ __('payments.paid') }}@else{{ __('fees.errors.fees_not_set') }}@endif
                                     @endcan
                                 </span>
                             </span>
-                            <svg class="h-5 w-5 shrink-0 text-gray-500 transition-transform dark:text-gray-400 @if($isOpen) rotate-180 @endif" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg>
+                            <svg class="h-5 w-5 shrink-0 text-muted transition-transform @if($isOpen) rotate-180 @endif" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg>
                             <span class="sr-only">{{ $enrollment->academicYear->name }}</span>
                         </button>
                         @if($isOpen)
-                        <div id="enrollment-body-{{ $enrollment->id }}" class="border-t border-gray-200 px-5 py-4 sm:px-6 dark:border-gray-600">
+                        <div id="enrollment-body-{{ $enrollment->id }}" class="border-t border-line px-5 py-4 sm:px-6 ">
                             <x-ui.button href="{{ route('enrollments.show', $enrollment) }}" wire:navigate variant="secondary" size="sm" :spinner="false">{{ __('enrollments.view_details') }}</x-ui.button>
                         </div>
                         @endif

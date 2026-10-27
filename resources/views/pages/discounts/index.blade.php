@@ -105,7 +105,7 @@ new #[Layout('layouts::app')] class extends Component
                     </x-ui.field>
                 </div>
                 @if($this->parsedPercent)
-                    <p class="text-sm text-gray-600 dark:text-gray-400"><x-ui.percent :bp="$this->parsedPercent" /></p>
+                    <p class="text-sm text-muted "><x-ui.percent :bp="$this->parsedPercent" /></p>
                 @endif
                 <div class="flex flex-wrap gap-2">
                     <x-ui.button type="submit" variant="primary" loading-target="save" wire:loading.attr="disabled">{{ __('common.save') }}</x-ui.button>
@@ -126,11 +126,11 @@ new #[Layout('layouts::app')] class extends Component
             </x-slot:head>
             @foreach($this->discounts as $discount)
                 <tr wire:key="discount-{{ $discount->id }}">
-                    <td class="font-medium text-gray-900 dark:text-white">{{ $discount->name }}</td>
+                    <td class="font-medium text-ink ">{{ $discount->name }}</td>
                     <td><x-ui.percent :bp="$discount->percent_bp" /></td>
                     <td>
                         @can(\App\Enums\Permission::FeesManage->value)
-                            <x-ui.button variant="ghost" size="sm" wire:click="confirmDelete({{ $discount->id }})" :spinner="false" class="text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/30">{{ __('common.delete') }}</x-ui.button>
+                            <x-ui.button variant="ghost" size="sm" wire:click="confirmDelete({{ $discount->id }})" :spinner="false" class="text-negative hover:bg-negative-surface ">{{ __('common.delete') }}</x-ui.button>
                         @endcan
                     </td>
                 </tr>

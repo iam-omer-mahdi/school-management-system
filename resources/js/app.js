@@ -336,6 +336,23 @@ function initPasswordToggles() {
 
 window.initPasswordToggles = initPasswordToggles;
 
+function chartTokens() {
+    const styles = getComputedStyle(document.documentElement);
+    const token = (name) => styles.getPropertyValue(name).trim();
+
+    return {
+        bar: token('--ui-chart-bar'),
+        accent: token('--ui-chart-accent'),
+        ink: token('--ui-ink'),
+        muted: token('--ui-muted'),
+        line: token('--ui-line'),
+        surface: token('--ui-surface'),
+        positive: token('--ui-positive'),
+        warning: token('--ui-warning'),
+        negative: token('--ui-negative'),
+    };
+}
+
 /**
  * Dashboard charts (ApexCharts, bundled offline). Each [data-chart]
  * element carries its labels/series as JSON data attributes rendered
@@ -349,6 +366,15 @@ function renderDashboardCharts() {
 
     const isDark = document.documentElement.classList.contains('dark');
     const mode = isDark ? 'dark' : 'light';
+    const tokens = chartTokens();
+    const fontFamily = 'Cairo, ui-sans-serif, system-ui, sans-serif';
+    const axisLabelStyle = { colors: tokens.muted, fontSize: '11px', fontFamily };
+    const baseChart = {
+        height: 280,
+        background: 'transparent',
+        toolbar: { show: false },
+        fontFamily,
+    };
 
     document.querySelectorAll('[data-chart]').forEach((el) => {
         if (!(el instanceof HTMLElement)) {
@@ -369,31 +395,91 @@ function renderDashboardCharts() {
                     { name: cashLabel, data: collected },
                     { name: restLabel, data: remaining },
                 ],
-                chart: { type: 'bar', height: 280, stacked: true, background: 'transparent', toolbar: { show: false } },
-                colors: ['#10b981', '#f59e0b'],
-                xaxis: { categories: labels },
-                legend: { position: 'bottom' },
+                chart: { ...baseChart, type: 'bar', stacked: true },
+                colors: [tokens.bar, tokens.accent],
+                plotOptions: {
+                    bar: {
+                        horizontal: false,
+                        columnWidth: '35%',
+                        borderRadius: 0,
+                    },
+                },
+                dataLabels: { enabled: false },
+                stroke: { show: false, width: 0 },
+                grid: { show: false },
+                xaxis: {
+                    categories: labels,
+                    axisBorder: { show: false },
+                    axisTicks: { show: false },
+                    labels: { style: axisLabelStyle },
+                },
+                yaxis: {
+                    labels: { style: axisLabelStyle },
+                    axisBorder: { show: false },
+                    axisTicks: { show: false },
+                },
+                legend: {
+                    position: 'bottom',
+                    labels: { colors: tokens.muted },
+                    markers: { size: 6, shape: 'square' },
+                },
                 theme: { mode },
+                tooltip: { theme: mode, style: { fontFamily, fontSize: '12px' } },
             };
         } else if (kind === 'status-donut' || kind === 'fee-donut') {
             const values = JSON.parse(el.getAttribute('data-values') || '[]');
             config = {
                 series: values,
                 labels,
-                chart: { type: 'donut', height: 280, background: 'transparent' },
-                legend: { position: 'bottom' },
+                chart: { ...baseChart, type: 'donut' },
+                colors: [tokens.bar, tokens.accent, tokens.positive, tokens.warning, tokens.info, tokens.negative],
+                dataLabels: { enabled: false },
+                stroke: { width: 0 },
+                legend: {
+                    position: 'bottom',
+                    labels: { colors: tokens.muted },
+                    markers: { size: 6, shape: 'square' },
+                },
+                plotOptions: {
+                    pie: {
+                        donut: {
+                            size: '65%',
+                            labels: {
+                                show: true,
+                                name: { color: tokens.muted, fontFamily },
+                                value: { color: tokens.ink, fontFamily, fontSize: '18px', fontWeight: 600 },
+                                total: { show: true, color: tokens.muted, fontFamily },
+                            },
+                        },
+                    },
+                },
                 theme: { mode },
+                tooltip: { theme: mode, style: { fontFamily, fontSize: '12px' } },
             };
         } else if (kind === 'monthly-line') {
             const values = JSON.parse(el.getAttribute('data-values') || '[]');
             const netLabel = el.getAttribute('data-net-label') || '';
             config = {
                 series: [{ name: netLabel, data: values }],
-                chart: { type: 'line', height: 280, background: 'transparent', toolbar: { show: false } },
-                xaxis: { categories: labels },
-                stroke: { curve: 'smooth', width: 3 },
-                colors: ['#6366f1'],
+                chart: { ...baseChart, type: 'line' },
+                xaxis: {
+                    categories: labels,
+                    axisBorder: { show: false },
+                    axisTicks: { show: false },
+                    labels: { style: axisLabelStyle },
+                },
+                yaxis: {
+                    labels: { style: axisLabelStyle },
+                    axisBorder: { show: false },
+                    axisTicks: { show: false },
+                },
+                grid: { show: false },
+                stroke: { curve: 'straight', width: 2 },
+                markers: { size: 0, hover: { size: 4 } },
+                colors: [tokens.bar],
+                legend: { show: false },
                 theme: { mode },
+                tooltip: { theme: mode, style: { fontFamily, fontSize: '12px' } },
             };
         }
 
@@ -408,7 +494,7 @@ function renderDashboardCharts() {
 
 window.renderDashboardCharts = renderDashboardCharts;
 
-function applyTheme() {
+function applyTheme(renderCharts = true) {
     const stored = localStorage.getItem('color-theme');
 
     if (stored === 'dark' || (!stored && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
@@ -416,12 +502,16 @@ function applyTheme() {
     } else {
         document.documentElement.classList.remove('dark');
     }
+
+    if (renderCharts) {
+        renderDashboardCharts();
+    }
 }
 
 window.applyTheme = applyTheme;
 
 document.addEventListener('DOMContentLoaded', () => {
-    applyTheme();
+    applyTheme(false);
     initFlowbite();
     initMonthPickers();
     initMoneyInputs();
@@ -435,7 +525,7 @@ document.addEventListener('DOMContentLoaded', () => {
 // reload, so re-apply the stored theme — otherwise the <html> class can fall
 // back to light after navigating between pages.
 document.addEventListener('livewire:navigated', () => {
-    applyTheme();
+    applyTheme(false);
     initFlowbite();
     initMonthPickers();
     initMoneyInputs();

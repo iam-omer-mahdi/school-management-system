@@ -125,7 +125,7 @@ new #[Layout('layouts::app')] class extends Component
     <x-ui.card>
         <x-slot:header>
             <div class="flex items-center justify-between gap-2">
-                <h2 class="text-base font-semibold text-gray-900 dark:text-white">{{ __('fees.schedule') }}</h2>
+                <h2 class="text-base font-semibold text-ink ">{{ __('fees.schedule') }}</h2>
                 @if($grade_id !== null && $academic_year_id !== null && $this->schedule->isNotEmpty())
                     <x-ui.badge color="gray">{{ $this->schedule->count() }}</x-ui.badge>
                 @endif
@@ -157,7 +157,7 @@ new #[Layout('layouts::app')] class extends Component
                 </x-ui.select>
             </x-ui.field>
         </div>
-        <div class="mt-6 border-t border-gray-200 pt-6 dark:border-gray-700">
+        <div class="mt-6 border-t border-line pt-6 ">
             @if($grade_id === null || $academic_year_id === null)
                 <x-ui.empty-state :title="__('common.no_results')" :description="__('fees.select_grade_year')" />
             @elseif($this->schedule->isEmpty())
@@ -172,7 +172,7 @@ new #[Layout('layouts::app')] class extends Component
                     </x-slot:head>
                     @foreach($this->schedule as $fee)
                         <tr wire:key="fee-{{ $fee->id }}">
-                            <td class="font-medium text-gray-900 dark:text-white">@if($fee->feeType->isTuition()){{ __('fees.tuition') }}@else{{ $fee->feeType->name }}@endif</td>
+                            <td class="font-medium text-ink ">@if($fee->feeType->isTuition()){{ __('fees.tuition') }}@else{{ $fee->feeType->name }}@endif</td>
                             <td><x-ui.money :minor="$fee->amount_minor" /></td>
                             <td>
                                 @if($fee->feeType->is_mandatory)
@@ -183,7 +183,7 @@ new #[Layout('layouts::app')] class extends Component
                             </td>
                             <td>
                                 @can(\App\Enums\Permission::FeesManage->value)
-                                    <x-ui.button variant="ghost" size="sm" wire:click="confirmDelete({{ $fee->id }})" :spinner="false" class="text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/30">{{ __('common.delete') }}</x-ui.button>
+                                    <x-ui.button variant="ghost" size="sm" wire:click="confirmDelete({{ $fee->id }})" :spinner="false" class="text-negative hover:bg-negative-surface ">{{ __('common.delete') }}</x-ui.button>
                                 @endcan
                             </td>
                         </tr>

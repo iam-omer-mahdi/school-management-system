@@ -211,8 +211,8 @@ new #[Layout('layouts::app')] class extends Component
 
 <x-ui.card>
     <x-slot:header>
-        <h1 class="text-xl font-semibold text-gray-900">{{ __('auth.otp_title') }}</h1>
-        <p class="mt-1 text-sm text-gray-600">{{ __('auth.otp_hint') }}</p>
+        <h1 class="text-xl font-semibold text-ink">{{ __('auth.otp_title') }}</h1>
+        <p class="mt-1 text-sm text-muted">{{ __('auth.otp_hint') }}</p>
     </x-slot:header>
 
     @if($step === 1)
@@ -223,7 +223,7 @@ new #[Layout('layouts::app')] class extends Component
             <x-ui.button type="submit" variant="primary" class="w-full" loading-target="sendCode" wire:loading.attr="disabled">{{ __('auth.otp_request') }}</x-ui.button>
         </form>
         <div class="mt-4 text-center text-sm">
-            <a href="{{ route('recovery.questions') }}" wire:navigate class="font-medium text-indigo-700 hover:underline focus:outline-none focus:ring-4 focus:ring-indigo-300 dark:text-indigo-400 dark:focus:ring-indigo-800">{{ __('auth.use_questions') }}</a>
+            <a href="{{ route('recovery.questions') }}" wire:navigate class="font-medium text-primary hover:underline focus:outline-none focus:ring-2 focus:ring-focus ">{{ __('auth.use_questions') }}</a>
         </div>
     @elseif($step === 2)
         @if(session('neutral'))
@@ -237,7 +237,7 @@ new #[Layout('layouts::app')] class extends Component
         </form>
         <div class="mt-4 space-y-2 text-center text-sm" wire:poll.15s>
             @if($this->resendIn > 0)
-                <p class="text-gray-500 dark:text-gray-400">{{ __('auth.otp_resend_in', ['seconds' => $this->resendIn]) }}</p>
+                <p class="text-muted ">{{ __('auth.otp_resend_in', ['seconds' => $this->resendIn]) }}</p>
             @else
                 <x-ui.button variant="ghost" size="sm" wire:click="resend" loading-target="resend" wire:loading.attr="disabled">{{ __('auth.otp_resend') }}</x-ui.button>
             @endif
@@ -250,7 +250,7 @@ new #[Layout('layouts::app')] class extends Component
             <div class="mb-4"><x-ui.alert type="success">{{ session('verified') }}</x-ui.alert></div>
         @endif
         <form wire:submit="resetPassword" class="space-y-4">
-            <h2 class="text-base font-semibold text-gray-900">{{ __('auth.reset_title') }}</h2>
+            <h2 class="text-base font-semibold text-ink">{{ __('auth.reset_title') }}</h2>
             <x-ui.field :label="__('auth.new_password')" for="password" required :error="$errors->first('password')">
                 <x-ui.input id="password" type="password" wire:model.blur="password" :error="$errors->first('password')" autocomplete="new-password" required />
             </x-ui.field>
@@ -262,6 +262,6 @@ new #[Layout('layouts::app')] class extends Component
     @endif
 
     <div class="mt-4 text-center text-sm">
-        <a href="{{ route('login') }}" wire:navigate class="font-medium text-indigo-700 hover:underline focus:outline-none focus:ring-4 focus:ring-indigo-300 dark:text-indigo-400 dark:focus:ring-indigo-800">{{ __('auth.back_to_login') }}</a>
+        <a href="{{ route('login') }}" wire:navigate class="font-medium text-primary hover:underline focus:outline-none focus:ring-2 focus:ring-focus ">{{ __('auth.back_to_login') }}</a>
     </div>
 </x-ui.card>

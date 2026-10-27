@@ -107,8 +107,8 @@ new class extends Component
 <div class="space-y-6">
     <x-ui.card>
         <x-slot:header>
-            <h2 class="text-base font-semibold text-gray-900 dark:text-white">{{ __('enrollments.change_status') }}</h2>
-            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ __('enrollments.status') }}: <x-ui.badge :status="$enrollment->status->value" /></p>
+            <h2 class="text-base font-semibold text-ink ">{{ __('enrollments.change_status') }}</h2>
+            <p class="mt-1 text-sm text-muted ">{{ __('enrollments.status') }}: <x-ui.badge :status="$enrollment->status->value" /></p>
         </x-slot:header>
         <div class="flex flex-wrap items-center gap-2" role="group" aria-label="{{ __('enrollments.change_status') }}">
             @foreach(EnrollmentStatus::cases() as $case)
@@ -139,16 +139,16 @@ new class extends Component
             $needsPreview = ! $enrollment->status->isCharged() && $targetStatus->isCharged();
         @endphp
         <x-ui.modal :title="__('enrollments.change_status')" close="$set('statusTargetStatus', null)">
-            <p class="font-medium text-gray-900 dark:text-white">{{ __('enrollments.status_'.$statusTargetStatus) }}</p>
+            <p class="font-medium text-ink ">{{ __('enrollments.status_'.$statusTargetStatus) }}</p>
             @if($enrollment->status->isCharged() && $targetStatus && ! $targetStatus->isCharged() && $balance['owed'] > 0)
                 <div class="mt-3"><x-ui.alert type="warning">{{ __('payments.will_no_longer_be_owed', ['amount' => \App\Support\Money::format($balance['owed'])]) }}</x-ui.alert></div>
             @endif
             @if($needsPreview)
                 @if($this->missingFees->isNotEmpty())
-                    <h3 class="mt-4 text-sm font-semibold text-gray-900 dark:text-white">{{ __('enrollments.missing_fees_title') }}</h3>
+                    <h3 class="mt-4 text-sm font-semibold text-ink ">{{ __('enrollments.missing_fees_title') }}</h3>
                     <ul class="mt-3 space-y-2">
                         @foreach($this->missingFees as $missing)
-                            <li wire:key="sp-missing-{{ $missing->id }}" class="flex items-center justify-between gap-2 rounded-lg bg-gray-50 px-3 py-2.5 dark:bg-gray-700/40">
+                            <li wire:key="sp-missing-{{ $missing->id }}" class="flex items-center justify-between gap-2 rounded-sm bg-surface-raised px-3 py-2.5 ">
                                 <span>@if($missing->feeType->isTuition()){{ __('fees.tuition') }}@else{{ $missing->feeType->name }}@endif</span>
                                 <x-ui.money :minor="$missing->amount_minor" />
                             </li>

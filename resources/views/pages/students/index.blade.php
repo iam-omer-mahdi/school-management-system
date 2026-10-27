@@ -63,7 +63,7 @@ new #[Layout('layouts::app')] class extends Component
     <x-ui.card>
         <div class="flex flex-col gap-3 sm:items-end sm:flex-row">
             <div class="relative flex-1">
-                <span class="pointer-events-none absolute inset-y-0 start-0 flex items-center ps-3 text-gray-400">
+                <span class="pointer-events-none absolute inset-y-0 start-0 flex items-center ps-3 text-subtle">
                     <x-ui.icon name="search" class="h-4 w-4" />
                 </span>
                 <x-ui.input type="search" wire:model.live.debounce.300ms="search" :placeholder="__('students.search_placeholder')" aria-label="{{ __('students.search_placeholder') }}" class="ps-9" />
@@ -95,8 +95,8 @@ new #[Layout('layouts::app')] class extends Component
                         ->first();
                 @endphp
                 <tr wire:key="student-{{ $student->id }}">
-                    <td><a href="{{ route('students.show', $student) }}" wire:navigate class="font-medium text-indigo-700 hover:underline focus:outline-none focus:ring-4 focus:ring-indigo-300 dark:text-indigo-400 dark:focus:ring-indigo-800">{{ $student->student_number }}</a></td>
-                    <td><a href="{{ route('students.show', $student) }}" wire:navigate class="text-indigo-700 hover:underline focus:outline-none focus:ring-4 focus:ring-indigo-300 dark:text-indigo-400 dark:focus:ring-indigo-800">{{ $student->name }}</a>
+                    <td><a href="{{ route('students.show', $student) }}" wire:navigate class="font-medium text-primary hover:underline focus:outline-none focus:ring-2 focus:ring-focus ">{{ $student->student_number }}</a></td>
+                    <td><a href="{{ route('students.show', $student) }}" wire:navigate class="text-primary hover:underline focus:outline-none focus:ring-2 focus:ring-focus ">{{ $student->name }}</a>
                         @if($student->isArchived())
                             <x-ui.badge color="gray">{{ __('students.archived') }}</x-ui.badge>
                         @endif

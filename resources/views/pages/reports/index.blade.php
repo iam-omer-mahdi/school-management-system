@@ -384,15 +384,15 @@ new #[Layout('layouts::app')] class extends Component
         <x-ui.page-header :title="__('reports.title')" />
         <div class="no-print flex flex-wrap items-center gap-2">
             <x-ui.button variant="secondary" size="sm" wire:click="exportExcel">{{ __('reports.export_excel') }}</x-ui.button>
-            <a href="{{ route('reports.print', $this->printParams()) }}" target="_blank" class="inline-flex items-center rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700">{{ __('reports.print') }}</a>
-            <a href="{{ route('reports.print', $this->printParams(true)) }}" target="_blank" class="inline-flex items-center rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700">{{ __('reports.print_landscape') }}</a>
+            <a href="{{ route('reports.print', $this->printParams()) }}" target="_blank" class="inline-flex items-center rounded-sm border border-line-strong bg-surface px-3 py-1.5 text-xs font-medium text-muted hover:bg-surface-raised ">{{ __('reports.print') }}</a>
+            <a href="{{ route('reports.print', $this->printParams(true)) }}" target="_blank" class="inline-flex items-center rounded-sm border border-line-strong bg-surface px-3 py-1.5 text-xs font-medium text-muted hover:bg-surface-raised ">{{ __('reports.print_landscape') }}</a>
         </div>
     </div>
 
-    <div class="no-print border-b border-gray-200 text-sm font-medium dark:border-gray-700">
+    <div class="no-print border-b border-line text-sm font-medium ">
         <ul class="flex flex-wrap gap-2">
             @foreach(['year_summary' => __('reports.year_summary'), 'tuition_vs_other' => __('reports.tuition_vs_other'), 'call_list' => __('reports.call_list'), 'collections' => __('reports.collections'), 'discounts' => __('reports.discounts'), 'forgone_by_leavers' => __('reports.forgone_by_leavers'), 'refunds' => __('reports.refunds'), 'student_statement' => __('reports.student_statement')] as $key => $label)
-                <li><button type="button" wire:click="setTab('{{ $key }}')" class="inline-block cursor-pointer rounded-t-lg border-b-2 p-3 transition {{ $tab === $key ? 'border-indigo-600 font-semibold text-indigo-600 dark:border-indigo-500 dark:text-indigo-400' : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-600 dark:text-gray-400' }}">{{ $label }}</button></li>
+                <li><button type="button" wire:click="setTab('{{ $key }}')" class="inline-block cursor-pointer rounded-t-sm border-b-2 p-3 transition {{ $tab === $key ? 'border-primary font-semibold text-primary ' : 'border-transparent text-muted hover:border-line-strong hover:text-muted ' }}">{{ $label }}</button></li>
             @endforeach
         </ul>
     </div>
@@ -426,18 +426,18 @@ new #[Layout('layouts::app')] class extends Component
             @endif
             @if(in_array($tab, ['year_summary', 'tuition_vs_other', 'call_list', 'collections', 'discounts', 'forgone_by_leavers', 'refunds'], true))
                 <div class="sm:col-span-2 lg:col-span-4">
-                    <span class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ __('reports.status_filter') }}</span>
+                    <span class="block text-sm font-medium text-muted ">{{ __('reports.status_filter') }}</span>
                     <div class="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
-                        <button type="button" wire:click="setPreset('all')" class="cursor-pointer text-indigo-600 hover:underline dark:text-indigo-400">{{ __('reports.all_statuses') }}</button>
+                        <button type="button" wire:click="setPreset('all')" class="cursor-pointer text-primary hover:underline ">{{ __('reports.all_statuses') }}</button>
                         <span aria-hidden="true">·</span>
-                        <button type="button" wire:click="setPreset('charged')" class="cursor-pointer text-indigo-600 hover:underline dark:text-indigo-400">{{ __('reports.preset_charged') }}</button>
+                        <button type="button" wire:click="setPreset('charged')" class="cursor-pointer text-primary hover:underline ">{{ __('reports.preset_charged') }}</button>
                         <span aria-hidden="true">·</span>
-                        <button type="button" wire:click="setPreset('ended')" class="cursor-pointer text-indigo-600 hover:underline dark:text-indigo-400">{{ __('reports.preset_ended') }}</button>
+                        <button type="button" wire:click="setPreset('ended')" class="cursor-pointer text-primary hover:underline ">{{ __('reports.preset_ended') }}</button>
                     </div>
                     <div class="mt-3 flex flex-wrap gap-x-6 gap-y-3">
                         @foreach(\App\Enums\EnrollmentStatus::cases() as $case)
-                            <label class="inline-flex items-center gap-1.5 text-xs text-gray-700 dark:text-gray-300">
-                                <input type="checkbox" wire:model.live="statuses" value="{{ $case->value }}" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                            <label class="inline-flex items-center gap-1.5 text-xs text-muted ">
+                                <input type="checkbox" wire:model.live="statuses" value="{{ $case->value }}" class="rounded border-line-strong text-primary focus:ring-focus">
                                 {{ __('enrollments.status_'.$case->value) }}
                             </label>
                         @endforeach
@@ -464,12 +464,12 @@ new #[Layout('layouts::app')] class extends Component
                         <x-ui.input type="search" wire:model.live.debounce.300ms="student_search" :placeholder="__('reports.student_search_placeholder')" />
                     </x-ui.field>
                     @if($this->studentMatches->isNotEmpty())
-                        <ul class="mt-2 max-h-40 overflow-y-auto rounded-md border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
+                        <ul class="mt-2 max-h-40 overflow-y-auto rounded-sm border border-line bg-surface ">
                             @foreach($this->studentMatches as $match)
-                                <li class="border-b border-gray-100 last:border-none dark:border-gray-700">
-                                    <button type="button" wire:click="pickStudent({{ $match->id }})" class="w-full cursor-pointer px-3 py-1.5 text-start text-xs hover:bg-indigo-50 dark:hover:bg-gray-700">
-                                        <span class="font-medium text-gray-900 dark:text-white">{{ $match->name }}</span>
-                                        <span class="text-gray-500" dir="ltr">({{ $match->student_number }})</span>
+                                <li class="border-b border-line last:border-none ">
+                                    <button type="button" wire:click="pickStudent({{ $match->id }})" class="w-full cursor-pointer px-3 py-1.5 text-start text-xs hover:bg-surface-raised ">
+                                        <span class="font-medium text-ink ">{{ $match->name }}</span>
+                                        <span class="text-muted" dir="ltr">({{ $match->student_number }})</span>
                                     </button>
                                 </li>
                             @endforeach
@@ -478,7 +478,7 @@ new #[Layout('layouts::app')] class extends Component
                 </div>
             @endif
         </div>
-        <div class="no-print mt-4 flex justify-end border-t border-gray-200 pt-4 dark:border-gray-700">
+        <div class="no-print mt-4 flex justify-end border-t border-line pt-4 ">
             <x-ui.button variant="primary" size="sm" wire:click="applyFilters">{{ __('reports.apply') }}</x-ui.button>
         </div>
     </x-ui.card>

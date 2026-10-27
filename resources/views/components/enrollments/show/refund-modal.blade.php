@@ -168,7 +168,7 @@ new class extends Component
     <x-ui.card>
         <x-slot:header>
             <div class="flex items-center justify-between gap-2">
-                <h2 class="text-base font-semibold text-gray-900 dark:text-white">{{ __('payments.refunds') }}</h2>
+                <h2 class="text-base font-semibold text-ink ">{{ __('payments.refunds') }}</h2>
                 @can(\App\Enums\Permission::PaymentsManage->value)
                     @if($isEnded && $balance['refundable'] > 0)
                         <x-ui.button variant="secondary" size="sm" wire:click="openRefundModal" :spinner="false">{{ __('payments.refund') }}</x-ui.button>
@@ -177,17 +177,17 @@ new class extends Component
             </div>
         </x-slot:header>
         <p class="flex flex-wrap items-center gap-2 text-sm">
-            <span class="text-gray-500 dark:text-gray-400">{{ __('payments.refundable') }}:</span>
+            <span class="text-muted ">{{ __('payments.refundable') }}:</span>
             <x-ui.money :minor="$balance['refundable']" />
         </p>
         @php $refundHistory = $enrollment->refunds->sortByDesc('id'); @endphp
         @if($refundHistory->isEmpty())
-            <p class="mt-3 text-sm text-gray-600 dark:text-gray-400">{{ __('payments.no_refunds') }}</p>
+            <p class="mt-3 text-sm text-muted ">{{ __('payments.no_refunds') }}</p>
         @else
             <ul class="mt-3 space-y-2 text-sm">
                 @foreach($refundHistory as $refund)
-                    <li wire:key="rm-refund-{{ $refund->id }}" class="flex flex-wrap items-center gap-2 rounded-lg bg-gray-50 px-3 py-2.5 dark:bg-gray-700/40">
-                        <span class="text-gray-700 dark:text-gray-300">
+                    <li wire:key="rm-refund-{{ $refund->id }}" class="flex flex-wrap items-center gap-2 rounded-sm bg-surface-raised px-3 py-2.5 ">
+                        <span class="text-muted ">
                             @if($refund->enrollmentFee?->gradeFee?->feeType?->isTuition())
                                 {{ __('fees.tuition') }}
                             @else
@@ -195,16 +195,16 @@ new class extends Component
                             @endif
                         </span>
                         <x-ui.money :minor="$refund->amount_minor" />
-                        <span class="text-gray-500 dark:text-gray-400">{{ $refund->method === \App\Enums\PaymentMethod::BankTransfer ? __('payments.bank_transfer') : __('payments.cash') }}</span>
+                        <span class="text-muted ">{{ $refund->method === \App\Enums\PaymentMethod::BankTransfer ? __('payments.bank_transfer') : __('payments.cash') }}</span>
                         @if($refund->transaction_number !== null)
-                            <span class="font-mono text-gray-500 dark:text-gray-400" dir="ltr">{{ $refund->transaction_number }}</span>
+                            <span class="font-mono text-muted " dir="ltr">{{ $refund->transaction_number }}</span>
                         @endif
-                        <span class="text-gray-500 dark:text-gray-400">{{ $refund->refunded_on?->format('Y-m-d') }}</span>
+                        <span class="text-muted ">{{ $refund->refunded_on?->format('Y-m-d') }}</span>
                         @if($refund->isVoided())
                             <x-ui.badge color="red">{{ __('payments.void') }}: {{ $refund->void_reason }}</x-ui.badge>
                         @else
                             @can(\App\Enums\Permission::PaymentsManage->value)
-                                <x-ui.button variant="ghost" size="sm" wire:click="requestVoid('refund', {{ $refund->id }})" :spinner="false" class="text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/30">{{ __('payments.void') }}</x-ui.button>
+                                <x-ui.button variant="ghost" size="sm" wire:click="requestVoid('refund', {{ $refund->id }})" :spinner="false" class="text-negative hover:bg-negative-surface ">{{ __('payments.void') }}</x-ui.button>
                             @endcan
                         @endif
                     </li>
@@ -225,7 +225,7 @@ new class extends Component
                         </ul>
                     </x-ui.alert>
                 @endif
-                <p class="text-sm text-gray-600 dark:text-gray-400">{{ __('payments.refundable') }}: <x-ui.money :minor="$balance['refundable']" /></p>
+                <p class="text-sm text-muted ">{{ __('payments.refundable') }}: <x-ui.money :minor="$balance['refundable']" /></p>
                 <x-ui.field :label="__('payments.amount')" for="refund-total" required :error="$errors->first('form.total')">
                     <x-ui.input id="refund-total" type="text" wire:model.live.debounce.500ms="form.total" :error="$errors->first('form.total')" inputmode="decimal" dir="ltr" autocomplete="off" class="font-mono" data-money required />
                 </x-ui.field>
@@ -235,15 +235,15 @@ new class extends Component
                         <x-ui.field :label="$charge->gradeFee->feeType->isTuition() ? __('fees.tuition') : $charge->gradeFee->feeType->name" for="refund-alloc-{{ $charge->grade_fee_id }}">
                             <div class="flex items-center gap-3">
                                 <x-ui.input id="refund-alloc-{{ $charge->grade_fee_id }}" type="text" wire:model.live.debounce.500ms="form.alloc.{{ $charge->grade_fee_id }}" inputmode="decimal" dir="ltr" autocomplete="off" class="font-mono" data-money />
-                                <span class="shrink-0 text-xs text-gray-500 dark:text-gray-400"><x-ui.money :minor="$feeRefundable" /></span>
+                                <span class="shrink-0 text-xs text-muted "><x-ui.money :minor="$feeRefundable" /></span>
                             </div>
                         </x-ui.field>
                     @endif
                 @endforeach
                 <p class="flex flex-wrap items-center gap-2 text-sm">
-                    <span class="text-gray-500 dark:text-gray-400">{{ __('payments.unallocated') }}:</span>
+                    <span class="text-muted ">{{ __('payments.unallocated') }}:</span>
                     @if($this->refundUnallocated === null)
-                        <span class="text-gray-500 dark:text-gray-400">—</span>
+                        <span class="text-muted ">—</span>
                     @else
                         <x-ui.money :minor="max(0, $this->refundUnallocated)" />
                     @endif
@@ -268,7 +268,7 @@ new class extends Component
                     <x-ui.input id="refund-note" type="text" wire:model.blur="form.note" :error="$errors->first('note')" autocomplete="off" required />
                 </x-ui.field>
                 @if($this->refundBlockReason !== null)
-                    <p class="text-sm text-amber-700 dark:text-amber-400">{{ $this->refundBlockReason }}</p>
+                    <p class="text-sm text-warning ">{{ $this->refundBlockReason }}</p>
                 @endif
             </form>
             <x-slot:footer>

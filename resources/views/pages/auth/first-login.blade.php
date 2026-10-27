@@ -98,15 +98,15 @@ new #[Layout('layouts::app')] class extends Component
 
             @php($securityQuestions = SecurityQuestionRecovery::questions())
             <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div class="text-sm font-medium text-gray-900 dark:text-white">{{ $securityQuestions[0] }}</div>
+                <div class="text-sm font-medium text-ink ">{{ $securityQuestions[0] }}</div>
                 <x-ui.field :label="__('settings.answer', ['n' => 1])" for="first-login-answer-1" required :error="$errors->first('answer_1')">
                     <x-ui.input id="first-login-answer-1" type="password" wire:model.blur="answer_1" :error="$errors->first('answer_1')" autocomplete="off" required />
                 </x-ui.field>
-                <div class="text-sm font-medium text-gray-900 dark:text-white">{{ $securityQuestions[1] }}</div>
+                <div class="text-sm font-medium text-ink ">{{ $securityQuestions[1] }}</div>
                 <x-ui.field :label="__('settings.answer', ['n' => 2])" for="first-login-answer-2" required :error="$errors->first('answer_2')">
                     <x-ui.input id="first-login-answer-2" type="password" wire:model.blur="answer_2" :error="$errors->first('answer_2')" autocomplete="off" required />
                 </x-ui.field>
-                <div class="text-sm font-medium text-gray-900 dark:text-white">{{ $securityQuestions[2] }}</div>
+                <div class="text-sm font-medium text-ink ">{{ $securityQuestions[2] }}</div>
                 <x-ui.field :label="__('settings.answer', ['n' => 3])" for="first-login-answer-3" required :error="$errors->first('answer_3')">
                     <x-ui.input id="first-login-answer-3" type="password" wire:model.blur="answer_3" :error="$errors->first('answer_3')" autocomplete="off" required />
                 </x-ui.field>

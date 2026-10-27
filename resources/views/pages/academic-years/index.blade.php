@@ -105,7 +105,7 @@ new #[Layout('layouts::app')] class extends Component
                     </x-ui.field>
                 </div>
                 <x-ui.field :label="__('academic_years.name')" for="year-name">
-                    <x-ui.input id="year-name" type="text" wire:model="form.name" readonly tabindex="-1" class="bg-gray-100 dark:bg-gray-800" />
+                    <x-ui.input id="year-name" type="text" wire:model="form.name" readonly tabindex="-1" class="bg-surface-raised " />
                 </x-ui.field>
                 <div class="flex flex-wrap gap-2">
                     <x-ui.button type="submit" variant="primary" loading-target="save" wire:loading.attr="disabled">{{ __('common.save') }}</x-ui.button>
@@ -127,12 +127,12 @@ new #[Layout('layouts::app')] class extends Component
             </x-slot:head>
             @foreach($this->years as $year)
                 <tr wire:key="year-{{ $year->id }}">
-                    <td class="font-medium text-gray-900 dark:text-white">{{ $year->name }}</td>
+                    <td class="font-medium text-ink ">{{ $year->name }}</td>
                     <td>{{ $year->starts_on?->format('n/Y') }}</td>
                     <td>{{ $year->ends_on?->format('n/Y') }}</td>
                     <td>
                         <div class="flex flex-wrap gap-2">
-                            <x-ui.button variant="ghost" size="sm" wire:click="confirmDelete({{ $year->id }})" :spinner="false" class="text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/30">{{ __('common.delete') }}</x-ui.button>
+                            <x-ui.button variant="ghost" size="sm" wire:click="confirmDelete({{ $year->id }})" :spinner="false" class="text-negative hover:bg-negative-surface ">{{ __('common.delete') }}</x-ui.button>
                         </div>
                     </td>
                 </tr>

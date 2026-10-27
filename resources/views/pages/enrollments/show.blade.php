@@ -81,29 +81,29 @@ new #[Layout('layouts::app')] class extends Component
 
     <x-ui.card>
         <dl class="grid grid-cols-1 gap-x-8 gap-y-5 text-sm sm:grid-cols-2">
-            <div><dt class="text-gray-500 dark:text-gray-400">{{ __('students.student_number') }}</dt><dd class="mt-0.5 font-medium text-gray-900 dark:text-white"><a href="{{ route('students.show', $enrollment->student) }}" wire:navigate class="text-indigo-700 hover:underline focus:outline-none focus:ring-4 focus:ring-indigo-300 dark:text-indigo-400 dark:focus:ring-indigo-800">{{ $enrollment->student->student_number }}</a></dd></div>
-            <div><dt class="text-gray-500 dark:text-gray-400">{{ __('students.name') }}</dt><dd class="mt-0.5 font-medium text-gray-900 dark:text-white"><a href="{{ route('students.show', $enrollment->student) }}" wire:navigate class="text-indigo-700 hover:underline focus:outline-none focus:ring-4 focus:ring-indigo-300 dark:text-indigo-400 dark:focus:ring-indigo-800">{{ $enrollment->student->name }}</a></dd></div>
-            <div><dt class="text-gray-500 dark:text-gray-400">{{ __('fees.school') }}</dt><dd class="mt-0.5 font-medium text-gray-900 dark:text-white">{{ $enrollment->grade->school->name }}</dd></div>
-            <div><dt class="text-gray-500 dark:text-gray-400">{{ __('fees.grade') }}</dt><dd class="mt-0.5 font-medium text-gray-900 dark:text-white">{{ __('schools.grade_number', ['number' => $enrollment->grade->number]) }}</dd></div>
-            <div><dt class="text-gray-500 dark:text-gray-400">{{ __('fees.academic_year') }}</dt><dd class="mt-0.5 font-medium text-gray-900 dark:text-white">{{ $enrollment->academicYear->name }}</dd></div>
-            <div><dt class="text-gray-500 dark:text-gray-400">{{ __('enrollments.status') }}</dt><dd class="mt-0.5 font-medium text-gray-900 dark:text-white">{{ __('enrollments.status_'.$enrollment->status->value) }}</dd></div>
+            <div><dt class="text-muted ">{{ __('students.student_number') }}</dt><dd class="mt-0.5 font-medium text-ink "><a href="{{ route('students.show', $enrollment->student) }}" wire:navigate class="text-primary hover:underline focus:outline-none focus:ring-2 focus:ring-focus ">{{ $enrollment->student->student_number }}</a></dd></div>
+            <div><dt class="text-muted ">{{ __('students.name') }}</dt><dd class="mt-0.5 font-medium text-ink "><a href="{{ route('students.show', $enrollment->student) }}" wire:navigate class="text-primary hover:underline focus:outline-none focus:ring-2 focus:ring-focus ">{{ $enrollment->student->name }}</a></dd></div>
+            <div><dt class="text-muted ">{{ __('fees.school') }}</dt><dd class="mt-0.5 font-medium text-ink ">{{ $enrollment->grade->school->name }}</dd></div>
+            <div><dt class="text-muted ">{{ __('fees.grade') }}</dt><dd class="mt-0.5 font-medium text-ink ">{{ __('schools.grade_number', ['number' => $enrollment->grade->number]) }}</dd></div>
+            <div><dt class="text-muted ">{{ __('fees.academic_year') }}</dt><dd class="mt-0.5 font-medium text-ink ">{{ $enrollment->academicYear->name }}</dd></div>
+            <div><dt class="text-muted ">{{ __('enrollments.status') }}</dt><dd class="mt-0.5 font-medium text-ink ">{{ __('enrollments.status_'.$enrollment->status->value) }}</dd></div>
         </dl>
     </x-ui.card>
 
     @if($netMinor !== null && auth()->user()?->can(\App\Enums\Permission::FeesView->value))
         <x-ui.card>
             <dl class="grid grid-cols-2 gap-x-6 gap-y-4 text-sm sm:grid-cols-4">
-                <div><dt class="text-gray-500 dark:text-gray-400">{{ __('fees.tuition') }}</dt><dd class="font-medium text-gray-900 dark:text-white"><x-ui.money :minor="$tuitionMinor" /></dd></div>
-                <div><dt class="text-gray-500 dark:text-gray-400">{{ __('fees.discount') }}</dt><dd class="font-medium text-gray-900 dark:text-white"><x-ui.money :minor="$balance['discount']" /></dd></div>
-                <div><dt class="text-gray-500 dark:text-gray-400">{{ __('fees.tuition_net') }}</dt><dd class="font-medium text-gray-900 dark:text-white"><x-ui.money :minor="$netMinor" /></dd></div>
-                <div><dt class="text-gray-500 dark:text-gray-400">{{ __('payments.paid') }}</dt><dd class="font-medium text-gray-900 dark:text-white"><x-ui.money :minor="$balance['paid']" /></dd></div>
-                <div><dt class="text-gray-500 dark:text-gray-400">{{ __('payments.refunded') }}</dt><dd class="font-medium text-gray-900 dark:text-white"><x-ui.money :minor="$balance['refunded']" /></dd></div>
-                <div><dt class="text-gray-500 dark:text-gray-400">{{ __('payments.net_paid') }}</dt><dd class="font-medium text-gray-900 dark:text-white"><x-ui.money :minor="$balance['net_paid']" /></dd></div>
-                <div><dt class="text-gray-500 dark:text-gray-400">{{ __('fees.total_due') }}</dt><dd class="font-medium text-gray-900 dark:text-white"><x-ui.money :minor="$balance['owed']" /></dd></div>
-                <div><dt class="text-gray-500 dark:text-gray-400">{{ __('payments.received') }}</dt><dd class="font-medium text-gray-900 dark:text-white"><x-ui.money :minor="$balance['cash_received']" /></dd></div>
+                <div><dt class="text-muted ">{{ __('fees.tuition') }}</dt><dd class="font-medium text-ink "><x-ui.money :minor="$tuitionMinor" /></dd></div>
+                <div><dt class="text-muted ">{{ __('fees.discount') }}</dt><dd class="font-medium text-ink "><x-ui.money :minor="$balance['discount']" /></dd></div>
+                <div><dt class="text-muted ">{{ __('fees.tuition_net') }}</dt><dd class="font-medium text-ink "><x-ui.money :minor="$netMinor" /></dd></div>
+                <div><dt class="text-muted ">{{ __('payments.paid') }}</dt><dd class="font-medium text-ink "><x-ui.money :minor="$balance['paid']" /></dd></div>
+                <div><dt class="text-muted ">{{ __('payments.refunded') }}</dt><dd class="font-medium text-ink "><x-ui.money :minor="$balance['refunded']" /></dd></div>
+                <div><dt class="text-muted ">{{ __('payments.net_paid') }}</dt><dd class="font-medium text-ink "><x-ui.money :minor="$balance['net_paid']" /></dd></div>
+                <div><dt class="text-muted ">{{ __('fees.total_due') }}</dt><dd class="font-medium text-ink "><x-ui.money :minor="$balance['owed']" /></dd></div>
+                <div><dt class="text-muted ">{{ __('payments.received') }}</dt><dd class="font-medium text-ink "><x-ui.money :minor="$balance['cash_received']" /></dd></div>
             </dl>
             @if($isEnded)
-                <p class="mt-4 text-sm text-gray-600 dark:text-gray-400">{{ __('payments.closed_without_payment') }}: <x-ui.money :minor="$balance['closed_without_payment']" /></p>
+                <p class="mt-4 text-sm text-muted ">{{ __('payments.closed_without_payment') }}: <x-ui.money :minor="$balance['closed_without_payment']" /></p>
             @endif
         </x-ui.card>
     @endif

@@ -68,7 +68,7 @@ new #[Layout('layouts::app')] class extends Component
 
 <x-ui.card>
     <x-slot:header>
-        <h1 class="text-xl font-semibold text-gray-900 dark:text-white">{{ __('auth.title') }}</h1>
+        <h1 class="text-xl font-semibold text-ink ">{{ __('auth.title') }}</h1>
     </x-slot:header>
     @if(session('status'))
         <div class="mb-4"><x-ui.alert type="success">{{ session('status') }}</x-ui.alert></div>
@@ -84,7 +84,7 @@ new #[Layout('layouts::app')] class extends Component
         <x-ui.button type="submit" variant="primary" size="md" class="w-full" loading-target="login" wire:loading.attr="disabled">{{ __('auth.submit') }}</x-ui.button>
     </form>
     <div class="mt-4 flex flex-col gap-2 text-sm">
-        <a href="{{ route('password.request') }}" wire:navigate class="font-medium text-indigo-700 hover:underline focus:outline-none focus:ring-4 focus:ring-indigo-300 dark:text-indigo-400 dark:focus:ring-indigo-800">{{ __('auth.forgot') }}</a>
-        <a href="{{ route('recovery.questions') }}" wire:navigate class="font-medium text-indigo-700 hover:underline focus:outline-none focus:ring-4 focus:ring-indigo-300 dark:text-indigo-400 dark:focus:ring-indigo-800">{{ __('auth.recover_questions') }}</a>
+        <a href="{{ route('password.request') }}" wire:navigate class="font-medium text-primary hover:underline focus:outline-none focus:ring-2 focus:ring-focus ">{{ __('auth.forgot') }}</a>
+        <a href="{{ route('recovery.questions') }}" wire:navigate class="font-medium text-primary hover:underline focus:outline-none focus:ring-2 focus:ring-focus ">{{ __('auth.recover_questions') }}</a>
     </div>
 </x-ui.card>

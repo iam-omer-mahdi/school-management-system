@@ -133,18 +133,18 @@ new #[Layout('layouts::app')] class extends Component
                 <x-slot:header>
                     <div class="flex items-center justify-between gap-2">
                         <div class="flex items-center gap-2">
-                            <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-indigo-100 text-indigo-600 dark:bg-indigo-900 dark:text-indigo-300">
+                            <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-sm bg-info-surface text-primary ">
                                 <x-ui.icon name="cap" class="h-5 w-5" />
                             </span>
                             <div>
-                                <h2 class="text-base font-semibold text-gray-900 dark:text-white">{{ $school->name }}</h2>
-                                <p class="text-xs text-gray-500 dark:text-gray-400">{{ $school->type->label() }}</p>
+                                <h2 class="text-base font-semibold text-ink ">{{ $school->name }}</h2>
+                                <p class="text-xs text-muted ">{{ $school->type->label() }}</p>
                             </div>
                         </div>
                         @can(\App\Enums\Permission::SchoolsManage->value)
                             <div class="flex shrink-0 gap-1">
                                 <x-ui.button variant="ghost" size="sm" wire:click="editName({{ $school->id }})" :spinner="false">{{ __('schools.rename') }}</x-ui.button>
-                                <x-ui.button variant="ghost" size="sm" wire:click="confirmDelete({{ $school->id }})" :spinner="false" class="text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/30">{{ __('common.delete') }}</x-ui.button>
+                                <x-ui.button variant="ghost" size="sm" wire:click="confirmDelete({{ $school->id }})" :spinner="false" class="text-negative hover:bg-negative-surface ">{{ __('common.delete') }}</x-ui.button>
                             </div>
                         @endcan
                     </div>

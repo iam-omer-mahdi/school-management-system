@@ -202,10 +202,10 @@ new #[Layout('layouts::app')] class extends Component
                 </x-ui.field>
             </div>
             @if($this->parsedAmount)
-                <p class="text-2xl font-bold text-gray-900 dark:text-white"><x-ui.money :minor="$this->parsedAmount" /></p>
+                <p class="text-2xl font-bold text-ink "><x-ui.money :minor="$this->parsedAmount" /></p>
             @endif
             @if($grade_id !== null && $academic_year_id !== null)
-                <p class="text-sm text-gray-600 dark:text-gray-400">{{ __('fees.will_apply', ['applied' => $this->preview['applied'], 'skipped' => $this->preview['skipped']]) }}</p>
+                <p class="text-sm text-muted ">{{ __('fees.will_apply', ['applied' => $this->preview['applied'], 'skipped' => $this->preview['skipped']]) }}</p>
             @endif
             <div class="flex flex-wrap gap-2">
                 <x-ui.button type="submit" variant="primary" loading-target="save" wire:loading.attr="disabled">{{ __('common.save') }}</x-ui.button>

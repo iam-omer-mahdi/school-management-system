@@ -213,7 +213,7 @@ new #[Layout('layouts::app')] class extends Component
             <div class="mb-4"><x-ui.alert type="success" dismissible>{{ session('email') }}</x-ui.alert></div>
         @endif
         <x-ui.field :label="__('settings.current_email')" for="current-email">
-            <p id="current-email" class="rounded-lg border border-gray-200 bg-gray-50 p-2.5 text-sm text-gray-900 dark:border-gray-600 dark:bg-gray-700 dark:text-white">{{ auth()->user()->email }}</p>
+            <p id="current-email" class="rounded-sm border border-line bg-surface-raised p-2.5 text-sm text-ink ">{{ auth()->user()->email }}</p>
         </x-ui.field>
         <div class="mt-4">
             <x-ui.button type="button" variant="secondary" size="sm" wire:click="$toggle('showEmailForm')" :spinner="false">
@@ -281,15 +281,15 @@ new #[Layout('layouts::app')] class extends Component
             @php($securityQuestions = SecurityQuestionRecovery::questions())
             <form wire:submit="updateSecurity" class="mt-4 space-y-4">
                 <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                    <div class="text-sm font-medium text-gray-900 dark:text-white">{{ $securityQuestions[0] }}</div>
+                    <div class="text-sm font-medium text-ink ">{{ $securityQuestions[0] }}</div>
                     <x-ui.field :label="__('settings.answer', ['n' => 1])" for="answer_1" required :error="$errors->first('answer_1')">
                         <x-ui.input id="answer_1" type="password" wire:model.blur="answer_1" :error="$errors->first('answer_1')" autocomplete="off" required />
                     </x-ui.field>
-                    <div class="text-sm font-medium text-gray-900 dark:text-white">{{ $securityQuestions[1] }}</div>
+                    <div class="text-sm font-medium text-ink ">{{ $securityQuestions[1] }}</div>
                     <x-ui.field :label="__('settings.answer', ['n' => 2])" for="answer_2" required :error="$errors->first('answer_2')">
                         <x-ui.input id="answer_2" type="password" wire:model.blur="answer_2" :error="$errors->first('answer_2')" autocomplete="off" required />
                     </x-ui.field>
-                    <div class="text-sm font-medium text-gray-900 dark:text-white">{{ $securityQuestions[2] }}</div>
+                    <div class="text-sm font-medium text-ink ">{{ $securityQuestions[2] }}</div>
                     <x-ui.field :label="__('settings.answer', ['n' => 3])" for="answer_3" required :error="$errors->first('answer_3')">
                         <x-ui.input id="answer_3" type="password" wire:model.blur="answer_3" :error="$errors->first('answer_3')" autocomplete="off" required />
                     </x-ui.field>
@@ -302,7 +302,7 @@ new #[Layout('layouts::app')] class extends Component
     <x-ui.card :title="__('settings.language_title')" :description="__('settings.language_hint')">
         <div class="grid grid-cols-1 gap-5 sm:grid-cols-2">
             <div>
-                <p class="mb-2 text-sm font-medium text-gray-900 dark:text-white">{{ __('settings.language_title') }}</p>
+                <p class="mb-2 text-sm font-medium text-ink ">{{ __('settings.language_title') }}</p>
                 <form method="POST" action="{{ route('locale.switch') }}" class="flex flex-wrap gap-2">
                     @csrf
                     <x-ui.button type="submit" name="locale" value="en" variant="secondary" size="sm" :spinner="false">{{ __('common.english') }}</x-ui.button>
@@ -310,8 +310,8 @@ new #[Layout('layouts::app')] class extends Component
                 </form>
             </div>
             <div>
-                <p class="mb-2 text-sm font-medium text-gray-900 dark:text-white">{{ __('settings.appearance_title') }}</p>
-                <p class="mb-2 text-xs text-gray-500 dark:text-gray-400">{{ __('settings.appearance_hint') }}</p>
+                <p class="mb-2 text-sm font-medium text-ink ">{{ __('settings.appearance_title') }}</p>
+                <p class="mb-2 text-xs text-muted ">{{ __('settings.appearance_hint') }}</p>
                 <div class="flex flex-wrap gap-2" role="group" aria-label="{{ __('settings.appearance_title') }}">
                     <x-ui.button type="button" variant="secondary" size="sm" data-theme-set="light" :spinner="false">{{ __('settings.theme_light') }}</x-ui.button>
                     <x-ui.button type="button" variant="secondary" size="sm" data-theme-set="dark" :spinner="false">{{ __('settings.theme_dark') }}</x-ui.button>

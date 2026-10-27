@@ -106,8 +106,8 @@ new #[Layout('layouts::app')] class extends Component
     <x-ui.card>
         <form wire:submit="save" class="space-y-8">
             <fieldset>
-                <legend class="text-sm font-semibold text-gray-900 dark:text-white">{{ __('students.section_basic') }}</legend>
-                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ __('students.section_basic_hint') }}</p>
+                <legend class="text-sm font-semibold text-ink ">{{ __('students.section_basic') }}</legend>
+                <p class="mt-1 text-sm text-muted ">{{ __('students.section_basic_hint') }}</p>
                 <div class="mt-5 grid grid-cols-1 gap-x-6 gap-y-5 sm:grid-cols-2">
                     <x-ui.field :label="__('students.name')" for="name" required :error="$errors->first('form.name')">
                         <x-ui.input id="name" type="text" wire:model.blur="form.name" :error="$errors->first('form.name')" required />
@@ -129,9 +129,9 @@ new #[Layout('layouts::app')] class extends Component
                 </div>
             </fieldset>
 
-            <fieldset class="border-t border-gray-200 pt-7 dark:border-gray-700">
-                <legend class="text-sm font-semibold text-gray-900 dark:text-white">{{ __('students.section_contact') }}</legend>
-                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ __('students.section_contact_hint') }}</p>
+            <fieldset class="border-t border-line pt-7 ">
+                <legend class="text-sm font-semibold text-ink ">{{ __('students.section_contact') }}</legend>
+                <p class="mt-1 text-sm text-muted ">{{ __('students.section_contact_hint') }}</p>
                 <div class="mt-5 grid grid-cols-1 gap-x-6 gap-y-5 sm:grid-cols-2">
                     <x-ui.field :label="__('students.phone')" for="phone" required :error="$errors->first('form.phone')">
                         <x-ui.input id="phone" type="tel" wire:model.blur="form.phone" :error="$errors->first('form.phone')" required />
@@ -145,9 +145,9 @@ new #[Layout('layouts::app')] class extends Component
                 </div>
             </fieldset>
 
-            <fieldset class="border-t border-gray-200 pt-7 dark:border-gray-700">
-                <legend class="text-sm font-semibold text-gray-900 dark:text-white">{{ __('students.section_guardian') }}</legend>
-                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ __('students.section_guardian_hint') }}</p>
+            <fieldset class="border-t border-line pt-7 ">
+                <legend class="text-sm font-semibold text-ink ">{{ __('students.section_guardian') }}</legend>
+                <p class="mt-1 text-sm text-muted ">{{ __('students.section_guardian_hint') }}</p>
                 <div class="mt-5 grid grid-cols-1 gap-x-6 gap-y-5 sm:grid-cols-2">
                     <x-ui.field :label="__('students.guardian_name')" for="guardian_name" :error="$errors->first('form.guardian_name')">
                         <x-ui.input id="guardian_name" type="text" wire:model.blur="form.guardian_name" :error="$errors->first('form.guardian_name')" />
@@ -158,7 +158,7 @@ new #[Layout('layouts::app')] class extends Component
                 </div>
             </fieldset>
 
-            <div class="rounded-xl border border-gray-200 bg-gray-50 p-5 sm:p-6 dark:border-gray-600 dark:bg-gray-700/40">
+            <div class="rounded-sm border border-line bg-surface-raised p-5 sm:p-6 ">
                 <x-ui.checkbox wire:model.live="enrollNow" :label="__('students.enroll_now')" />
 
                 @if($enrollNow)
@@ -191,7 +191,7 @@ new #[Layout('layouts::app')] class extends Component
                 @endif
             </div>
 
-            <div class="flex flex-col-reverse gap-3 border-t border-gray-200 pt-6 sm:flex-row sm:justify-end dark:border-gray-700">
+            <div class="flex flex-col-reverse gap-3 border-t border-line pt-6 sm:flex-row sm:justify-end ">
                 <x-ui.button href="{{ route('students.index') }}" wire:navigate variant="secondary" :spinner="false" class="w-full sm:w-auto">{{ __('common.cancel') }}</x-ui.button>
                 <x-ui.button type="submit" variant="primary" loading-target="save" wire:loading.attr="disabled" class="w-full sm:w-auto">{{ __('common.save') }}</x-ui.button>
             </div>

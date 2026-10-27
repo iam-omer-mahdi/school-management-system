@@ -1,7 +1,7 @@
 {{-- Student account statement, all years. Expects $student (with enrollments + relations). --}}
 <div class="mb-4">
-    <h2 class="text-base font-bold text-gray-900 dark:text-white">{{ $student->name }}</h2>
-    <div class="text-xs text-gray-600 dark:text-gray-400">
+    <h2 class="text-base font-bold text-ink ">{{ $student->name }}</h2>
+    <div class="text-xs text-muted ">
         {{ __('students.student_number') }}: <span dir="ltr">{{ $student->student_number }}</span>
         · {{ __('students.phone') }}: <span dir="ltr">{{ $student->phone }}</span>
     </div>
@@ -9,8 +9,8 @@
 
 @foreach($student->enrollments as $enr)
     @php($bal = \App\Support\EnrollmentBalance::forEnrollment($enr))
-    <div class="mb-6 rounded border border-gray-300 p-3 dark:border-gray-600">
-        <div class="mb-2 flex flex-wrap justify-between gap-2 border-b border-gray-200 pb-2 text-xs font-bold dark:border-gray-700">
+    <div class="mb-6 rounded border border-line-strong p-3 ">
+        <div class="mb-2 flex flex-wrap justify-between gap-2 border-b border-line pb-2 text-xs font-bold ">
             <span>{{ $enr->academicYear->name }} · {{ $enr->grade->school->name }} {{ __('schools.grade_number', ['number' => $enr->grade->number]) }} ({{ __('enrollments.status_'.$enr->status->value) }})</span>
             <span>{{ __('reports.still_owed') }}: <x-ui.money :minor="$bal['owed']" /></span>
         </div>

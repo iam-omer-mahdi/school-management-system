@@ -115,8 +115,8 @@ new #[Layout('layouts::app')] class extends Component
 
 <x-ui.card>
     <x-slot:header>
-        <h1 class="text-xl font-semibold text-gray-900">{{ __('auth.recovery_title') }}</h1>
-        <p class="mt-1 text-sm text-gray-600">{{ __('auth.questions_hint') }}</p>
+        <h1 class="text-xl font-semibold text-ink">{{ __('auth.recovery_title') }}</h1>
+        <p class="mt-1 text-sm text-muted">{{ __('auth.questions_hint') }}</p>
     </x-slot:header>
 
     @if($step === 1)
@@ -145,6 +145,6 @@ new #[Layout('layouts::app')] class extends Component
     @endif
 
     <div class="mt-4 text-center text-sm">
-        <a href="{{ route('login') }}" wire:navigate class="font-medium text-indigo-700 hover:underline focus:outline-none focus:ring-4 focus:ring-indigo-300 dark:text-indigo-400 dark:focus:ring-indigo-800">{{ __('auth.back_to_login') }}</a>
+        <a href="{{ route('login') }}" wire:navigate class="font-medium text-primary hover:underline focus:outline-none focus:ring-2 focus:ring-focus ">{{ __('auth.back_to_login') }}</a>
     </div>
 </x-ui.card>

@@ -121,7 +121,7 @@
 
         document.addEventListener('livewire:navigated', function () {
             if (window.applyTheme) {
-                window.applyTheme();
+                window.applyTheme(false);
             }
             if (window.initFlowbite) {
                 window.initFlowbite();

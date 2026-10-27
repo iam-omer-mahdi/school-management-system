@@ -1,7 +1,7 @@
 {{-- Forgone by leavers: by-grade summary plus per-student details.
      $summary (forgoneByGrade), $details (forgoneListQuery rows).
      Screen passes $linkNames=true for profile links; print passes neither. --}}
-<div class="overflow-x-auto rounded-lg border border-gray-700 dark:border-gray-600">
+<div class="overflow-x-auto rounded-sm border border-line ">
     <table class="report-table w-full text-sm">
         <thead>
             <tr>
@@ -31,8 +31,8 @@
     </table>
 </div>
 
-<h3 class="mt-6 mb-2 text-sm font-bold text-gray-900 dark:text-white">{{ __('reports.forgone_details') }}</h3>
-<div class="overflow-x-auto rounded-lg border border-gray-700 dark:border-gray-600">
+<h3 class="mt-6 mb-2 text-sm font-bold text-ink ">{{ __('reports.forgone_details') }}</h3>
+<div class="overflow-x-auto rounded-sm border border-line ">
     <table class="report-table w-full text-sm">
         <thead>
             <tr>
@@ -50,7 +50,7 @@
                     <td dir="ltr" class="font-mono text-xs">{{ $item->student_number }}</td>
                     <td class="font-medium">
                         @if(! empty($linkNames))
-                            <a href="{{ route('students.show', $item->student_id) }}" wire:navigate class="text-indigo-600 hover:underline dark:text-indigo-400">{{ $item->student_name }}</a>
+                            <a href="{{ route('students.show', $item->student_id) }}" wire:navigate class="text-primary hover:underline ">{{ $item->student_name }}</a>
                         @else
                             {{ $item->student_name }}
                         @endif

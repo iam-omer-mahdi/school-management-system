@@ -110,30 +110,30 @@ new #[Layout('layouts::app')] class extends Component
     @can(\App\Enums\Permission::FeesView->value)
     <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <x-ui.card>
-            <div class="text-xs font-semibold text-gray-500 uppercase dark:text-gray-400">{{ __('reports.grand_total') }}</div>
-            <div class="mt-2 text-2xl font-bold text-gray-900 dark:text-white"><x-ui.money :minor="$sum['grand_total']" /></div>
-            <div class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ $sum['count'] }} {{ __('reports.enrollments_count') }}</div>
+            <div class="text-xs font-semibold text-muted uppercase ">{{ __('reports.grand_total') }}</div>
+            <div class="mt-2 text-2xl font-bold text-ink "><x-ui.money :minor="$sum['grand_total']" /></div>
+            <div class="mt-1 text-xs text-muted ">{{ $sum['count'] }} {{ __('reports.enrollments_count') }}</div>
         </x-ui.card>
         <x-ui.card>
-            <div class="text-xs font-semibold text-emerald-600 uppercase dark:text-emerald-400">{{ __('reports.current') }}</div>
-            <div class="mt-2 text-2xl font-bold text-emerald-600 dark:text-emerald-400"><x-ui.money :minor="$sum['current']" /></div>
-            <div class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ $sum['percent_paid'] !== null ? number_format($sum['percent_paid'], 1).'%' : '—' }} {{ __('reports.percent_paid') }}</div>
+            <div class="text-xs font-semibold text-positive uppercase ">{{ __('reports.current') }}</div>
+            <div class="mt-2 text-2xl font-bold text-positive "><x-ui.money :minor="$sum['current']" /></div>
+            <div class="mt-1 text-xs text-muted ">{{ $sum['percent_paid'] !== null ? number_format($sum['percent_paid'], 1).'%' : '—' }} {{ __('reports.percent_paid') }}</div>
         </x-ui.card>
         <x-ui.card>
-            <div class="text-xs font-semibold text-amber-600 uppercase dark:text-amber-400">{{ __('reports.still_owed') }}</div>
-            <div class="mt-2 text-2xl font-bold text-amber-600 dark:text-amber-400"><x-ui.money :minor="$sum['still_owed']" /></div>
-            <div class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ __('reports.preset_charged') }}</div>
+            <div class="text-xs font-semibold text-warning uppercase ">{{ __('reports.still_owed') }}</div>
+            <div class="mt-2 text-2xl font-bold text-warning "><x-ui.money :minor="$sum['still_owed']" /></div>
+            <div class="mt-1 text-xs text-muted ">{{ __('reports.preset_charged') }}</div>
         </x-ui.card>
         <x-ui.card>
-            <div class="text-xs font-semibold text-rose-600 uppercase dark:text-rose-400">{{ __('reports.forgone') }}</div>
-            <div class="mt-2 text-2xl font-bold text-rose-600 dark:text-rose-400"><x-ui.money :minor="$sum['forgone']" /></div>
-            <div class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ __('reports.preset_ended') }}</div>
+            <div class="text-xs font-semibold text-negative uppercase ">{{ __('reports.forgone') }}</div>
+            <div class="mt-2 text-2xl font-bold text-negative "><x-ui.money :minor="$sum['forgone']" /></div>
+            <div class="mt-1 text-xs text-muted ">{{ __('reports.preset_ended') }}</div>
         </x-ui.card>
     </div>
 
     <div class="grid grid-cols-1 gap-5 lg:grid-cols-2">
         <x-ui.card>
-            <h3 class="mb-4 text-sm font-bold text-gray-900 dark:text-white">{{ __('reports.year_summary') }}</h3>
+            <h3 class="mb-4 text-sm font-bold text-ink ">{{ __('reports.year_summary') }}</h3>
             @if($gradeLabels === [])
                 <x-ui.empty-state :title="__('reports.no_records')" />
             @else
@@ -141,7 +141,7 @@ new #[Layout('layouts::app')] class extends Component
             @endif
         </x-ui.card>
         <x-ui.card>
-            <h3 class="mb-4 text-sm font-bold text-gray-900 dark:text-white">{{ __('reports.status_filter') }}</h3>
+            <h3 class="mb-4 text-sm font-bold text-ink ">{{ __('reports.status_filter') }}</h3>
             @if($statusValues === [])
                 <x-ui.empty-state :title="__('reports.no_records')" />
             @else
@@ -149,7 +149,7 @@ new #[Layout('layouts::app')] class extends Component
             @endif
         </x-ui.card>
         <x-ui.card>
-            <h3 class="mb-4 text-sm font-bold text-gray-900 dark:text-white">{{ __('reports.collections') }}</h3>
+            <h3 class="mb-4 text-sm font-bold text-ink ">{{ __('reports.collections') }}</h3>
             @if($monthValues === [])
                 <x-ui.empty-state :title="__('reports.no_records')" />
             @else
@@ -157,7 +157,7 @@ new #[Layout('layouts::app')] class extends Component
             @endif
         </x-ui.card>
         <x-ui.card>
-            <h3 class="mb-4 text-sm font-bold text-gray-900 dark:text-white">{{ __('reports.tuition_vs_other') }}</h3>
+            <h3 class="mb-4 text-sm font-bold text-ink ">{{ __('reports.tuition_vs_other') }}</h3>
             @if($feeValues === [])
                 <x-ui.empty-state :title="__('reports.no_records')" />
             @else

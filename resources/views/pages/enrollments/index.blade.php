@@ -228,7 +228,7 @@ new #[Layout('layouts::app')] class extends Component
                 </x-ui.select>
             </x-ui.field>
         </div>
-        <div class="mt-4 flex flex-col-reverse gap-3 border-t border-gray-200 pt-4 sm:flex-row sm:justify-end dark:border-gray-700">
+        <div class="mt-4 flex flex-col-reverse gap-3 border-t border-line pt-4 sm:flex-row sm:justify-end ">
             <x-ui.button variant="primary" wire:click="applyFilters" loading-target="applyFilters" wire:loading.attr="disabled" :spinner="false" :disabled="$school_id === null || $grade_id === null || $academic_year_id === null">{{ __('enrollments.apply') }}</x-ui.button>
         </div>
     </x-ui.card>
@@ -258,22 +258,22 @@ new #[Layout('layouts::app')] class extends Component
                 </x-ui.select>
             </x-ui.field>
             <div class="flex flex-wrap items-center gap-2 text-sm sm:ms-auto">
-                <span class="font-medium text-gray-900 dark:text-white">{{ __('enrollments.total', ['count' => $this->enrollments->total()]) }}</span>
+                <span class="font-medium text-ink ">{{ __('enrollments.total', ['count' => $this->enrollments->total()]) }}</span>
                 @foreach($this->breakdown as $status => $count)
                     @if($count > 0)
                         <x-ui.badge :status="$status" />
-                        <span class="text-gray-600 dark:text-gray-400">{{ $count }}</span>
+                        <span class="text-muted ">{{ $count }}</span>
                     @endif
                 @endforeach
             </div>
         </div>
         <div class="relative mt-4">
-            <span class="pointer-events-none absolute inset-y-0 start-0 flex items-center ps-3 text-gray-400">
+            <span class="pointer-events-none absolute inset-y-0 start-0 flex items-center ps-3 text-subtle">
                 <x-ui.icon name="search" class="h-4 w-4" />
             </span>
             <x-ui.input type="search" wire:model.live.debounce.300ms="search" :placeholder="__('enrollments.search_placeholder')" aria-label="{{ __('enrollments.search_placeholder') }}" class="ps-9" />
         </div>
-        <div class="mt-4 border-t border-gray-200 pt-4 dark:border-gray-700">
+        <div class="mt-4 border-t border-line pt-4 ">
             @if($this->enrollments->isEmpty())
                 <x-ui.empty-state :title="__('common.no_results')" />
             @else
@@ -293,10 +293,10 @@ new #[Layout('layouts::app')] class extends Component
                 @php
                     $balance = \App\Support\EnrollmentBalance::forEnrollment($enrollment);
                 @endphp
-                        <tr wire:key="enrollment-{{ $enrollment->id }}" class="transition hover:bg-gray-50 dark:hover:bg-gray-700">
+                        <tr wire:key="enrollment-{{ $enrollment->id }}" class="transition hover:bg-surface-raised ">
                             <td>{{ $enrollment->student->student_number }}</td>
                             <td>
-                                <a href="{{ route('enrollments.show', $enrollment) }}" wire:navigate class="font-medium text-indigo-700 hover:underline focus:outline-none focus:ring-4 focus:ring-indigo-300 dark:text-indigo-400 dark:focus:ring-indigo-800">{{ $enrollment->student->name }}</a>
+                                <a href="{{ route('enrollments.show', $enrollment) }}" wire:navigate class="font-medium text-primary hover:underline focus:outline-none focus:ring-2 focus:ring-focus ">{{ $enrollment->student->name }}</a>
                                 @if($enrollment->student->archived_at !== null)
                                     <x-ui.badge color="gray">{{ __('students.archived') }}</x-ui.badge>
                                 @endif

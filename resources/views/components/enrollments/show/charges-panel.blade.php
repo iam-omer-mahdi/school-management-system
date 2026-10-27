@@ -150,10 +150,10 @@ new class extends Component
 <div class="space-y-6">
     <x-ui.card>
         <x-slot:header>
-            <h2 class="text-base font-semibold text-gray-900 dark:text-white">{{ __('fees.charges') }}</h2>
+            <h2 class="text-base font-semibold text-ink ">{{ __('fees.charges') }}</h2>
         </x-slot:header>
         @if($enrollment->fees->isEmpty())
-            <p class="text-sm text-gray-600 dark:text-gray-400">{{ __('fees.no_charges') }}</p>
+            <p class="text-sm text-muted ">{{ __('fees.no_charges') }}</p>
         @else
             <x-ui.table>
                 <x-slot:head>
@@ -168,7 +168,7 @@ new class extends Component
                 @foreach($enrollment->fees as $charge)
                     @php $feeBalance = $balance['fees'][$charge->id] ?? ['charged' => $charge->amount_minor, 'discount' => 0, 'paid' => 0, 'refunded' => 0, 'remaining' => $charge->amount_minor]; @endphp
                     <tr wire:key="cp-charge-{{ $charge->id }}">
-                        <td class="font-medium text-gray-900 dark:text-white">@if($charge->gradeFee->feeType->isTuition()){{ __('fees.tuition') }}@else{{ $charge->gradeFee->feeType->name }}@endif</td>
+                        <td class="font-medium text-ink ">@if($charge->gradeFee->feeType->isTuition()){{ __('fees.tuition') }}@else{{ $charge->gradeFee->feeType->name }}@endif</td>
                         <td><x-ui.money :minor="$feeBalance['charged']" /></td>
                         <td><x-ui.money :minor="$feeBalance['discount']" /></td>
                         <td><x-ui.money :minor="$feeBalance['paid']" /></td>
@@ -177,7 +177,7 @@ new class extends Component
                         <td>
                             @if(! $charge->gradeFee->feeType->is_mandatory && ! $isEnded)
                                 @can(\App\Enums\Permission::EnrollmentsManage->value)
-                                    <x-ui.button variant="ghost" size="sm" wire:click="removeOptional({{ $charge->grade_fee_id }})" loading-target="removeOptional" wire:loading.attr="disabled" :spinner="false" class="text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/30">{{ __('common.delete') }}</x-ui.button>
+                                    <x-ui.button variant="ghost" size="sm" wire:click="removeOptional({{ $charge->grade_fee_id }})" loading-target="removeOptional" wire:loading.attr="disabled" :spinner="false" class="text-negative hover:bg-negative-surface ">{{ __('common.delete') }}</x-ui.button>
                                 @endcan
                             @endif
                         </td>
@@ -186,7 +186,7 @@ new class extends Component
             </x-ui.table>
         @endif
         @if($isEnded)
-            <p class="mt-4 text-sm text-gray-500 dark:text-gray-400">{{ __('fees.errors.enrollment_ended') }}</p>
+            <p class="mt-4 text-sm text-muted ">{{ __('fees.errors.enrollment_ended') }}</p>
         @elseif($options->isNotEmpty())
             <div class="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end">
                 <x-ui.field :label="__('fees.add_optional_fee')" for="optional-fee" class="flex-1" :error="$errors->first('optionalChoice')">
@@ -206,17 +206,17 @@ new class extends Component
 
     <x-ui.card>
         <x-slot:header>
-            <h2 class="text-base font-semibold text-gray-900 dark:text-white">{{ __('fees.discount') }}</h2>
+            <h2 class="text-base font-semibold text-ink ">{{ __('fees.discount') }}</h2>
         </x-slot:header>
         @if($appliedDiscount)
             <p class="flex flex-wrap items-center gap-2 text-sm">
-                <span class="text-gray-700 dark:text-gray-300">{{ $appliedDiscount->name }}</span>
+                <span class="text-muted ">{{ $appliedDiscount->name }}</span>
                 <x-ui.percent :bp="$appliedDiscount->percent_bp" />
                 <span aria-hidden="true">—</span>
                 <x-ui.money :minor="$appliedDiscount->amount_minor" />
                 @if(! $isEnded)
                     @can(\App\Enums\Permission::EnrollmentsManage->value)
-                        <x-ui.button variant="ghost" size="sm" wire:click="removeDiscount" loading-target="removeDiscount" wire:loading.attr="disabled" :spinner="false" class="text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/30">{{ __('fees.remove_discount') }}</x-ui.button>
+                        <x-ui.button variant="ghost" size="sm" wire:click="removeDiscount" loading-target="removeDiscount" wire:loading.attr="disabled" :spinner="false" class="text-negative hover:bg-negative-surface ">{{ __('fees.remove_discount') }}</x-ui.button>
                     @endcan
                 @endif
             </p>
@@ -224,9 +224,9 @@ new class extends Component
         @if($tuitionMinor === null)
             <p class="mt-3"><x-ui.badge color="gray">{{ __('fees.errors.fees_not_set') }}</x-ui.badge></p>
         @elseif($this->catalogDiscounts->isEmpty())
-            <p class="text-sm text-gray-600 dark:text-gray-400">{{ __('fees.empty_catalog') }} <a href="{{ route('discounts.index') }}" wire:navigate class="font-medium text-indigo-700 hover:underline dark:text-indigo-400">{{ __('fees.discounts') }}</a></p>
+            <p class="text-sm text-muted ">{{ __('fees.empty_catalog') }} <a href="{{ route('discounts.index') }}" wire:navigate class="font-medium text-primary hover:underline ">{{ __('fees.discounts') }}</a></p>
         @elseif($isEnded)
-            <p class="text-sm text-gray-500 dark:text-gray-400">{{ __('fees.errors.enrollment_ended') }}</p>
+            <p class="text-sm text-muted ">{{ __('fees.errors.enrollment_ended') }}</p>
         @else
             <div class="flex flex-col gap-3 sm:flex-row sm:items-end">
                 <x-ui.field :label="__('fees.select_discount')" for="discount" class="flex-1" :error="$errors->first('discountChoice')">
@@ -242,11 +242,11 @@ new class extends Component
                 @endcan
             </div>
             @if($previewMinor !== null && $choice)
-                <p class="mt-3 text-sm text-gray-600 dark:text-gray-400"><x-ui.money :minor="$previewMinor" /> <span aria-hidden="true">→</span> {{ __('fees.tuition_net') }} <x-ui.money :minor="$tuitionMinor - $previewMinor" /></p>
+                <p class="mt-3 text-sm text-muted "><x-ui.money :minor="$previewMinor" /> <span aria-hidden="true">→</span> {{ __('fees.tuition_net') }} <x-ui.money :minor="$tuitionMinor - $previewMinor" /></p>
             @endif
         @endif
         @if($errors->first('discount_id'))
-            <p class="mt-2 text-sm text-red-600 dark:text-red-500" role="alert">{{ $errors->first('discount_id') }}</p>
+            <p class="mt-2 text-sm text-negative " role="alert">{{ $errors->first('discount_id') }}</p>
         @endif
     </x-ui.card>
 </div>

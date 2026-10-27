@@ -82,7 +82,7 @@ new class extends Component
     <x-ui.card>
         <x-slot:header>
             <div class="flex items-center justify-between gap-2">
-                <h2 class="text-base font-semibold text-gray-900 dark:text-white">{{ __('payments.payment') }}</h2>
+                <h2 class="text-base font-semibold text-ink ">{{ __('payments.payment') }}</h2>
                 @can(\App\Enums\Permission::PaymentsManage->value)
                     @if($this->paymentDisabledReason === null)
                         <x-ui.button variant="primary" size="sm" wire:click="$dispatch('open-payment-modal')" :spinner="false"><x-ui.icon name="plus" class="h-4 w-4" />{{ __('payments.add_payment') }}</x-ui.button>
@@ -93,7 +93,7 @@ new class extends Component
             </div>
         </x-slot:header>
         @if($this->paymentDisabledReason !== null)
-            <p class="mb-3 text-sm text-gray-500 dark:text-gray-400">{{ $this->paymentDisabledReason }}</p>
+            <p class="mb-3 text-sm text-muted ">{{ $this->paymentDisabledReason }}</p>
         @endif
         @php
             $history = $enrollment->payments->sortByDesc('id');
@@ -101,14 +101,14 @@ new class extends Component
             $selectedHistory = collect($selectedReceiptIds)->map(fn ($id) => (int) $id)->reject(fn ($id) => in_array($id, $voidedHistoryIds, true))->values()->all();
         @endphp
         @if($history->isEmpty())
-            <p class="mt-3 text-sm text-gray-600 dark:text-gray-400">{{ __('payments.no_payments') }}</p>
+            <p class="mt-3 text-sm text-muted ">{{ __('payments.no_payments') }}</p>
         @else
             <ul class="mt-3 space-y-2 text-sm">
                 @foreach($history as $payment)
-                    <li wire:key="pp-payment-{{ $payment->id }}" class="flex flex-wrap items-center gap-2 rounded-lg bg-gray-50 px-3 py-2.5 dark:bg-gray-700/40">
-                        <input type="checkbox" wire:model.live="selectedReceiptIds" value="{{ $payment->id }}" @disabled($payment->isVoided()) aria-label="{{ $payment->reference() }}" class="h-4 w-4 shrink-0 rounded-sm border-gray-300 bg-gray-100 text-indigo-600 focus:ring-2 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-700" />
-                        <span class="font-mono text-gray-700 dark:text-gray-300" dir="ltr">{{ $payment->reference() }}</span>
-                        <span class="text-gray-700 dark:text-gray-300">
+                    <li wire:key="pp-payment-{{ $payment->id }}" class="flex flex-wrap items-center gap-2 rounded-sm bg-surface-raised px-3 py-2.5 ">
+                        <input type="checkbox" wire:model.live="selectedReceiptIds" value="{{ $payment->id }}" @disabled($payment->isVoided()) aria-label="{{ $payment->reference() }}" class="h-4 w-4 shrink-0 rounded-sm border-line-strong bg-surface-raised text-primary focus:ring-2 focus:ring-focus " />
+                        <span class="font-mono text-muted " dir="ltr">{{ $payment->reference() }}</span>
+                        <span class="text-muted ">
                             @if($payment->enrollmentFee?->gradeFee?->feeType?->isTuition())
                                 {{ __('fees.tuition') }}
                             @else
@@ -116,13 +116,13 @@ new class extends Component
                             @endif
                         </span>
                         <x-ui.money :minor="$payment->amount_minor" />
-                        <span class="text-gray-500 dark:text-gray-400">{{ $payment->method === \App\Enums\PaymentMethod::BankTransfer ? __('payments.bank_transfer') : __('payments.cash') }}</span>
+                        <span class="text-muted ">{{ $payment->method === \App\Enums\PaymentMethod::BankTransfer ? __('payments.bank_transfer') : __('payments.cash') }}</span>
                         <x-ui.button href="{{ route('enrollments.receipt', ['enrollment' => $enrollment->id, 'payments' => (string) $payment->id]) }}" variant="ghost" size="sm" :spinner="false">{{ __('payments.print') }}</x-ui.button>
                         @if($payment->isVoided())
                             <x-ui.badge color="red">{{ __('payments.void') }}: {{ $payment->void_reason }}</x-ui.badge>
                         @else
                             @can(\App\Enums\Permission::PaymentsManage->value)
-                                <x-ui.button variant="ghost" size="sm" wire:click="requestVoid('payment', {{ $payment->id }})" :spinner="false" class="text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/30">{{ __('payments.void') }}</x-ui.button>
+                                <x-ui.button variant="ghost" size="sm" wire:click="requestVoid('payment', {{ $payment->id }})" :spinner="false" class="text-negative hover:bg-negative-surface ">{{ __('payments.void') }}</x-ui.button>
                             @endcan
                         @endif
                     </li>

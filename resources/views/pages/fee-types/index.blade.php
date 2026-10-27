@@ -108,7 +108,7 @@ new #[Layout('layouts::app')] class extends Component
             </x-slot:head>
             @foreach($this->types as $type)
                 <tr wire:key="type-{{ $type->id }}">
-                    <td class="font-medium text-gray-900 dark:text-white">@if($type->isTuition()){{ __('fees.tuition') }}@else{{ $type->name }}@endif</td>
+                    <td class="font-medium text-ink ">@if($type->isTuition()){{ __('fees.tuition') }}@else{{ $type->name }}@endif</td>
                     <td>
                         @if($type->is_mandatory)
                             <x-ui.badge color="blue">{{ __('fees.mandatory') }}</x-ui.badge>
@@ -119,7 +119,7 @@ new #[Layout('layouts::app')] class extends Component
                     <td>
                         @if(! $type->isTuition())
                             @can(\App\Enums\Permission::FeesManage->value)
-                                <x-ui.button variant="ghost" size="sm" wire:click="confirmDelete({{ $type->id }})" :spinner="false" class="text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/30">{{ __('common.delete') }}</x-ui.button>
+                                <x-ui.button variant="ghost" size="sm" wire:click="confirmDelete({{ $type->id }})" :spinner="false" class="text-negative hover:bg-negative-surface ">{{ __('common.delete') }}</x-ui.button>
                             @endcan
                         @endif
                     </td>

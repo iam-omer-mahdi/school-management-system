@@ -190,10 +190,10 @@ new #[Layout('layouts::app')] class extends Component
         </x-slot:head>
         @foreach($this->staff as $member)
             <tr wire:key="staff-{{ $member->id }}">
-                <td class="font-medium text-gray-900 dark:text-white">
+                <td class="font-medium text-ink ">
                     {{ $member->name }}
                     @if(auth()->id() === $member->id)
-                        <span class="ms-1 text-xs text-gray-500 dark:text-gray-400">({{ __('staff.you') }})</span>
+                        <span class="ms-1 text-xs text-muted ">({{ __('staff.you') }})</span>
                     @endif
                 </td>
                 <td dir="ltr">{{ $member->email }}</td>
@@ -234,13 +234,13 @@ new #[Layout('layouts::app')] class extends Component
             </x-slot:head>
             @foreach($this->roles as $role)
                 <tr wire:key="role-{{ $role->id }}">
-                    <td class="font-medium text-gray-900 dark:text-white">{{ $role->name }}</td>
+                    <td class="font-medium text-ink ">{{ $role->name }}</td>
                     <td>{{ trans_choice('staff.users_count', $role->users_count) }}</td>
                     <td>{{ trans_choice('staff.permissions_count', $role->permissions_count) }}</td>
                     <td>
                         <div class="flex gap-1">
                             <x-ui.button href="{{ route('staff.roles.edit', $role) }}" wire:navigate variant="ghost" size="sm" :spinner="false">{{ __('common.edit') }}</x-ui.button>
-                            <x-ui.button variant="ghost" size="sm" wire:click="confirmDeleteRole({{ $role->id }})" :spinner="false" class="text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/30">{{ __('common.delete') }}</x-ui.button>
+                            <x-ui.button variant="ghost" size="sm" wire:click="confirmDeleteRole({{ $role->id }})" :spinner="false" class="text-negative hover:bg-negative-surface ">{{ __('common.delete') }}</x-ui.button>
                         </div>
                     </td>
                 </tr>

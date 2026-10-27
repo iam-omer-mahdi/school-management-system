@@ -273,7 +273,7 @@ Keep `dark:hidden` / `dark:block` and any non-colour dark variant.
 
 ### Task 4 — Page markup and chart tokens
 
-**Status:** pending
+**Status:** done
 
 **Files**
 

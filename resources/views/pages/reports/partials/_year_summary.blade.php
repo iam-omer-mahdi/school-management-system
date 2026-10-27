@@ -1,5 +1,5 @@
 {{-- Year summary: per grade + school totals. Expects $summary, $showStatus. --}}
-<div class="overflow-x-auto rounded-lg border border-gray-700 dark:border-gray-600">
+<div class="overflow-x-auto rounded-sm border border-line ">
     <table class="report-table w-full text-sm">
         <thead>
             <tr>
@@ -22,7 +22,7 @@
                     <td class="text-center">
                         <span class="font-medium">{{ $g['count'] }}</span>
                         @if($showStatus)
-                            <div class="mt-0.5 flex flex-wrap justify-center gap-1 text-[11px] font-normal text-gray-500 dark:text-gray-400">
+                            <div class="mt-0.5 flex flex-wrap justify-center gap-1 text-[11px] font-normal text-muted ">
                                 @foreach($g['by_status'] as $st => $cnt)
                                     @if($cnt > 0)
                                         <span>{{ __('enrollments.status_'.$st) }}: {{ $cnt }}</span>
@@ -65,4 +65,4 @@
         </tfoot>
     </table>
 </div>
-<p class="mt-3 text-xs text-gray-500 italic dark:text-gray-400">{{ __('reports.footnote_year_summary') }}</p>
+<p class="mt-3 text-xs text-muted italic ">{{ __('reports.footnote_year_summary') }}</p>

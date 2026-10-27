@@ -1,7 +1,7 @@
 {{-- Outstanding call list. $items rows, $totalOwed, $totalCount. Screen passes
      $linkNames=true and $sort for clickable sort headers; print passes neither. --}}
 @php($sortable = ($sort ?? null) !== null)
-<div class="overflow-x-auto rounded-lg border border-gray-700 dark:border-gray-600">
+<div class="overflow-x-auto rounded-sm border border-line ">
     <table class="report-table w-full text-sm">
         <thead>
             <tr>
@@ -44,7 +44,7 @@
                     <td dir="ltr" class="font-mono text-xs">{{ $item->student_number }}</td>
                     <td class="font-medium">
                         @if(! empty($linkNames))
-                            <a href="{{ route('students.show', $item->student_id) }}" wire:navigate class="text-indigo-600 hover:underline dark:text-indigo-400">{{ $item->student_name }}</a>
+                            <a href="{{ route('students.show', $item->student_id) }}" wire:navigate class="text-primary hover:underline ">{{ $item->student_name }}</a>
                         @else
                             {{ $item->student_name }}
                         @endif
@@ -54,14 +54,14 @@
                     <td>{{ $item->guardian_name ?? '—' }}</td>
                     <td>{{ $item->school_name }} {{ __('schools.grade_number', ['number' => $item->grade_number]) }}</td>
                     <td><x-ui.badge :status="$st" /></td>
-                    <td class="text-end font-bold text-red-600 dark:text-red-400"><x-ui.money :minor="(int) $item->owed_minor" /></td>
+                    <td class="text-end font-bold text-negative "><x-ui.money :minor="(int) $item->owed_minor" /></td>
                 </tr>
             @endforeach
         </tbody>
         <tfoot>
             <tr>
                 <td colspan="7">{{ __('payments.total') }} ({{ $totalCount }} {{ __('students.enrollments') }})</td>
-                <td class="text-end text-red-600 dark:text-red-400"><x-ui.money :minor="$totalOwed" /></td>
+                <td class="text-end text-negative "><x-ui.money :minor="$totalOwed" /></td>
             </tr>
         </tfoot>
     </table>
