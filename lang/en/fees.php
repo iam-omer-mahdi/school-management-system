@@ -33,7 +33,7 @@ return [
     'charges' => 'Charges',
     'no_charges' => 'No charges yet.',
     'tuition_net' => 'Tuition net',
-    'total_due' => 'Total due',
+    'total_due' => 'Still owed',
     'add_optional_fee' => 'Add optional fee',
     'add' => 'Add',
     'select_fee' => 'Select a fee',

@@ -358,7 +358,7 @@ Keep `dark:hidden` / `dark:block` and any non-colour dark variant.
 
 ### Task 6 — Enrollment and student money pages
 
-**Status:** pending
+**Status:** done
 
 **Files**
 
