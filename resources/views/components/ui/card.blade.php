@@ -1,6 +1,6 @@
 @props(['title' => null, 'description' => null])
 
-<section {{ $attributes->merge(['class' => 'rounded-sm border border-line bg-surface p-5 sm:p-7']) }}>
+<section {{ $attributes->merge(['class' => 'rounded-sm border border-line bg-surface p-6 sm:p-8']) }}>
     @if($title || $description || isset($header))
         <div class="mb-4">
             @if(isset($header))

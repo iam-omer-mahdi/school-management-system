@@ -68,8 +68,13 @@ body {
         text-transform: none;
     }
 
-    html[lang='ar'] .tracking-wider {
+    html[lang='ar'] .tracking-tight,
+    html[lang='ar'] .tracking-wide,
+    html[lang='ar'] .tracking-wider,
+    html[lang='ar'] .tracking-widest,
+    html[lang='ar'] .flowbite-table thead {
         letter-spacing: normal;
+        text-transform: none;
     }
 }
 
@@ -156,4 +161,15 @@ body {
     border: 1px solid var(--ui-line-strong);
     font-weight: 700;
     background-color: var(--ui-surface-raised);
+}
+
+
+/* Table links get a full-height pointer target without changing print. */
+@media screen {
+    .flowbite-table a,
+    .report-table a {
+        display: inline-flex;
+        min-height: 2.75rem;
+        align-items: center;
+    }
 }

@@ -84,7 +84,7 @@ new #[Layout('layouts::app')] class extends Component
         <x-ui.button type="submit" variant="primary" size="md" class="w-full" loading-target="login" wire:loading.attr="disabled">{{ __('auth.submit') }}</x-ui.button>
     </form>
     <div class="mt-4 flex flex-col gap-2 text-sm">
-        <a href="{{ route('password.request') }}" wire:navigate class="font-medium text-primary hover:underline focus:outline-none focus:ring-2 focus:ring-focus ">{{ __('auth.forgot') }}</a>
-        <a href="{{ route('recovery.questions') }}" wire:navigate class="font-medium text-primary hover:underline focus:outline-none focus:ring-2 focus:ring-focus ">{{ __('auth.recover_questions') }}</a>
+        <a href="{{ route('password.request') }}" wire:navigate class="inline-flex min-h-11 items-center font-medium text-primary-text hover:underline focus:outline-none focus:ring-2 focus:ring-focus ">{{ __('auth.forgot') }}</a>
+        <a href="{{ route('recovery.questions') }}" wire:navigate class="inline-flex min-h-11 items-center font-medium text-primary-text hover:underline focus:outline-none focus:ring-2 focus:ring-focus ">{{ __('auth.recover_questions') }}</a>
     </div>
 </x-ui.card>

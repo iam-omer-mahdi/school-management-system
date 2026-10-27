@@ -224,7 +224,7 @@ new class extends Component
         @if($tuitionMinor === null)
             <p class="mt-3"><x-ui.badge color="gray">{{ __('fees.errors.fees_not_set') }}</x-ui.badge></p>
         @elseif($this->catalogDiscounts->isEmpty())
-            <p class="text-sm text-muted ">{{ __('fees.empty_catalog') }} <a href="{{ route('discounts.index') }}" wire:navigate class="font-medium text-primary hover:underline ">{{ __('fees.discounts') }}</a></p>
+            <p class="text-sm text-muted ">{{ __('fees.empty_catalog') }} <a href="{{ route('discounts.index') }}" wire:navigate class="font-medium text-primary-text hover:underline ">{{ __('fees.discounts') }}</a></p>
         @elseif($isEnded)
             <p class="text-sm text-muted ">{{ __('fees.errors.enrollment_ended') }}</p>
         @else

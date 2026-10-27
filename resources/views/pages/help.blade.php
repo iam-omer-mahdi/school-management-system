@@ -32,7 +32,7 @@ new #[Layout('layouts::app')] class extends Component {};
                     <ul class="space-y-1.5">
                         @foreach($section['notes'] as $note)
                             <li class="flex gap-2 text-sm text-muted ">
-                                <x-ui.icon name="check" class="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                                <x-ui.icon name="check" class="mt-0.5 h-4 w-4 shrink-0 text-primary-text" />
                                 <span>{{ $note }}</span>
                             </li>
                         @endforeach

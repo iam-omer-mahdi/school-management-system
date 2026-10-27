@@ -8,7 +8,7 @@ $variants = [
     'secondary' => 'border-line-strong bg-surface text-ink hover:bg-surface-raised active:bg-surface-raised',
     'danger' => 'border-transparent bg-negative text-on-negative hover:opacity-90 active:opacity-80',
     'warning' => 'border-transparent bg-accent text-on-accent hover:opacity-90 active:opacity-80',
-    'ghost' => 'border-transparent text-primary hover:bg-surface-raised active:bg-surface-raised',
+    'ghost' => 'border-transparent text-primary-text hover:bg-surface-raised active:bg-surface-raised',
 ];
 
 $sizes = [

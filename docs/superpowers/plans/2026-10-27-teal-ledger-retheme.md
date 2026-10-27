@@ -56,7 +56,8 @@ All theme colours live in **one file**: `resources/css/theme.css`.
 | `border-line` | `#D7E3DF` | `#294039` |
 | `border-line-strong` | `#64748B` | `#93AFA5` |
 | `bg-primary` / `text-primary` | `#0F4C45` | `#337B6E` |
-| `bg-primary-hover` | `#0B3D37` | `#3E8C7D` |
+| `bg-primary-hover` | `#0B3D37` | `#2E6F63` |
+| `text-primary-text` | `#0F4C45` | `#8FC9BC` |
 | `text-on-primary` | `#FFFFFF` | `#F8FBF9` |
 | `bg-accent` / `text-accent` | `#B45309` | `#C99A5B` |
 | `text-on-accent` | `#FFFFFF` | `#0A1F1C` |
@@ -480,7 +481,7 @@ Keep `dark:hidden` / `dark:block` and any non-colour dark variant.
 
 ### Task 9 — RTL, accessibility, and contrast
 
-**Status:** pending
+**Status:** done
 
 **Files**
 

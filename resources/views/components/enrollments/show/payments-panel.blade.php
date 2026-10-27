@@ -106,7 +106,9 @@ new class extends Component
             <ul class="mt-3 space-y-2 text-sm">
                 @foreach($history as $payment)
                     <li wire:key="pp-payment-{{ $payment->id }}" class="flex flex-wrap items-center gap-2 rounded-sm bg-surface-raised px-3 py-2.5 ">
-                        <input type="checkbox" wire:model.live="selectedReceiptIds" value="{{ $payment->id }}" @disabled($payment->isVoided()) aria-label="{{ $payment->reference() }}" class="h-4 w-4 shrink-0 rounded-sm border-line-strong bg-surface-raised text-primary focus:ring-2 focus:ring-focus " />
+                        <label class="inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center">
+                            <input type="checkbox" wire:model.live="selectedReceiptIds" value="{{ $payment->id }}" @disabled($payment->isVoided()) aria-label="{{ $payment->reference() }}" class="h-5 w-5 rounded-xs border-line-strong bg-surface accent-primary focus:ring-2 focus:ring-focus" />
+                        </label>
                         <span class="font-mono text-muted " dir="ltr">{{ $payment->reference() }}</span>
                         <span class="text-muted ">
                             @if($payment->enrollmentFee?->gradeFee?->feeType?->isTuition())

@@ -145,6 +145,6 @@ new #[Layout('layouts::app')] class extends Component
     @endif
 
     <div class="mt-4 text-center text-sm">
-        <a href="{{ route('login') }}" wire:navigate class="font-medium text-primary hover:underline focus:outline-none focus:ring-2 focus:ring-focus ">{{ __('auth.back_to_login') }}</a>
+        <a href="{{ route('login') }}" wire:navigate class="inline-flex min-h-11 items-center font-medium text-primary-text hover:underline focus:outline-none focus:ring-2 focus:ring-focus ">{{ __('auth.back_to_login') }}</a>
     </div>
 </x-ui.card>

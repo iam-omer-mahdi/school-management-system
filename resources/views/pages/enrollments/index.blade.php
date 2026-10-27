@@ -296,7 +296,7 @@ new #[Layout('layouts::app')] class extends Component
                         <tr wire:key="enrollment-{{ $enrollment->id }}" class="transition hover:bg-surface-raised ">
                             <td>{{ $enrollment->student->student_number }}</td>
                             <td>
-                                <a href="{{ route('enrollments.show', $enrollment) }}" wire:navigate class="font-medium text-primary hover:underline focus:outline-none focus:ring-2 focus:ring-focus ">{{ $enrollment->student->name }}</a>
+                                <a href="{{ route('enrollments.show', $enrollment) }}" wire:navigate class="font-medium text-primary-text hover:underline focus:outline-none focus:ring-2 focus:ring-focus ">{{ $enrollment->student->name }}</a>
                                 @if($enrollment->student->archived_at !== null)
                                     <x-ui.badge color="gray">{{ __('students.archived') }}</x-ui.badge>
                                 @endif

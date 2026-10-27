@@ -428,11 +428,11 @@ new #[Layout('layouts::app')] class extends Component
                 <div class="sm:col-span-2 lg:col-span-4">
                     <span class="block text-sm font-medium text-muted ">{{ __('reports.status_filter') }}</span>
                     <div class="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
-                        <button type="button" wire:click="setPreset('all')" class="inline-flex min-h-11 cursor-pointer items-center text-primary hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">{{ __('reports.all_statuses') }}</button>
+                        <button type="button" wire:click="setPreset('all')" class="inline-flex min-h-11 cursor-pointer items-center text-primary-text hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">{{ __('reports.all_statuses') }}</button>
                         <span aria-hidden="true">·</span>
-                        <button type="button" wire:click="setPreset('charged')" class="inline-flex min-h-11 cursor-pointer items-center text-primary hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">{{ __('reports.preset_charged') }}</button>
+                        <button type="button" wire:click="setPreset('charged')" class="inline-flex min-h-11 cursor-pointer items-center text-primary-text hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">{{ __('reports.preset_charged') }}</button>
                         <span aria-hidden="true">·</span>
-                        <button type="button" wire:click="setPreset('ended')" class="inline-flex min-h-11 cursor-pointer items-center text-primary hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">{{ __('reports.preset_ended') }}</button>
+                        <button type="button" wire:click="setPreset('ended')" class="inline-flex min-h-11 cursor-pointer items-center text-primary-text hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">{{ __('reports.preset_ended') }}</button>
                     </div>
                     <div class="mt-3 flex flex-wrap gap-x-6 gap-y-3">
                         @foreach(\App\Enums\EnrollmentStatus::cases() as $case)

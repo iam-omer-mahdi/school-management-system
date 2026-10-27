@@ -22,6 +22,7 @@
 
     --ui-primary: #0f4c45;
     --ui-primary-hover: #0b3d37;
+    --ui-primary-text: #0f4c45;
     --ui-on-primary: #ffffff;
 
     --ui-accent: #b45309;
@@ -78,7 +79,8 @@
     --ui-line-strong: #93afa5;
 
     --ui-primary: #337b6e;
-    --ui-primary-hover: #3e8c7d;
+    --ui-primary-hover: #2e6f63;
+    --ui-primary-text: #8fc9bc;
     --ui-on-primary: #f8fbf9;
 
     --ui-accent: #c99a5b;
@@ -134,6 +136,7 @@
 
     --color-primary: var(--ui-primary);
     --color-primary-hover: var(--ui-primary-hover);
+    --color-primary-text: var(--ui-primary-text);
     --color-on-primary: var(--ui-on-primary);
 
     --color-accent: var(--ui-accent);

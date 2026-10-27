@@ -133,7 +133,7 @@ new #[Layout('layouts::app')] class extends Component
                 <x-slot:header>
                     <div class="flex items-center justify-between gap-2">
                         <div class="flex items-center gap-2">
-                            <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-sm bg-info-surface text-primary ">
+                            <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-sm bg-info-surface text-primary-text ">
                                 <x-ui.icon name="cap" class="h-5 w-5" />
                             </span>
                             <div>

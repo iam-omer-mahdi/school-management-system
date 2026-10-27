@@ -81,8 +81,8 @@ new #[Layout('layouts::app')] class extends Component
 
     <x-ui.card>
         <dl class="grid grid-cols-1 gap-x-8 gap-y-5 text-sm sm:grid-cols-2">
-            <div><dt class="text-muted ">{{ __('students.student_number') }}</dt><dd class="mt-0.5 font-medium text-ink "><a href="{{ route('students.show', $enrollment->student) }}" wire:navigate class="text-primary hover:underline focus:outline-none focus:ring-2 focus:ring-focus ">{{ $enrollment->student->student_number }}</a></dd></div>
-            <div><dt class="text-muted ">{{ __('students.name') }}</dt><dd class="mt-0.5 font-medium text-ink "><a href="{{ route('students.show', $enrollment->student) }}" wire:navigate class="text-primary hover:underline focus:outline-none focus:ring-2 focus:ring-focus ">{{ $enrollment->student->name }}</a></dd></div>
+            <div><dt class="text-muted ">{{ __('students.student_number') }}</dt><dd class="mt-0.5 font-medium text-ink "><a href="{{ route('students.show', $enrollment->student) }}" wire:navigate class="text-primary-text hover:underline focus:outline-none focus:ring-2 focus:ring-focus ">{{ $enrollment->student->student_number }}</a></dd></div>
+            <div><dt class="text-muted ">{{ __('students.name') }}</dt><dd class="mt-0.5 font-medium text-ink "><a href="{{ route('students.show', $enrollment->student) }}" wire:navigate class="text-primary-text hover:underline focus:outline-none focus:ring-2 focus:ring-focus ">{{ $enrollment->student->name }}</a></dd></div>
             <div><dt class="text-muted ">{{ __('fees.school') }}</dt><dd class="mt-0.5 font-medium text-ink ">{{ $enrollment->grade->school->name }}</dd></div>
             <div><dt class="text-muted ">{{ __('fees.grade') }}</dt><dd class="mt-0.5 font-medium text-ink ">{{ __('schools.grade_number', ['number' => $enrollment->grade->number]) }}</dd></div>
             <div><dt class="text-muted ">{{ __('fees.academic_year') }}</dt><dd class="mt-0.5 font-medium text-ink ">{{ $enrollment->academicYear->name }}</dd></div>

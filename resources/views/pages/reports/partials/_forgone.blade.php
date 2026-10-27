@@ -50,7 +50,7 @@
                     <td dir="ltr" class="font-mono text-xs">{{ $item->student_number }}</td>
                     <td class="font-medium">
                         @if(! empty($linkNames))
-                            <a href="{{ route('students.show', $item->student_id) }}" wire:navigate class="text-primary hover:underline ">{{ $item->student_name }}</a>
+                            <a href="{{ route('students.show', $item->student_id) }}" wire:navigate class="text-primary-text hover:underline ">{{ $item->student_name }}</a>
                         @else
                             {{ $item->student_name }}
                         @endif
