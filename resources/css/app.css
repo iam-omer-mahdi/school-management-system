@@ -1,5 +1,6 @@
 @import 'tailwindcss';
 @import 'flowbite/src/themes/default';
+@import './theme.css';
 
 @plugin 'flowbite/plugin';
 
@@ -47,6 +48,31 @@ body {
     font-variant-numeric: tabular-nums lining-nums;
 }
 
+@layer base {
+    body {
+        background-color: var(--ui-canvas);
+        color: var(--ui-ink);
+    }
+
+    ::selection {
+        background-color: var(--ui-primary);
+        color: var(--ui-on-primary);
+    }
+
+    :focus-visible {
+        outline: 2px solid var(--ui-focus);
+        outline-offset: 2px;
+    }
+
+    html[lang='ar'] .uppercase {
+        text-transform: none;
+    }
+
+    html[lang='ar'] .tracking-wider {
+        letter-spacing: normal;
+    }
+}
+
 /*
  * Flowbite-style data-table styling. Cells and rows are styled here so every
  * table looks the same without per-cell utility classes. Logical properties
@@ -55,51 +81,33 @@ body {
 .flowbite-table {
     width: 100%;
     border-collapse: collapse;
-    color: var(--color-gray-500);
+    color: var(--ui-muted);
     font-size: 0.875rem;
     line-height: 1.25rem;
 }
 
-.dark .flowbite-table {
-    color: var(--color-gray-400);
-}
-
 .flowbite-table thead {
-    background-color: var(--color-gray-50);
+    background-color: var(--ui-surface-raised);
     font-size: 0.75rem;
     line-height: 1rem;
     text-transform: uppercase;
-}
-
-.dark .flowbite-table thead {
-    background-color: var(--color-gray-700);
 }
 
 .flowbite-table th {
     padding: 0.75rem 1.5rem;
     text-align: start;
     font-weight: 600;
-    color: var(--color-gray-700);
-    border-bottom: 1px solid var(--color-gray-200);
+    color: var(--ui-ink);
+    border-bottom: 1px solid var(--ui-line);
     white-space: nowrap;
-}
-
-.dark .flowbite-table th {
-    color: var(--color-gray-300);
-    border-bottom-color: var(--color-gray-700);
 }
 
 .flowbite-table td {
     padding: 1rem 1.5rem;
     text-align: start;
     vertical-align: top;
-    border-bottom: 1px solid var(--color-gray-200);
-    background-color: var(--color-white);
-}
-
-.dark .flowbite-table td {
-    border-bottom-color: var(--color-gray-700);
-    background-color: var(--color-gray-800);
+    border-bottom: 1px solid var(--ui-line);
+    background-color: var(--ui-surface);
 }
 
 .flowbite-table tbody tr:last-child td {
@@ -111,11 +119,7 @@ body {
 }
 
 .flowbite-table tbody tr:hover td {
-    background-color: var(--color-gray-50);
-}
-
-.dark .flowbite-table tbody tr:hover td {
-    background-color: var(--color-gray-700);
+    background-color: var(--ui-surface-raised);
 }
 
 /*
@@ -128,47 +132,28 @@ body {
     border-collapse: collapse;
     font-size: 0.8125rem;
     line-height: 1.35rem;
-    color: var(--color-gray-900);
-}
-
-.dark .report-table {
-    color: var(--color-gray-100);
+    color: var(--ui-ink);
 }
 
 .report-table thead th {
-    background-color: var(--color-gray-100);
+    background-color: var(--ui-surface-raised);
     font-weight: 700;
     text-align: start;
     padding: 0.5rem 0.625rem;
-    border: 1px solid var(--color-gray-300);
+    border: 1px solid var(--ui-line);
     white-space: nowrap;
-}
-
-.dark .report-table thead th {
-    background-color: var(--color-gray-700);
-    border-color: var(--color-gray-600);
 }
 
 .report-table tbody td {
     padding: 0.5rem 0.625rem;
-    border: 1px solid var(--color-gray-200);
+    border: 1px solid var(--ui-line);
     vertical-align: top;
-    background-color: var(--color-white);
-}
-
-.dark .report-table tbody td {
-    border-color: var(--color-gray-700);
-    background-color: var(--color-gray-800);
+    background-color: var(--ui-surface);
 }
 
 .report-table tfoot td {
     padding: 0.5rem 0.625rem;
-    border: 1px solid var(--color-gray-300);
+    border: 1px solid var(--ui-line-strong);
     font-weight: 700;
-    background-color: var(--color-gray-100);
-}
-
-.dark .report-table tfoot td {
-    border-color: var(--color-gray-600);
-    background-color: var(--color-gray-700);
+    background-color: var(--ui-surface-raised);
 }

@@ -1,0 +1,176 @@
+/*
+ * Teal Ledger theme tokens.
+ *
+ * This is the only file to edit when the palette changes. Blade consumes the
+ * semantic Tailwind utilities generated below; light and dark values swap
+ * automatically under the .dark class.
+ */
+
+:root {
+    color-scheme: light;
+
+    --ui-canvas: #f4f7f5;
+    --ui-surface: #ffffff;
+    --ui-surface-raised: #edf3f0;
+
+    --ui-ink: #0a1f1c;
+    --ui-muted: #475569;
+    --ui-subtle: #5f6f80;
+
+    --ui-line: #d7e3df;
+    --ui-line-strong: #64748b;
+
+    --ui-primary: #0f4c45;
+    --ui-primary-hover: #0b3d37;
+    --ui-on-primary: #ffffff;
+
+    --ui-accent: #b45309;
+    --ui-on-accent: #ffffff;
+    --ui-accent-tile: #f0d2b4;
+    --ui-on-accent-tile: #0a1f1c;
+
+    --ui-sidebar: #ffffff;
+    --ui-sidebar-fg: #0a1f1c;
+    --ui-sidebar-muted: #475569;
+    --ui-sidebar-hover: #edf3f0;
+    --ui-nav-active: #0f4c45;
+    --ui-nav-active-fg: #ffffff;
+    --ui-nav-marker: #b45309;
+
+    --ui-tile-dark: #0f2f2a;
+    --ui-tile-dark-fg: #ffffff;
+
+    --ui-focus: #0f4c45;
+    --ui-tab-active: #0f4c45;
+
+    --ui-chart-bar: #0f4c45;
+    --ui-chart-accent: #b45309;
+
+    --ui-positive: #067647;
+    --ui-positive-surface: #e8f3ec;
+    --ui-negative: #b42318;
+    --ui-negative-surface: #fdecea;
+    --ui-on-negative: #ffffff;
+    --ui-warning: #8a4b00;
+    --ui-warning-surface: #fff4e0;
+    --ui-info: #0f4c45;
+    --ui-info-surface: #e6f0ed;
+
+    --ui-overlay: rgb(10 31 28 / 0.55);
+    --ui-tint-sage: #d3dfe0;
+    --ui-tint-sand: #e8dcc4;
+    --ui-tint-rose: #f2b8cc;
+    --ui-on-tint: #0a1f1c;
+}
+
+.dark {
+    color-scheme: dark;
+
+    --ui-canvas: #0b1512;
+    --ui-surface: #13211c;
+    --ui-surface-raised: #1a2c25;
+
+    --ui-ink: #f3f8f5;
+    --ui-muted: #b6c8c0;
+    --ui-subtle: #a9bdb5;
+
+    --ui-line: #294039;
+    --ui-line-strong: #93afa5;
+
+    --ui-primary: #337b6e;
+    --ui-primary-hover: #3e8c7d;
+    --ui-on-primary: #f8fbf9;
+
+    --ui-accent: #c99a5b;
+    --ui-on-accent: #0a1f1c;
+    --ui-accent-tile: #c99a5b;
+    --ui-on-accent-tile: #0a1f1c;
+
+    --ui-sidebar: #13211c;
+    --ui-sidebar-fg: #f3f8f5;
+    --ui-sidebar-muted: #b6c8c0;
+    --ui-sidebar-hover: rgb(255 255 255 / 0.07);
+    --ui-nav-active: #337b6e;
+    --ui-nav-active-fg: #f8fbf9;
+    --ui-nav-marker: #c99a5b;
+
+    --ui-tile-dark: #0e3a33;
+    --ui-tile-dark-fg: #f0fdfa;
+
+    --ui-focus: #8fc9bc;
+    --ui-tab-active: #8fc9bc;
+
+    --ui-chart-bar: #4e9c8d;
+    --ui-chart-accent: #c99a5b;
+
+    --ui-positive: #6bd3a5;
+    --ui-positive-surface: #153129;
+    --ui-negative: #ff9b92;
+    --ui-negative-surface: #3a1d1a;
+    --ui-on-negative: #2a0e0b;
+    --ui-warning: #f5c36b;
+    --ui-warning-surface: #33260f;
+    --ui-info: #8fc9bc;
+    --ui-info-surface: #16302b;
+
+    --ui-overlay: rgb(0 0 0 / 0.72);
+    --ui-tint-sage: #1e2c2d;
+    --ui-tint-sand: #2a2418;
+    --ui-tint-rose: #2a1a20;
+    --ui-on-tint: #f3f8f5;
+}
+
+@theme inline {
+    --color-canvas: var(--ui-canvas);
+    --color-surface: var(--ui-surface);
+    --color-surface-raised: var(--ui-surface-raised);
+
+    --color-ink: var(--ui-ink);
+    --color-muted: var(--ui-muted);
+    --color-subtle: var(--ui-subtle);
+
+    --color-line: var(--ui-line);
+    --color-line-strong: var(--ui-line-strong);
+
+    --color-primary: var(--ui-primary);
+    --color-primary-hover: var(--ui-primary-hover);
+    --color-on-primary: var(--ui-on-primary);
+
+    --color-accent: var(--ui-accent);
+    --color-on-accent: var(--ui-on-accent);
+    --color-accent-tile: var(--ui-accent-tile);
+    --color-on-accent-tile: var(--ui-on-accent-tile);
+
+    --color-sidebar: var(--ui-sidebar);
+    --color-sidebar-fg: var(--ui-sidebar-fg);
+    --color-sidebar-muted: var(--ui-sidebar-muted);
+    --color-sidebar-hover: var(--ui-sidebar-hover);
+    --color-nav-active: var(--ui-nav-active);
+    --color-nav-active-fg: var(--ui-nav-active-fg);
+    --color-nav-marker: var(--ui-nav-marker);
+
+    --color-tile-dark: var(--ui-tile-dark);
+    --color-tile-dark-fg: var(--ui-tile-dark-fg);
+
+    --color-focus: var(--ui-focus);
+    --color-tab-active: var(--ui-tab-active);
+
+    --color-chart-bar: var(--ui-chart-bar);
+    --color-chart-accent: var(--ui-chart-accent);
+
+    --color-positive: var(--ui-positive);
+    --color-positive-surface: var(--ui-positive-surface);
+    --color-negative: var(--ui-negative);
+    --color-negative-surface: var(--ui-negative-surface);
+    --color-on-negative: var(--ui-on-negative);
+    --color-warning: var(--ui-warning);
+    --color-warning-surface: var(--ui-warning-surface);
+    --color-info: var(--ui-info);
+    --color-info-surface: var(--ui-info-surface);
+
+    --color-overlay: var(--ui-overlay);
+    --color-tint-sage: var(--ui-tint-sage);
+    --color-tint-sand: var(--ui-tint-sand);
+    --color-tint-rose: var(--ui-tint-rose);
+    --color-on-tint: var(--ui-on-tint);
+}
