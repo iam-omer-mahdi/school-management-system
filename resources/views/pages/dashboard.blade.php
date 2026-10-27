@@ -145,7 +145,7 @@ new #[Layout('layouts::app')] class extends Component
             @if($statusValues === [])
                 <x-ui.empty-state :title="__('reports.no_records')" />
             @else
-                <div data-chart="status-donut" data-labels='@json($statusLabels)' data-values='@json($statusValues)' class="h-72" dir="ltr"></div>
+                <div data-chart="status-donut" data-labels='@json($statusLabels)' data-values='@json($statusValues)' data-total-label="{{ __('reports.total') }}" class="h-72" dir="ltr"></div>
             @endif
         </x-ui.card>
         <x-ui.card>
@@ -161,7 +161,7 @@ new #[Layout('layouts::app')] class extends Component
             @if($feeValues === [])
                 <x-ui.empty-state :title="__('reports.no_records')" />
             @else
-                <div data-chart="fee-donut" data-labels='@json($feeLabels)' data-values='@json($feeValues)' class="h-72" dir="ltr"></div>
+                <div data-chart="fee-donut" data-labels='@json($feeLabels)' data-values='@json($feeValues)' data-total-label="{{ __('reports.total') }}" class="h-72" dir="ltr"></div>
             @endif
         </x-ui.card>
     </div>

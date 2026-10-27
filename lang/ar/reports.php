@@ -32,6 +32,7 @@ return [
     'refunds' => 'المبالغ المستردة',
     'student_statement' => 'كشف حساب الطالب',
     'grand_total' => 'الإجمالي الكلي',
+    'total' => 'الإجمالي',
     'current' => 'الحالي (صافي المدفوع)',
     'remaining' => 'المتبقي',
     'still_owed' => 'لا يزال مستحقًا',

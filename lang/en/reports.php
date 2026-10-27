@@ -32,6 +32,7 @@ return [
     'refunds' => 'Refunds',
     'student_statement' => 'Student account statement',
     'grand_total' => 'Grand total',
+    'total' => 'Total',
     'current' => 'Current (Net paid)',
     'remaining' => 'Remaining',
     'still_owed' => 'Still owed',

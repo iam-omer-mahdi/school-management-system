@@ -428,6 +428,7 @@ function renderDashboardCharts() {
             };
         } else if (kind === 'status-donut' || kind === 'fee-donut') {
             const values = JSON.parse(el.getAttribute('data-values') || '[]');
+            const totalLabel = el.getAttribute('data-total-label') || '';
             config = {
                 series: values,
                 labels,
@@ -448,7 +449,7 @@ function renderDashboardCharts() {
                                 show: true,
                                 name: { color: tokens.muted, fontFamily },
                                 value: { color: tokens.ink, fontFamily, fontSize: '18px', fontWeight: 600 },
-                                total: { show: true, color: tokens.muted, fontFamily },
+                                total: { show: true, label: totalLabel, color: tokens.muted, fontFamily },
                             },
                         },
                     },
