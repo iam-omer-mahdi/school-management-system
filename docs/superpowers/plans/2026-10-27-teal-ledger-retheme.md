@@ -522,7 +522,7 @@ Keep `dark:hidden` / `dark:block` and any non-colour dark variant.
 
 ### Task 10 — Final verification
 
-**Status:** pending
+**Status:** done
 
 **Steps**
 
@@ -535,6 +535,11 @@ Keep `dark:hidden` / `dark:block` and any non-colour dark variant.
 7. Read the final diff for unrelated changes.
 8. Update this plan's statuses and the SDD ledger.
 9. Push the branch and open/describe a PR only if the user asks.
+
+**Verification result:** 18 browser states (login/dashboard, EN/AR, light/dark,
+1440px/390px) rendered without overflow; `lang`/`dir`, drawer side, sidebar
+border, 44px targets, and token colors were correct. Full suite 610/610;
+`bun run build` and `vendor/bin/pint` passed.
 
 **Commit**
 
