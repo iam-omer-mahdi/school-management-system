@@ -379,20 +379,20 @@ new #[Layout('layouts::app')] class extends Component
 };
 ?>
 
-<div class="space-y-5">
+<div class="space-y-8 lg:space-y-10">
     <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <x-ui.page-header :title="__('reports.title')" />
         <div class="no-print flex flex-wrap items-center gap-2">
             <x-ui.button variant="secondary" size="sm" wire:click="exportExcel">{{ __('reports.export_excel') }}</x-ui.button>
-            <a href="{{ route('reports.print', $this->printParams()) }}" target="_blank" class="inline-flex items-center rounded-sm border border-line-strong bg-surface px-3 py-1.5 text-xs font-medium text-muted hover:bg-surface-raised ">{{ __('reports.print') }}</a>
-            <a href="{{ route('reports.print', $this->printParams(true)) }}" target="_blank" class="inline-flex items-center rounded-sm border border-line-strong bg-surface px-3 py-1.5 text-xs font-medium text-muted hover:bg-surface-raised ">{{ __('reports.print_landscape') }}</a>
+            <x-ui.button variant="secondary" size="sm" :href="route('reports.print', $this->printParams())" target="_blank">{{ __('reports.print') }}</x-ui.button>
+            <x-ui.button variant="secondary" size="sm" :href="route('reports.print', $this->printParams(true))" target="_blank">{{ __('reports.print_landscape') }}</x-ui.button>
         </div>
     </div>
 
-    <div class="no-print border-b border-line text-sm font-medium ">
-        <ul class="flex flex-wrap gap-2">
+    <div class="no-print border-b border-line text-sm font-medium">
+        <ul class="flex flex-wrap gap-x-2">
             @foreach(['year_summary' => __('reports.year_summary'), 'tuition_vs_other' => __('reports.tuition_vs_other'), 'call_list' => __('reports.call_list'), 'collections' => __('reports.collections'), 'discounts' => __('reports.discounts'), 'forgone_by_leavers' => __('reports.forgone_by_leavers'), 'refunds' => __('reports.refunds'), 'student_statement' => __('reports.student_statement')] as $key => $label)
-                <li><button type="button" wire:click="setTab('{{ $key }}')" class="inline-block cursor-pointer rounded-t-sm border-b-2 p-3 transition {{ $tab === $key ? 'border-primary font-semibold text-primary ' : 'border-transparent text-muted hover:border-line-strong hover:text-muted ' }}">{{ $label }}</button></li>
+                <li><button type="button" wire:click="setTab('{{ $key }}')" class="inline-flex min-h-11 cursor-pointer items-center border-b-2 px-3 py-2 transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus {{ $tab === $key ? 'border-tab-active font-semibold text-ink' : 'border-transparent text-muted hover:border-line-strong hover:text-ink' }}">{{ $label }}</button></li>
             @endforeach
         </ul>
     </div>
@@ -428,16 +428,16 @@ new #[Layout('layouts::app')] class extends Component
                 <div class="sm:col-span-2 lg:col-span-4">
                     <span class="block text-sm font-medium text-muted ">{{ __('reports.status_filter') }}</span>
                     <div class="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
-                        <button type="button" wire:click="setPreset('all')" class="cursor-pointer text-primary hover:underline ">{{ __('reports.all_statuses') }}</button>
+                        <button type="button" wire:click="setPreset('all')" class="inline-flex min-h-11 cursor-pointer items-center text-primary hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">{{ __('reports.all_statuses') }}</button>
                         <span aria-hidden="true">·</span>
-                        <button type="button" wire:click="setPreset('charged')" class="cursor-pointer text-primary hover:underline ">{{ __('reports.preset_charged') }}</button>
+                        <button type="button" wire:click="setPreset('charged')" class="inline-flex min-h-11 cursor-pointer items-center text-primary hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">{{ __('reports.preset_charged') }}</button>
                         <span aria-hidden="true">·</span>
-                        <button type="button" wire:click="setPreset('ended')" class="cursor-pointer text-primary hover:underline ">{{ __('reports.preset_ended') }}</button>
+                        <button type="button" wire:click="setPreset('ended')" class="inline-flex min-h-11 cursor-pointer items-center text-primary hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">{{ __('reports.preset_ended') }}</button>
                     </div>
                     <div class="mt-3 flex flex-wrap gap-x-6 gap-y-3">
                         @foreach(\App\Enums\EnrollmentStatus::cases() as $case)
-                            <label class="inline-flex items-center gap-1.5 text-xs text-muted ">
-                                <input type="checkbox" wire:model.live="statuses" value="{{ $case->value }}" class="rounded border-line-strong text-primary focus:ring-focus">
+                            <label class="inline-flex min-h-11 items-center gap-2 text-xs text-muted">
+                                <input type="checkbox" wire:model.live="statuses" value="{{ $case->value }}" class="h-5 w-5 rounded-xs border-line-strong accent-primary focus:ring-2 focus:ring-focus">
                                 {{ __('enrollments.status_'.$case->value) }}
                             </label>
                         @endforeach
@@ -467,8 +467,8 @@ new #[Layout('layouts::app')] class extends Component
                         <ul class="mt-2 max-h-40 overflow-y-auto rounded-sm border border-line bg-surface ">
                             @foreach($this->studentMatches as $match)
                                 <li class="border-b border-line last:border-none ">
-                                    <button type="button" wire:click="pickStudent({{ $match->id }})" class="w-full cursor-pointer px-3 py-1.5 text-start text-xs hover:bg-surface-raised ">
-                                        <span class="font-medium text-ink ">{{ $match->name }}</span>
+                                    <button type="button" wire:click="pickStudent({{ $match->id }})" class="flex min-h-11 w-full cursor-pointer items-center gap-1 px-3 py-2 text-start text-xs hover:bg-surface-raised focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
+                                        <span class="font-medium text-ink">{{ $match->name }}</span>
                                         <span class="text-muted" dir="ltr">({{ $match->student_number }})</span>
                                     </button>
                                 </li>

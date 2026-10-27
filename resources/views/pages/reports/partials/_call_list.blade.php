@@ -8,7 +8,7 @@
                 <th>{{ __('students.student_number') }}</th>
                 <th>
                     @if($sortable)
-                        <button type="button" wire:click="setCallSort('name')" class="inline-flex cursor-pointer items-center gap-1 font-bold hover:underline">
+                        <button type="button" wire:click="setCallSort('name')" class="inline-flex min-h-11 cursor-pointer items-center gap-1 font-bold hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
                             {{ __('students.name') }}
                             @if(str_starts_with($sort, 'name_'))
                                 <span aria-hidden="true">{{ str_ends_with($sort, '_asc') ? '↑' : '↓' }}</span>
@@ -25,7 +25,7 @@
                 <th>{{ __('enrollments.status') }}</th>
                 <th class="text-end">
                     @if($sortable)
-                        <button type="button" wire:click="setCallSort('owed')" class="inline-flex cursor-pointer items-center gap-1 font-bold hover:underline">
+                        <button type="button" wire:click="setCallSort('owed')" class="inline-flex min-h-11 cursor-pointer items-center gap-1 font-bold hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
                             {{ __('reports.still_owed') }}
                             @if(str_starts_with($sort, 'owed_'))
                                 <span aria-hidden="true">{{ str_ends_with($sort, '_asc') ? '↑' : '↓' }}</span>

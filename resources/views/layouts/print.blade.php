@@ -67,7 +67,7 @@
         }
     </style>
 </head>
-<body class="min-h-screen bg-white font-sans text-gray-900 antialiased">
+<body class="min-h-screen bg-white font-sans text-black antialiased">
     <main class="mx-auto w-full {{ !empty($landscape) ? 'max-w-6xl' : 'max-w-4xl' }} p-4 sm:p-6">
         {{ $slot }}
         <div class="print-page-foot">

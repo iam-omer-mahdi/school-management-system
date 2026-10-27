@@ -403,7 +403,7 @@ Keep `dark:hidden` / `dark:block` and any non-colour dark variant.
 
 ### Task 7 — Reports and print
 
-**Status:** pending
+**Status:** done
 
 **Files**
 
@@ -429,7 +429,7 @@ Keep `dark:hidden` / `dark:block` and any non-colour dark variant.
 
 **Verification**
 
-- `php artisan test --compact tests/Feature/ReportsPageTest.php tests/Feature/ReportsPrintTest.php`
+- `php artisan test --compact tests/Feature/ReportsParityTest.php tests/Feature/ReportsQueriesTest.php`
 - `bun run build`
 
 **Commit**
