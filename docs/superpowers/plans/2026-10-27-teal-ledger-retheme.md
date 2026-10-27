@@ -216,7 +216,7 @@ Keep `dark:hidden` / `dark:block` and any non-colour dark variant.
 
 ### Task 3 — Shared UI primitives
 
-**Status:** pending
+**Status:** done
 
 **Files**
 

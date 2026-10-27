@@ -82,10 +82,10 @@ final class EnrollmentPanelsTest extends TestCase
         $enrollment = $this->tuitionEnrollment($grade, $year);
 
         $html = $this->get(route('enrollments.show', $enrollment))->assertOk()->getContent();
-        $heading = fn (string $title): string => '<h2 class="text-base font-semibold text-gray-900 dark:text-white">'.$title.'</h2>';
+        $heading = fn (string $title): string => '/<h2[^>]*>'.preg_quote($title, '/').'<\/h2>/';
 
-        $this->assertSame(1, substr_count($html, $heading(__('fees.charges'))));
-        $this->assertSame(1, substr_count($html, $heading(__('payments.payment'))));
+        $this->assertSame(1, preg_match_all($heading(__('fees.charges')), $html));
+        $this->assertSame(1, preg_match_all($heading(__('payments.payment')), $html));
     }
 
     public function test_charges_panel_shows_fresh_numbers_after_payment_elsewhere(): void

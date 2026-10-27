@@ -1,14 +1,14 @@
 @props(['variant' => 'primary', 'size' => 'md', 'spinner' => true, 'loadingTarget' => null, 'href' => null])
 
 @php
-$base = 'inline-flex cursor-pointer items-center justify-center gap-2 rounded-lg border font-medium whitespace-nowrap transition focus:outline-none focus:ring-4 disabled:cursor-not-allowed disabled:opacity-60';
+$base = 'inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-xs border font-medium whitespace-nowrap transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:cursor-not-allowed disabled:opacity-60';
 
 $variants = [
-    'primary' => 'border-transparent bg-indigo-600 text-white shadow-xs hover:bg-indigo-700 focus:ring-indigo-300 active:bg-indigo-800 dark:bg-indigo-600 dark:hover:bg-indigo-700 dark:focus:ring-indigo-800',
-    'secondary' => 'border-gray-300 bg-white text-gray-900 shadow-xs hover:bg-gray-100 focus:ring-gray-100 active:bg-gray-200 dark:border-gray-600 dark:bg-gray-800 dark:text-white dark:hover:border-gray-600 dark:hover:bg-gray-700 dark:focus:ring-gray-700',
-    'danger' => 'border-transparent bg-red-700 text-white shadow-xs hover:bg-red-800 focus:ring-red-300 active:bg-red-900 dark:bg-red-600 dark:hover:bg-red-700 dark:focus:ring-red-900',
-    'warning' => 'border-transparent bg-amber-500 text-white shadow-xs hover:bg-amber-600 focus:ring-amber-300 active:bg-amber-700 dark:bg-amber-500 dark:hover:bg-amber-600 dark:focus:ring-amber-800',
-    'ghost' => 'border-transparent text-indigo-700 hover:bg-indigo-100 focus:ring-indigo-200 active:bg-indigo-200 dark:text-indigo-300 dark:hover:bg-gray-700 dark:focus:ring-gray-700',
+    'primary' => 'border-transparent bg-primary text-on-primary hover:bg-primary-hover active:bg-primary-hover',
+    'secondary' => 'border-line-strong bg-surface text-ink hover:bg-surface-raised active:bg-surface-raised',
+    'danger' => 'border-transparent bg-negative text-on-negative hover:opacity-90 active:opacity-80',
+    'warning' => 'border-transparent bg-accent text-on-accent hover:opacity-90 active:opacity-80',
+    'ghost' => 'border-transparent text-primary hover:bg-surface-raised active:bg-surface-raised',
 ];
 
 $sizes = [
