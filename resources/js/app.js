@@ -511,6 +511,63 @@ function applyTheme(renderCharts = true) {
 
 window.applyTheme = applyTheme;
 
+/**
+ * Header account dropdown ([data-user-menu-toggle] + [data-user-menu-panel]).
+ * Delegated so wire:navigate swaps of the header keep working without
+ * rebinding; Escape closes it and returns focus to the trigger.
+ */
+function closeUserMenus(exceptPanel = null) {
+    document.querySelectorAll('[data-user-menu-panel]').forEach((panel) => {
+        if (panel === exceptPanel) {
+            return;
+        }
+
+        panel.classList.add('hidden');
+        document.querySelector(`[aria-controls="${panel.id}"]`)?.setAttribute('aria-expanded', 'false');
+    });
+}
+
+document.addEventListener('click', (event) => {
+    if (!event.target || !event.target.closest) {
+        return;
+    }
+
+    const toggle = event.target.closest('[data-user-menu-toggle]');
+
+    if (toggle) {
+        const panel = document.getElementById(toggle.getAttribute('aria-controls'));
+
+        if (panel) {
+            const open = panel.classList.toggle('hidden') === false;
+            toggle.setAttribute('aria-expanded', String(open));
+            closeUserMenus(panel);
+        }
+
+        return;
+    }
+
+    const inPanel = event.target.closest('[data-user-menu-panel]');
+
+    if (!inPanel || event.target.closest('[data-user-menu-panel] a, [data-user-menu-panel] button')) {
+        closeUserMenus();
+    }
+});
+
+document.addEventListener('keydown', (event) => {
+    if (event.key !== 'Escape') {
+        return;
+    }
+
+    const open = document.querySelector('[data-user-menu-panel]:not(.hidden)');
+
+    if (!open) {
+        return;
+    }
+
+    closeUserMenus();
+    document.querySelector(`[aria-controls="${open.id}"]`)?.focus();
+});
+
 document.addEventListener('DOMContentLoaded', () => {
     applyTheme(false);
     initFlowbite();

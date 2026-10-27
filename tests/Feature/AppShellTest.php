@@ -83,6 +83,26 @@ class AppShellTest extends TestCase
         $response->assertSee(route('locale.switch'), false);
     }
 
+    public function test_account_actions_live_in_the_header_user_menu(): void
+    {
+        $user = User::factory()->create(['email' => 'principal@example.com']);
+        $this->actingAs($user);
+
+        $response = $this->get('/');
+
+        $response->assertOk();
+        $response->assertSee('data-user-menu-toggle', false);
+        $response->assertSee('aria-controls="user-menu"', false);
+        $response->assertSee('principal@example.com');
+        $response->assertSee(__('common.settings'));
+        $response->assertSee(__('common.logout'));
+
+        $html = (string) $response->getContent();
+
+        $this->assertSame(1, substr_count($html, 'href="'.route('settings').'"'));
+        $this->assertSame(1, substr_count($html, 'action="'.route('logout').'"'));
+    }
+
     public function test_shell_has_no_alpine_state(): void
     {
         $user = User::factory()->create();

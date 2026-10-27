@@ -12,6 +12,8 @@ return [
     'settings' => 'Settings',
     'help' => 'Help',
     'logout' => 'Log out',
+    'user_menu' => 'Account menu',
+    'signed_in_as' => 'Signed in as',
     'login' => 'Log in',
     'search' => 'Search',
     'save' => 'Save',

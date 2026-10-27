@@ -15,7 +15,6 @@ $tailLinks = [
     ['route' => 'academic-years.index', 'match' => 'academic-years.*', 'label' => __('common.academic_years'), 'icon' => 'calendar'],
     ['route' => 'staff.index', 'match' => 'staff.*', 'label' => __('staff.title'), 'icon' => 'users', 'permission' => \App\Enums\Permission::StaffManage->value],
     ['route' => 'help', 'match' => 'help', 'label' => __('common.help'), 'icon' => 'help'],
-    ['route' => 'settings', 'match' => 'settings', 'label' => __('common.settings'), 'icon' => 'cog'],
 ];
 $drawerId = $drawerId ?? null;
 $visible = fn (array $links): array => array_values(array_filter(

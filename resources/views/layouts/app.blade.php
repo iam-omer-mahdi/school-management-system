@@ -29,13 +29,6 @@
             <div class="flex-1 px-3 py-5">
                 @include('layouts.nav-links')
             </div>
-            <form method="POST" action="{{ route('logout') }}" class="border-t border-line px-3 py-4">
-                @csrf
-                <button type="submit" class="flex min-h-11 w-full cursor-pointer items-center gap-3 rounded-xs px-3 py-2 text-sm font-medium text-sidebar-muted transition hover:bg-sidebar-hover hover:text-sidebar-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
-                    <x-ui.icon name="logout" class="h-5 w-5 shrink-0" :flipRtl="true" />
-                    {{ __('common.logout') }}
-                </button>
-            </form>
         </aside>
 
         <div id="mobile-sidebar" tabindex="-1" aria-labelledby="mobile-sidebar-label" class="fixed top-0 z-40 h-screen w-72 max-w-[85vw] overflow-y-auto bg-sidebar text-sidebar-fg transition-transform lg:hidden {{ $drawerOnRight ? 'right-0 translate-x-full border-s border-line' : 'left-0 -translate-x-full border-e border-line' }}" data-drawer-placement="{{ $drawerOnRight ? 'right' : 'left' }}">
@@ -49,13 +42,6 @@
             <div class="px-3 py-4">
                 @include('layouts.nav-links', ['drawerId' => 'mobile-sidebar'])
             </div>
-            <form method="POST" action="{{ route('logout') }}" class="border-t border-line px-3 py-4">
-                @csrf
-                <button type="submit" class="flex min-h-11 w-full cursor-pointer items-center gap-3 rounded-xs px-3 py-2 text-sm font-medium text-sidebar-muted transition hover:bg-sidebar-hover hover:text-sidebar-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
-                    <x-ui.icon name="logout" class="h-5 w-5 shrink-0" :flipRtl="true" />
-                    {{ __('common.logout') }}
-                </button>
-            </form>
         </div>
 
         <div class="min-w-0 flex-1">
@@ -64,10 +50,33 @@
                     <button type="button" data-drawer-target="mobile-sidebar" data-drawer-show="mobile-sidebar" data-drawer-placement="{{ $drawerOnRight ? 'right' : 'left' }}" aria-controls="mobile-sidebar" class="inline-flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-xs text-muted hover:bg-surface-raised focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus lg:hidden" aria-label="{{ __('common.open_menu') }}">
                         <x-ui.icon name="menu" class="h-5 w-5" />
                     </button>
-                    <span class="hidden min-w-0 truncate text-sm text-muted min-[420px]:block">{{ auth()->user()->email }}</span>
                 </div>
                 <div class="flex shrink-0 items-center gap-2">
                     @include('layouts.display-controls')
+                    <div class="relative">
+                        <button type="button" data-user-menu-toggle aria-controls="user-menu" aria-expanded="false" aria-label="{{ __('common.user_menu') }}" class="inline-flex h-11 w-11 cursor-pointer items-center justify-center rounded-xs border border-line-strong bg-surface text-muted transition hover:bg-surface-raised focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
+                            <x-ui.icon name="user" class="h-5 w-5" />
+                        </button>
+                        <div id="user-menu" data-user-menu-panel class="absolute end-0 top-full z-40 mt-1.5 hidden w-64 overflow-hidden rounded-xs border border-line bg-surface text-ink shadow-lg">
+                            <div class="px-4 py-3">
+                                <p class="text-[11px] font-semibold tracking-wider text-muted uppercase">{{ __('common.signed_in_as') }}</p>
+                                <p class="mt-0.5 truncate text-sm font-medium">{{ auth()->user()->email }}</p>
+                            </div>
+                            <div class="border-t border-line p-1.5">
+                                <a href="{{ route('settings') }}" wire:navigate.hover class="flex min-h-11 items-center gap-3 rounded-xs px-3 py-2 text-sm font-medium transition hover:bg-surface-raised focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
+                                    <x-ui.icon name="cog" class="h-5 w-5 shrink-0 text-muted" />
+                                    {{ __('common.settings') }}
+                                </a>
+                                <form method="POST" action="{{ route('logout') }}">
+                                    @csrf
+                                    <button type="submit" class="flex min-h-11 w-full cursor-pointer items-center gap-3 rounded-xs px-3 py-2 text-sm font-medium transition hover:bg-surface-raised focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
+                                        <x-ui.icon name="logout" class="h-5 w-5 shrink-0 text-muted" :flipRtl="true" />
+                                        {{ __('common.logout') }}
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </header>
             <main class="mx-auto w-full max-w-[1440px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
