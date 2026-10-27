@@ -211,7 +211,7 @@ new #[Layout('layouts::app')] class extends Component
 
 <x-ui.card>
     <x-slot:header>
-        <h1 class="text-xl font-semibold text-ink">{{ __('auth.otp_title') }}</h1>
+        <h1 class="text-2xl font-semibold tracking-tight text-ink">{{ __('auth.otp_title') }}</h1>
         <p class="mt-1 text-sm text-muted">{{ __('auth.otp_hint') }}</p>
     </x-slot:header>
 

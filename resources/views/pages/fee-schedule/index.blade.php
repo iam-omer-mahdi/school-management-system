@@ -106,7 +106,7 @@ new #[Layout('layouts::app')] class extends Component
 };
 ?>
 
-<div class="space-y-5">
+<div class="space-y-8 lg:space-y-10">
     <x-ui.page-header :title="__('fees.schedule')">
         <x-slot:actions>
             @can(\App\Enums\Permission::FeesManage->value)

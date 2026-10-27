@@ -68,7 +68,7 @@ new #[Layout('layouts::app')] class extends Component
     $netMinor = $tuitionMinor !== null ? $tuitionMinor - $balance['discount'] : null;
 @endphp
 
-<div class="space-y-6">
+<div class="space-y-8 lg:space-y-10">
     <x-ui.page-header :title="$enrollment->student->name" :backUrl="route('enrollments.index')">
         <x-slot:actions>
             <x-ui.badge :status="$enrollment->status->value" />

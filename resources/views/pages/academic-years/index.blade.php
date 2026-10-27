@@ -74,7 +74,7 @@ new #[Layout('layouts::app')] class extends Component
 };
 ?>
 
-<div class="space-y-5">
+<div class="space-y-8 lg:space-y-10">
     <x-ui.page-header :title="__('academic_years.title')" :description="__('academic_years.open_note')">
         <x-slot:actions>
             <x-ui.button variant="primary" size="sm" wire:click="create" :spinner="false">

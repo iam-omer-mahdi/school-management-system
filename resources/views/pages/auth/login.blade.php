@@ -68,7 +68,7 @@ new #[Layout('layouts::app')] class extends Component
 
 <x-ui.card>
     <x-slot:header>
-        <h1 class="text-xl font-semibold text-ink ">{{ __('auth.title') }}</h1>
+        <h1 class="text-2xl font-semibold tracking-tight text-ink ">{{ __('auth.title') }}</h1>
     </x-slot:header>
     @if(session('status'))
         <div class="mb-4"><x-ui.alert type="success">{{ session('status') }}</x-ui.alert></div>

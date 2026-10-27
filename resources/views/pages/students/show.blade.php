@@ -204,7 +204,7 @@ new #[Layout('layouts::app')] class extends Component
 };
 ?>
 
-<div class="space-y-6">
+<div class="space-y-8 lg:space-y-10">
     <x-ui.page-header :title="$this->student->name" :backUrl="route('students.index')">
         <x-slot:actions>
             @if($this->student->isArchived())

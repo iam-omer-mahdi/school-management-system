@@ -440,7 +440,7 @@ Keep `dark:hidden` / `dark:block` and any non-colour dark variant.
 
 ### Task 8 — Auth, settings, staff, and remaining pages
 
-**Status:** pending
+**Status:** done
 
 **Files**
 
@@ -468,7 +468,7 @@ Keep `dark:hidden` / `dark:block` and any non-colour dark variant.
 
 **Verification**
 
-- `php artisan test --compact tests/Feature/RolesPageTest.php tests/Feature/PagePermissionsTest.php tests/Feature/AuthTest.php tests/Feature/SettingsPageTest.php`
+- `php artisan test --compact tests/Feature/RolesPageTest.php tests/Feature/PagePermissionsTest.php tests/Feature/AuthTest.php tests/Feature/SchoolsAdminTest.php tests/Feature/FeesPagesTest.php tests/Feature/DiscountsPageTest.php tests/Feature/StaffPageTest.php tests/Feature/AcademicYearTest.php`
 - `bun run build`
 - `vendor/bin/pint --dirty --format agent`
 

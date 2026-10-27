@@ -1,8 +1,6 @@
 @php
 $links = [
     ['route' => 'dashboard', 'match' => 'dashboard', 'label' => __('common.dashboard'), 'icon' => 'home'],
-    ['route' => 'schools.index', 'match' => 'schools.*', 'label' => __('common.schools'), 'icon' => 'cap'],
-    ['route' => 'academic-years.index', 'match' => 'academic-years.*', 'label' => __('common.academic_years'), 'icon' => 'calendar'],
     ['route' => 'students.index', 'match' => 'students.*', 'label' => __('common.students'), 'icon' => 'users', 'permission' => \App\Enums\Permission::StudentsView->value],
     ['route' => 'enrollments.index', 'match' => 'enrollments.*', 'label' => __('enrollments.title'), 'icon' => 'clipboard', 'permission' => \App\Enums\Permission::EnrollmentsView->value],
 ];
@@ -13,6 +11,8 @@ $feeLinks = [
 ];
 $tailLinks = [
     ['route' => 'reports.index', 'match' => 'reports.*', 'label' => __('reports.reports'), 'icon' => 'clipboard', 'permission' => \App\Enums\Permission::ReportsView->value],
+    ['route' => 'schools.index', 'match' => 'schools.*', 'label' => __('common.schools'), 'icon' => 'cap'],
+    ['route' => 'academic-years.index', 'match' => 'academic-years.*', 'label' => __('common.academic_years'), 'icon' => 'calendar'],
     ['route' => 'staff.index', 'match' => 'staff.*', 'label' => __('staff.title'), 'icon' => 'users', 'permission' => \App\Enums\Permission::StaffManage->value],
     ['route' => 'help', 'match' => 'help', 'label' => __('common.help'), 'icon' => 'help'],
     ['route' => 'settings', 'match' => 'settings', 'label' => __('common.settings'), 'icon' => 'cog'],

@@ -15,7 +15,7 @@
                         @foreach(['view', 'manage'] as $ability)
                             <td class="py-2">
                                 @if($columns[$ability])
-                                    <x-ui.checkbox wire:model.live="selectedPermissions" value="{{ $columns[$ability]->value }}" />
+                                    <x-ui.checkbox wire:model.live="selectedPermissions" value="{{ $columns[$ability]->value }}" :aria-label="__('staff.modules.'.$module).' — '.__('staff.'.$ability)" />
                                 @else
                                     <span class="text-subtle">—</span>
                                 @endif
