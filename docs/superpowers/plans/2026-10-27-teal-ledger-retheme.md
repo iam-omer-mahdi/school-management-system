@@ -139,7 +139,7 @@ Keep `dark:hidden` / `dark:block` and any non-colour dark variant.
 
 ### Task 1 — Theme tokens and shared CSS
 
-**Status:** pending
+**Status:** done
 
 **Files**
 
@@ -172,7 +172,7 @@ Keep `dark:hidden` / `dark:block` and any non-colour dark variant.
 
 ### Task 2 — Application shell and navigation
 
-**Status:** pending
+**Status:** done
 
 **Files**
 

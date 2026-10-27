@@ -27,7 +27,7 @@ $links = $visible($links);
 $tailLinks = $visible($tailLinks);
 @endphp
 
-<nav class="flex flex-col gap-1" aria-label="{{ __('common.main_nav') }}">
+<nav class="flex flex-col gap-0.5" aria-label="{{ __('common.main_nav') }}">
     @foreach($links as $link)
         @php($isActive = request()->routeIs($link['match']))
         <a
@@ -35,7 +35,7 @@ $tailLinks = $visible($tailLinks);
             wire:navigate.hover
             @if($drawerId) data-drawer-hide="{{ $drawerId }}" @endif
             @if($isActive) aria-current="page" @endif
-            class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium whitespace-nowrap transition focus:outline-none focus:ring-4 focus:ring-indigo-500 {{ $isActive ? 'bg-indigo-600 text-white shadow-xs' : 'text-gray-300 hover:bg-gray-700 hover:text-white' }}"
+            class="relative flex min-h-11 items-center gap-3 rounded-xs px-3 py-2 text-sm font-medium whitespace-nowrap transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus {{ $isActive ? 'bg-nav-active text-nav-active-fg before:absolute before:inset-y-2 before:start-0 before:w-0.5 before:rounded-full before:bg-nav-marker' : 'text-sidebar-muted hover:bg-sidebar-hover hover:text-sidebar-fg' }}"
         >
             <x-ui.icon :name="$link['icon']" class="h-5 w-5 shrink-0" />
             <span class="truncate">{{ $link['label'] }}</span>
@@ -43,7 +43,7 @@ $tailLinks = $visible($tailLinks);
     @endforeach
 
     @if($feeLinks)
-        <p class="mt-3 px-3 text-xs font-semibold tracking-wider text-gray-400 uppercase dark:text-gray-500">{{ __('common.fees') }}</p>
+        <p class="mt-6 px-3 pb-1 text-[11px] font-semibold tracking-wider text-sidebar-muted uppercase">{{ __('common.fees') }}</p>
     @endif
     @foreach($feeLinks as $link)
         @php($isActive = request()->routeIs($link['match']))
@@ -52,7 +52,7 @@ $tailLinks = $visible($tailLinks);
             wire:navigate.hover
             @if($drawerId) data-drawer-hide="{{ $drawerId }}" @endif
             @if($isActive) aria-current="page" @endif
-            class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium whitespace-nowrap transition focus:outline-none focus:ring-4 focus:ring-indigo-500 {{ $isActive ? 'bg-indigo-600 text-white shadow-xs' : 'text-gray-300 hover:bg-gray-700 hover:text-white' }}"
+            class="relative flex min-h-11 items-center gap-3 rounded-xs px-3 py-2 text-sm font-medium whitespace-nowrap transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus {{ $isActive ? 'bg-nav-active text-nav-active-fg before:absolute before:inset-y-2 before:start-0 before:w-0.5 before:rounded-full before:bg-nav-marker' : 'text-sidebar-muted hover:bg-sidebar-hover hover:text-sidebar-fg' }}"
         >
             <x-ui.icon :name="$link['icon']" class="h-5 w-5 shrink-0" />
             <span class="truncate">{{ $link['label'] }}</span>
@@ -65,7 +65,7 @@ $tailLinks = $visible($tailLinks);
             wire:navigate.hover
             @if($drawerId) data-drawer-hide="{{ $drawerId }}" @endif
             @if($isActive) aria-current="page" @endif
-            class="mt-1 flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium whitespace-nowrap transition focus:outline-none focus:ring-4 focus:ring-indigo-500 {{ $isActive ? 'bg-indigo-600 text-white shadow-xs' : 'text-gray-300 hover:bg-gray-700 hover:text-white' }}"
+            class="relative flex min-h-11 items-center gap-3 rounded-xs px-3 py-2 text-sm font-medium whitespace-nowrap transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus {{ $isActive ? 'bg-nav-active text-nav-active-fg before:absolute before:inset-y-2 before:start-0 before:w-0.5 before:rounded-full before:bg-nav-marker' : 'text-sidebar-muted hover:bg-sidebar-hover hover:text-sidebar-fg' }}"
         >
             <x-ui.icon :name="$link['icon']" class="h-5 w-5 shrink-0" />
             <span class="truncate">{{ $link['label'] }}</span>
