@@ -1,51 +1,56 @@
 /*
- * Teal Ledger theme tokens.
+ * Ledger theme tokens.
  *
  * This is the only file to edit when the palette changes. Blade consumes the
  * semantic Tailwind utilities generated below; light and dark values swap
  * automatically under the .dark class.
+ *
+ * Strictly grayscale: surfaces, text, borders, and accents all come from the
+ * neutral zinc ramp. Color is reserved for semantic status only (positive,
+ * negative, warning).
  */
 
 :root {
     color-scheme: light;
 
-    --ui-canvas: #f4f7f5;
+    --ui-canvas: #f4f4f5;
     --ui-surface: #ffffff;
-    --ui-surface-raised: #edf3f0;
+    --ui-surface-raised: #f4f4f5;
 
-    --ui-ink: #0a1f1c;
-    --ui-muted: #475569;
-    --ui-subtle: #5f6f80;
+    --ui-ink: #18181b;
+    --ui-muted: #52525b;
+    --ui-subtle: #71717a;
 
-    --ui-line: #d7e3df;
-    --ui-line-strong: #64748b;
+    --ui-line: #e4e4e7;
+    --ui-line-strong: #71717a;
 
-    --ui-primary: #0f4c45;
-    --ui-primary-hover: #0b3d37;
-    --ui-primary-text: #0f4c45;
+    --ui-primary: #18181b;
+    --ui-primary-hover: #27272a;
+    --ui-primary-text: #3f3f46;
     --ui-on-primary: #ffffff;
 
-    --ui-accent: #b45309;
+    --ui-accent: #3f3f46;
     --ui-on-accent: #ffffff;
-    --ui-accent-tile: #f0d2b4;
-    --ui-on-accent-tile: #0a1f1c;
+    --ui-accent-tile: #e4e4e7;
+    --ui-on-accent-tile: #18181b;
 
     --ui-sidebar: #ffffff;
-    --ui-sidebar-fg: #0a1f1c;
-    --ui-sidebar-muted: #475569;
-    --ui-sidebar-hover: #edf3f0;
-    --ui-nav-active: #0f4c45;
+    --ui-sidebar-fg: #18181b;
+    --ui-sidebar-muted: #52525b;
+    --ui-sidebar-hover: #f4f4f5;
+    --ui-sidebar-border: #e4e4e7;
+    --ui-nav-active: #18181b;
     --ui-nav-active-fg: #ffffff;
-    --ui-nav-marker: #b45309;
+    --ui-nav-marker: var(--ui-nav-active-fg);
 
-    --ui-tile-dark: #0f2f2a;
+    --ui-tile-dark: #18181b;
     --ui-tile-dark-fg: #ffffff;
 
-    --ui-focus: #0f4c45;
-    --ui-tab-active: #0f4c45;
+    --ui-focus: #18181b;
+    --ui-tab-active: var(--ui-primary-text);
 
-    --ui-chart-bar: #0f4c45;
-    --ui-chart-accent: #b45309;
+    --ui-chart-bar: #18181b;
+    --ui-chart-accent: #a1a1aa;
 
     --ui-positive: #067647;
     --ui-positive-surface: #e8f3ec;
@@ -54,72 +59,73 @@
     --ui-on-negative: #ffffff;
     --ui-warning: #8a4b00;
     --ui-warning-surface: #fff4e0;
-    --ui-info: #0f4c45;
-    --ui-info-surface: #e6f0ed;
+    --ui-info: #52525b;
+    --ui-info-surface: #f4f4f5;
 
-    --ui-overlay: rgb(10 31 28 / 0.55);
-    --ui-tint-sage: #d3dfe0;
-    --ui-tint-sand: #e8dcc4;
-    --ui-tint-rose: #f2b8cc;
-    --ui-on-tint: #0a1f1c;
+    --ui-overlay: rgb(24 24 27 / 0.55);
+    --ui-tint-sage: #e4e4e7;
+    --ui-tint-sand: #ececee;
+    --ui-tint-rose: #f2f2f4;
+    --ui-on-tint: #18181b;
 }
 
 .dark {
     color-scheme: dark;
 
-    --ui-canvas: #0b1512;
-    --ui-surface: #13211c;
-    --ui-surface-raised: #1a2c25;
+    --ui-canvas: #0a0a0b;
+    --ui-surface: #141416;
+    --ui-surface-raised: #1c1c1f;
 
-    --ui-ink: #f3f8f5;
-    --ui-muted: #b6c8c0;
-    --ui-subtle: #a9bdb5;
+    --ui-ink: #f4f4f5;
+    --ui-muted: #a1a1aa;
+    --ui-subtle: #8e8e96;
 
-    --ui-line: #294039;
-    --ui-line-strong: #93afa5;
+    --ui-line: #2a2a2e;
+    --ui-line-strong: #8e8e96;
 
-    --ui-primary: #337b6e;
-    --ui-primary-hover: #2e6f63;
-    --ui-primary-text: #8fc9bc;
-    --ui-on-primary: #f8fbf9;
+    --ui-primary: #f4f4f5;
+    --ui-primary-hover: #e4e4e7;
+    --ui-primary-text: #d4d4d8;
+    --ui-on-primary: #18181b;
 
-    --ui-accent: #c99a5b;
-    --ui-on-accent: #0a1f1c;
-    --ui-accent-tile: #c99a5b;
-    --ui-on-accent-tile: #0a1f1c;
+    --ui-accent: #3f3f46;
+    --ui-on-accent: #f4f4f5;
+    --ui-accent-tile: #2a2a2e;
+    --ui-on-accent-tile: #f4f4f5;
 
-    --ui-sidebar: #13211c;
-    --ui-sidebar-fg: #f3f8f5;
-    --ui-sidebar-muted: #b6c8c0;
-    --ui-sidebar-hover: rgb(255 255 255 / 0.07);
-    --ui-nav-active: #337b6e;
-    --ui-nav-active-fg: #f8fbf9;
-    --ui-nav-marker: #c99a5b;
+    --ui-sidebar: #141416;
+    --ui-sidebar-fg: #f4f4f5;
+    --ui-sidebar-muted: #a1a1aa;
+    --ui-sidebar-hover: rgb(255 255 255 / 0.06);
+    --ui-sidebar-border: #2a2a2e;
+    --ui-nav-active: var(--ui-primary);
+    --ui-nav-active-fg: var(--ui-on-primary);
+    --ui-nav-marker: var(--ui-nav-active-fg);
 
-    --ui-tile-dark: #0e3a33;
-    --ui-tile-dark-fg: #f0fdfa;
+    --ui-tile-dark: #1c1c1f;
+    --ui-tile-dark-fg: #f4f4f5;
 
-    --ui-focus: #8fc9bc;
-    --ui-tab-active: #8fc9bc;
+    --ui-focus: #f4f4f5;
+    --ui-tab-active: var(--ui-primary-text);
 
-    --ui-chart-bar: #4e9c8d;
-    --ui-chart-accent: #c99a5b;
+    --ui-chart-bar: #d4d4d8;
+    --ui-chart-accent: #8e8e96;
 
-    --ui-positive: #6bd3a5;
-    --ui-positive-surface: #153129;
+    --ui-positive: #5fd3a4;
+    --ui-positive-surface: #12211b;
     --ui-negative: #ff9b92;
-    --ui-negative-surface: #3a1d1a;
+    --ui-negative-surface: #2b1614;
     --ui-on-negative: #2a0e0b;
-    --ui-warning: #f5c36b;
-    --ui-warning-surface: #33260f;
-    --ui-info: #8fc9bc;
-    --ui-info-surface: #16302b;
+    --ui-warning: #f2c46e;
+    --ui-warning-surface: #2a2212;
+    --ui-info: #a1a1aa;
+    --ui-info-surface: #1c1c1f;
 
     --ui-overlay: rgb(0 0 0 / 0.72);
-    --ui-tint-sage: #1e2c2d;
-    --ui-tint-sand: #2a2418;
-    --ui-tint-rose: #2a1a20;
-    --ui-on-tint: #f3f8f5;
+    --ui-tint-sage: #212124;
+    --ui-tint-sand: #232326;
+    --ui-tint-rose: #1f1f23;
+    --ui-on-tint: #f4f4f5;
 }
 
 @theme inline {
@@ -148,6 +154,7 @@
     --color-sidebar-fg: var(--ui-sidebar-fg);
     --color-sidebar-muted: var(--ui-sidebar-muted);
     --color-sidebar-hover: var(--ui-sidebar-hover);
+    --color-sidebar-border: var(--ui-sidebar-border);
     --color-nav-active: var(--ui-nav-active);
     --color-nav-active-fg: var(--ui-nav-active-fg);
     --color-nav-marker: var(--ui-nav-marker);

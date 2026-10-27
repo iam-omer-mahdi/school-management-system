@@ -10,6 +10,8 @@ return [
     'print' => 'Print',
     'print_landscape' => 'Print (Landscape)',
     'filters' => 'Filters',
+    'clear_all' => 'Clear all',
+    'remove_filter' => 'Remove filter :filter',
     'all_schools' => 'All schools',
     'all_grades' => 'All grades',
     'all_fee_types' => 'All fee types',

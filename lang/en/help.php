@@ -6,6 +6,13 @@ return [
     'title' => 'How the system works',
     'intro' => 'A short guide to every part of the system, in the order a school year usually runs. Anyone who can sign in can read this page; what you are allowed to change still depends on your role.',
 
+    'toc_label' => 'Help topics',
+    'all_categories' => 'All topics',
+    'search_placeholder' => 'Search help topics',
+    'results_count' => 'Topics shown: :count',
+    'no_results_title' => 'No matching topics',
+    'no_results_description' => 'Nothing in the guide matches “:term”. Try another word.',
+
     'sections' => [
         'dashboard' => [
             'title' => 'Dashboard',

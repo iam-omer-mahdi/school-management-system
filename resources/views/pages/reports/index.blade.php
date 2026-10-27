@@ -114,6 +114,62 @@ new #[Layout('layouts::app')] class extends Component
         };
     }
 
+    public function clearFilter(string $key): void
+    {
+        switch ($key) {
+            case 'school_id':
+                $this->school_id = null;
+                $this->grade_id = null;
+                $this->applied_school_id = null;
+                $this->applied_grade_id = null;
+                break;
+            case 'grade_id':
+                $this->grade_id = null;
+                $this->applied_grade_id = null;
+                break;
+            case 'statuses':
+                $this->statuses = [];
+                $this->applied_statuses = [];
+                break;
+            case 'fee_type_id':
+                $this->fee_type_id = null;
+                $this->applied_fee_type_id = null;
+                break;
+            case 'date_from':
+                $this->date_from = '';
+                $this->applied_date_from = '';
+                break;
+            case 'date_to':
+                $this->date_to = '';
+                $this->applied_date_to = '';
+                break;
+            case 'student_id':
+                $this->student_id = null;
+                $this->student_search = '';
+                $this->applied_student_id = null;
+                break;
+            default:
+                return;
+        }
+
+        $this->resetPage('callPage');
+        $this->resetPage('refundsPage');
+    }
+
+    public function clearAllFilters(): void
+    {
+        $this->school_id = null;
+        $this->grade_id = null;
+        $this->statuses = [];
+        $this->fee_type_id = null;
+        $this->date_from = '';
+        $this->date_to = '';
+        $this->student_id = null;
+        $this->student_search = '';
+
+        $this->applyFilters();
+    }
+
     public function updatedSchoolId(): void
     {
         $this->grade_id = null;
@@ -216,6 +272,69 @@ new #[Layout('layouts::app')] class extends Component
         }
 
         return implode(', ', array_map(fn (string $s): string => __('enrollments.status_'.$s), $this->applied_statuses));
+    }
+
+    /** @return array<int, array{key: string, label: string, value: string}> */
+    #[Computed]
+    public function appliedFilters(): array
+    {
+        $filters = [];
+        $contextual = $this->tab !== 'student_statement';
+        $dated = in_array($this->tab, ['collections', 'refunds'], true);
+
+        if ($contextual && $this->applied_school_id !== null) {
+            $name = School::query()->whereKey($this->applied_school_id)->value('name');
+
+            if ($name !== null) {
+                $filters[] = ['key' => 'school_id', 'label' => __('fees.school'), 'value' => $name];
+            }
+        }
+
+        if ($contextual && $this->applied_grade_id !== null) {
+            $number = Grade::query()->whereKey($this->applied_grade_id)->value('number');
+
+            if ($number !== null) {
+                $filters[] = [
+                    'key' => 'grade_id',
+                    'label' => __('fees.grade'),
+                    'value' => __('schools.grade_number', ['number' => $number]),
+                ];
+            }
+        }
+
+        if ($contextual && $this->applied_statuses !== []) {
+            $filters[] = [
+                'key' => 'statuses',
+                'label' => __('reports.status_filter'),
+                'value' => $this->statusLabel,
+            ];
+        }
+
+        if ($this->tab === 'refunds' && $this->applied_fee_type_id !== null) {
+            $name = FeeType::query()->whereKey($this->applied_fee_type_id)->value('name');
+
+            if ($name !== null) {
+                $filters[] = ['key' => 'fee_type_id', 'label' => __('reports.fee_type'), 'value' => $name];
+            }
+        }
+
+        if ($dated && $this->applied_date_from !== '') {
+            $filters[] = ['key' => 'date_from', 'label' => __('reports.date_from'), 'value' => $this->applied_date_from];
+        }
+
+        if ($dated && $this->applied_date_to !== '') {
+            $filters[] = ['key' => 'date_to', 'label' => __('reports.date_to'), 'value' => $this->applied_date_to];
+        }
+
+        if (! $contextual && $this->applied_student_id !== null) {
+            $name = Student::query()->whereKey($this->applied_student_id)->value('name');
+
+            if ($name !== null) {
+                $filters[] = ['key' => 'student_id', 'label' => __('students.name'), 'value' => $name];
+            }
+        }
+
+        return $filters;
     }
 
     #[Computed]
@@ -380,25 +499,41 @@ new #[Layout('layouts::app')] class extends Component
 ?>
 
 <div class="space-y-8 lg:space-y-10">
-    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <x-ui.page-header :title="__('reports.title')" />
-        <div class="no-print flex flex-wrap items-center gap-2">
-            <x-ui.button variant="secondary" size="sm" wire:click="exportExcel">{{ __('reports.export_excel') }}</x-ui.button>
-            <x-ui.button variant="secondary" size="sm" :href="route('reports.print', $this->printParams())" target="_blank">{{ __('reports.print') }}</x-ui.button>
-            <x-ui.button variant="secondary" size="sm" :href="route('reports.print', $this->printParams(true))" target="_blank">{{ __('reports.print_landscape') }}</x-ui.button>
+    <x-ui.page-header :title="__('reports.title')">
+        <x-slot:actions>
+            <div class="no-print flex flex-wrap items-center gap-2">
+                <x-ui.button variant="secondary" size="sm" wire:click="exportExcel">{{ __('reports.export_excel') }}</x-ui.button>
+                <x-ui.button variant="secondary" size="sm" :href="route('reports.print', $this->printParams())" target="_blank">{{ __('reports.print') }}</x-ui.button>
+                <x-ui.button variant="secondary" size="sm" :href="route('reports.print', $this->printParams(true))" target="_blank">{{ __('reports.print_landscape') }}</x-ui.button>
+            </div>
+        </x-slot:actions>
+    </x-ui.page-header>
+
+    @php($tabs = ['year_summary' => __('reports.year_summary'), 'tuition_vs_other' => __('reports.tuition_vs_other'), 'call_list' => __('reports.call_list'), 'collections' => __('reports.collections'), 'discounts' => __('reports.discounts'), 'forgone_by_leavers' => __('reports.forgone_by_leavers'), 'refunds' => __('reports.refunds'), 'student_statement' => __('reports.student_statement')])
+    <div class="no-print -mx-1 overflow-x-auto px-1 pb-1">
+        <div class="inline-flex min-w-full gap-1 rounded-sm border border-line bg-surface-raised p-1">
+            @foreach($tabs as $key => $label)
+                <button type="button" wire:click="setTab('{{ $key }}')" @if($tab === $key) aria-current="true" @endif class="inline-flex min-h-11 shrink-0 cursor-pointer items-center justify-center whitespace-nowrap rounded-xs px-3 text-sm font-medium transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus {{ $tab === $key ? 'bg-primary text-on-primary shadow-sm' : 'text-muted hover:bg-surface hover:text-ink' }}">
+                    {{ $label }}
+                </button>
+            @endforeach
         </div>
     </div>
 
-    <div class="no-print border-b border-line text-sm font-medium">
-        <ul class="flex flex-wrap gap-x-2">
-            @foreach(['year_summary' => __('reports.year_summary'), 'tuition_vs_other' => __('reports.tuition_vs_other'), 'call_list' => __('reports.call_list'), 'collections' => __('reports.collections'), 'discounts' => __('reports.discounts'), 'forgone_by_leavers' => __('reports.forgone_by_leavers'), 'refunds' => __('reports.refunds'), 'student_statement' => __('reports.student_statement')] as $key => $label)
-                <li><button type="button" wire:click="setTab('{{ $key }}')" class="inline-flex min-h-11 cursor-pointer items-center border-b-2 px-3 py-2 transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus {{ $tab === $key ? 'border-tab-active font-semibold text-ink' : 'border-transparent text-muted hover:border-line-strong hover:text-ink' }}">{{ $label }}</button></li>
-            @endforeach
-        </ul>
-    </div>
+    <x-ui.card x-data="{ open: {{ $this->appliedFilters === [] ? 'true' : 'false' }} }">
+        <div class="no-print flex items-center justify-between gap-3 border-b border-line pb-4">
+            <button type="button" @click="open = !open" x-bind:aria-expanded="open" aria-controls="report-filters" class="inline-flex min-h-11 items-center gap-2 rounded-xs text-sm font-semibold text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
+                {{ __('reports.filters') }}
+                @if($this->appliedFilters !== [])
+                    <span class="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-primary/10 px-1.5 text-[11px] font-semibold text-primary-text">{{ count($this->appliedFilters) }}</span>
+                @endif
+                <span class="text-muted transition-transform duration-200" x-bind:class="open && 'rotate-180'">
+                    <x-ui.icon name="chevron-down" class="h-4 w-4" />
+                </span>
+            </button>
+        </div>
 
-    <x-ui.card>
-        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div id="report-filters" x-show="open" class="no-print grid grid-cols-1 gap-4 pt-4 sm:grid-cols-2 lg:grid-cols-4">
             @if($tab !== 'student_statement')
                 <x-ui.field :label="__('fees.academic_year')">
                     <x-ui.select wire:model.live="academic_year_id">
@@ -478,15 +613,28 @@ new #[Layout('layouts::app')] class extends Component
                 </div>
             @endif
         </div>
-        <div class="no-print mt-4 flex justify-end border-t border-line pt-4 ">
+        <div x-show="open" class="no-print mt-4 flex justify-end border-t border-line pt-4 pb-4">
             <x-ui.button variant="primary" size="sm" wire:click="applyFilters">{{ __('reports.apply') }}</x-ui.button>
         </div>
-    </x-ui.card>
 
-    @if(! $applied)
-        <x-ui.empty-state :title="__('common.no_results')" :description="__('enrollments.select_filters')" />
-    @else
-        <x-ui.card>
+        @if($this->appliedFilters !== [])
+            <div class="no-print flex flex-wrap items-center gap-2 border-b border-line py-3">
+                @foreach($this->appliedFilters as $filter)
+                    <span class="inline-flex items-center gap-1.5 rounded-full bg-surface-raised px-2.5 py-1 text-xs">
+                        <span class="text-muted">{{ $filter['label'] }}:</span>
+                        <span class="font-medium text-ink">{{ $filter['value'] }}</span>
+                        <button type="button" wire:click="clearFilter('{{ $filter['key'] }}')" class="-me-1 inline-flex h-6 w-6 items-center justify-center rounded-full text-muted transition hover:bg-line hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus" aria-label="{{ __('reports.remove_filter', ['filter' => $filter['label'].': '.$filter['value']]) }}">
+                            <x-ui.icon name="x" class="h-3 w-3" />
+                        </button>
+                    </span>
+                @endforeach
+                <button type="button" wire:click="clearAllFilters" class="inline-flex min-h-11 items-center rounded-xs px-2 text-xs font-medium text-primary-text hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">{{ __('reports.clear_all') }}</button>
+            </div>
+        @endif
+
+        @if(! $applied)
+            <x-ui.empty-state :title="__('common.no_results')" :description="__('enrollments.select_filters')" />
+        @else
             @if($tab === 'year_summary')
                 @php($summary = $this->yearSummaryData)
                 @if($summary['grades']->isEmpty())
@@ -549,6 +697,6 @@ new #[Layout('layouts::app')] class extends Component
                     @include('pages.reports.partials._statement', ['student' => $student])
                 @endif
             @endif
-        </x-ui.card>
-    @endif
+        @endif
+    </x-ui.card>
 </div>

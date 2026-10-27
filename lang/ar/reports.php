@@ -10,6 +10,8 @@ return [
     'print' => 'طباعة',
     'print_landscape' => 'طباعة (أفقي)',
     'filters' => 'المرشحات',
+    'clear_all' => 'مسح الكل',
+    'remove_filter' => 'إزالة المرشح :filter',
     'all_schools' => 'كل المدارس',
     'all_grades' => 'كل الصفوف',
     'all_fee_types' => 'كل أنواع الرسوم',

@@ -135,33 +135,82 @@ body {
 .report-table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 0.8125rem;
-    line-height: 1.35rem;
+    font-size: 0.8125rem; /* 13px */
+    line-height: 1.4;
     color: var(--ui-ink);
 }
 
 .report-table thead th {
     background-color: var(--ui-surface-raised);
-    font-weight: 700;
+    font-weight: 600;
+    font-size: 0.6875rem; /* 11px */
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--ui-muted);
     text-align: start;
-    padding: 0.5rem 0.625rem;
-    border: 1px solid var(--ui-line);
+    padding: 0.625rem 0.75rem;
+    border-bottom: 2px solid var(--ui-line-strong);
     white-space: nowrap;
+    position: sticky;
+    top: 0;
+    z-index: 10;
 }
 
 .report-table tbody td {
-    padding: 0.5rem 0.625rem;
-    border: 1px solid var(--ui-line);
-    vertical-align: top;
+    padding: 0.625rem 0.75rem;
+    border-bottom: 1px solid var(--ui-line);
     background-color: var(--ui-surface);
+    vertical-align: middle;
+}
+
+.report-table tbody tr {
+    transition: background-color 120ms ease;
+}
+
+.report-table tbody tr:hover td {
+    background-color: var(--ui-surface-raised);
 }
 
 .report-table tfoot td {
-    padding: 0.5rem 0.625rem;
-    border: 1px solid var(--ui-line-strong);
+    padding: 0.75rem;
+    border-top: 2px solid var(--ui-line-strong);
     font-weight: 700;
     background-color: var(--ui-surface-raised);
+    font-size: 0.8125rem;
 }
+
+/* The app header is sticky and 3.5rem tall; keep sticky table headers below it. */
+@media screen {
+    .report-table thead th {
+        top: 3.5rem;
+    }
+}
+
+@media print {
+    .report-table thead th {
+        position: static;
+    }
+}
+
+/* RTL support */
+html[dir="rtl"] .report-table thead th { text-align: end; }
+html[dir="rtl"] .report-table tbody td { text-align: end; }
+html[dir="rtl"] .report-table .text-end { text-align: start; }
+html[dir="rtl"] .report-table .text-center { text-align: center; }
+
+/* Status badge alignment */
+.report-table .badge {
+    display: inline-flex;
+    align-items: center;
+    height: 1.5rem;
+    padding: 0 0.5rem;
+    font-size: 0.6875rem;
+    font-weight: 600;
+}
+
+/* Money column alignment */
+.report-table .text-end { text-align: end; }
+.report-table .text-center { text-align: center; }
 
 
 /* Table links get a full-height pointer target without changing print. */
@@ -172,4 +221,62 @@ body {
         min-height: 2.75rem;
         align-items: center;
     }
+}
+
+/* Help Page Styles */
+.help-category-btn {
+    @apply inline-flex min-h-11 shrink-0 items-center gap-2 rounded-xs px-3 py-2 text-start text-sm font-medium whitespace-nowrap text-muted transition hover:bg-surface-raised hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus;
+}
+
+.help-category-btn[aria-current] {
+    @apply bg-primary/10 font-semibold text-primary-text;
+}
+
+.help-section-card {
+    @apply space-y-5;
+}
+
+.help-section-header {
+    @apply flex items-start gap-3;
+}
+
+.help-section-icon {
+    @apply flex h-10 w-10 shrink-0 items-center justify-center rounded-sm bg-primary/10 text-primary-text;
+}
+
+.help-section-title {
+    @apply text-lg font-semibold text-ink;
+}
+
+.help-section-intro {
+    @apply mt-1 text-sm text-muted;
+}
+
+.help-steps {
+    @apply relative list-none space-y-4 border-s border-line ps-8;
+}
+
+.help-step {
+    @apply relative;
+}
+
+/* ps-8 = 2rem; the 1.5rem badge at -start-11 (-2.75rem) is centred on the border-s rail. */
+.help-step-number {
+    @apply absolute -start-11 top-0 flex h-6 w-6 items-center justify-center rounded-full bg-primary text-[11px] font-bold text-on-primary dark:bg-primary/20 dark:text-primary-text;
+}
+
+.help-step-text {
+    @apply text-sm leading-6 text-ink;
+}
+
+.help-notes {
+    @apply list-none space-y-2;
+}
+
+.help-note {
+    @apply flex gap-3 text-sm text-muted;
+}
+
+.help-note-icon {
+    @apply mt-0.5 h-5 w-5 shrink-0 text-positive;
 }
